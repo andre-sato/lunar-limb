@@ -1,38 +1,37 @@
 ---
-title: Welcome to Starlight
-description: Get started building your docs site with Starlight.
+title: Welcome to Portal Developers
+description: Find out about our products and services, and how to integrate them into your applications.
 template: splash # Remove or comment out this line to display the site sidebar on this page.
 hero:
-  tagline: Congrats on setting up a new Starlight project!
+  tagline: Get to know our products and services
   image:
-    file: ../../assets/houston.webp
+    file: ../../assets/dock-logo.png
   actions:
     - text: Example Guide
       link: /guides/example/
       icon: right-arrow
-    - text: Read the Starlight docs
-      link: https://starlight.astro.build
+    - text: Read the Portal Developers docs
+      link: https://portal-developers.astro.build
       icon: external
       variant: minimal
 ---
 
 import { Card, CardGrid } from '@astrojs/starlight/components';
 
-## Next steps
+## Main Products
 
 <CardGrid stagger>
-	<Card title="Update content" icon="pencil">
-		Edit `src/content/docs/index.mdx` to see this page change.
+	<Card title="Banking" icon="star">
+		Build and manage banking experiences with Dock, including account-related services, payments, transfers, and other financial operations.
 	</Card>
-	<Card title="Change page layout" icon="document">
-		Delete `template: splash` in `src/content/docs/index.mdx` to display a
-		sidebar on this page.
+	<Card title="Cards & Credit" icon="rocket">
+		Implement card and credit experiences, including card issuing, credit products, card lifecycle management, and transaction-related flows.
 	</Card>
-	<Card title="Add new content" icon="add-document">
-		Add Markdown or MDX files to `src/content/docs` to create new pages.
+	<Card title="Acquiring" icon="add-document">
+		Access documentation for acquiring integrations, including payment acceptance, transaction processing, settlement, and merchant-related operations.
 	</Card>
-	<Card title="Configure your site" icon="setting">
-		Edit your `sidebar` and other config in `astro.config.mjs`.
+	<Card title="Fraud Prevention" icon="pencil">
+		Integrate fraud prevention capabilities to assess risk, monitor suspicious activity, and support safer financial transactions.
 	</Card>
 	<Card title="Read the docs" icon="open-book">
 		Learn more in [the Starlight Docs](https://starlight.astro.build/).
