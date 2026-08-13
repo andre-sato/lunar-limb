@@ -1,0 +1,130 @@
+---
+import { portal } from '../config/portal';
+
+const aiClients = portal.aiClients;
+---
+
+<div class="ai-share" data-ai-share>
+	<button
+		class="ai-share__trigger"
+		type="button"
+		aria-haspopup="menu"
+		aria-expanded="false"
+		data-ai-share-trigger
+	>
+		<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+			<path d="M12 3v12m0-12 4 4m-4-4-4 4" />
+			<path d="M5 13v5a3 3 0 0 0 3 3h8a3 3 0 0 0 3-3v-5" />
+		</svg>
+		Compartilhar com IA
+		<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+			<path d="m6 9 6 6 6-6" />
+		</svg>
+	</button>
+
+	<div class="ai-share__menu" role="menu" hidden data-ai-share-menu>
+		<button type="button" role="menuitem" data-ai-share-action="copy">
+			<span>Copiar página</span>
+			<small>Conteúdo completo</small>
+		</button>
+		<div class="ai-share__separator" role="separator"></div>
+		{aiClients.map((client) => (
+			<button
+				type="button"
+				role="menuitem"
+				data-ai-share-action="open-client"
+				data-ai-client-url={client.url}
+			>
+				<span>Abrir no {client.name}</span>
+				<small>Copia e abre o cliente</small>
+			</button>
+		))}
+	</div>
+
+	<p class="ai-share__status" aria-live="polite" data-ai-share-status></p>
+</div>
+
+<script>
+	const contentSelector = '.sl-markdown-content, article, main';
+
+	function getPageContent() {
+		const title = document.querySelector('h1')?.textContent?.trim() || document.title;
+		const source = document.querySelector<HTMLElement>(contentSelector);
+		const content = source?.cloneNode(true) as HTMLElement | undefined;
+
+		content?.querySelectorAll('[data-ai-share], nav, .pagination-links').forEach((element) => element.remove());
+
+		const text = content?.innerText.replace(/\n{3,}/g, '\n\n').trim() || '';
+		return `# ${title}\n\nFonte: ${window.location.href}\n\n${text}`.trim();
+	}
+
+	async function copyToClipboard(text: string) {
+		try {
+			await navigator.clipboard.writeText(text);
+			return true;
+		} catch {
+			const textarea = document.createElement('textarea');
+			textarea.value = text;
+			textarea.setAttribute('readonly', '');
+			textarea.style.position = 'fixed';
+			textarea.style.opacity = '0';
+			document.body.append(textarea);
+			textarea.select();
+			const copied = document.execCommand('copy');
+			textarea.remove();
+			return copied;
+		}
+	}
+
+	function setMenuState(root: HTMLElement, open: boolean) {
+		const trigger = root.querySelector<HTMLButtonElement>('[data-ai-share-trigger]');
+		const menu = root.querySelector<HTMLElement>('[data-ai-share-menu]');
+		if (!trigger || !menu) return;
+
+		trigger.setAttribute('aria-expanded', String(open));
+		menu.hidden = !open;
+	}
+
+	document.querySelectorAll<HTMLElement>('[data-ai-share]').forEach((root) => {
+		const trigger = root.querySelector<HTMLButtonElement>('[data-ai-share-trigger]');
+		const menu = root.querySelector<HTMLElement>('[data-ai-share-menu]');
+		const status = root.querySelector<HTMLElement>('[data-ai-share-status]');
+
+		trigger?.addEventListener('click', () => {
+			setMenuState(root, trigger.getAttribute('aria-expanded') !== 'true');
+		});
+
+		menu?.addEventListener('click', async (event) => {
+			const target = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-ai-share-action]');
+			if (!target) return;
+
+			const action = target.dataset.aiShareAction;
+			const clientUrl = target.dataset.aiClientUrl;
+			setMenuState(root, false);
+
+			if (action === 'open-client' && clientUrl) {
+				window.open(clientUrl, '_blank', 'noopener,noreferrer');
+			}
+
+			const copied = await copyToClipboard(getPageContent());
+			if (status) {
+				status.textContent = copied
+					? action === 'open-client'
+						? 'Conteúdo copiado. Cole-o na conversa que acabou de abrir.'
+						: 'Página copiada para a área de transferência.'
+					: 'Não foi possível copiar a página. Selecione o conteúdo manualmente.';
+			}
+		});
+	});
+
+	document.addEventListener('click', (event) => {
+		document.querySelectorAll<HTMLElement>('[data-ai-share]').forEach((root) => {
+			if (!root.contains(event.target as Node)) setMenuState(root, false);
+		});
+	});
+
+	document.addEventListener('keydown', (event) => {
+		if (event.key !== 'Escape') return;
+		document.querySelectorAll<HTMLElement>('[data-ai-share]').forEach((root) => setMenuState(root, false));
+	});
+</script>

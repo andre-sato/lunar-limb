@@ -8,6 +8,10 @@ O portal separa três tipos de conteúdo:
 - **Referência de API:** contratos técnicos, autenticação e erros.
 - **Changelog:** alterações relevantes para integrações existentes.
 
+Todas as páginas oferecem o menu **Compartilhar com IA**: ele copia o título, URL e conteúdo da página. A lista de clientes e seus destinos pode ser configurada em `src/config/portal.ts`.
+
+O cabeçalho também inclui um **Ask AI** ao lado da busca. Ele abre uma interface de conversa, prepara a pergunta com o contexto da página e transfere esse contexto ao cliente de IA selecionado.
+
 ## Personalização
 
 Edite `src/config/portal.ts` para definir a empresa, o título do portal, a descrição, a URL base da API e o e-mail de suporte. As cores ficam em `src/styles/custom.css`.

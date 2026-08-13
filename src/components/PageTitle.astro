@@ -1,0 +1,13 @@
+---
+import AiShareDropdown from './AiShareDropdown.astro';
+
+const { title, description } = Astro.locals.starlightRoute.entry.data;
+---
+
+<div class="page-title-with-actions">
+	<div>
+		<h1 id="_top">{title}</h1>
+		{description && <p class="page-title-description">{description}</p>}
+	</div>
+	<AiShareDropdown />
+</div>

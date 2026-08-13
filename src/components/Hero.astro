@@ -1,0 +1,11 @@
+---
+import DefaultHero from '@astrojs/starlight/components/Hero.astro';
+import AiShareDropdown from './AiShareDropdown.astro';
+---
+
+<div class="hero-with-ai-share">
+	<DefaultHero {...Astro.props} />
+	<div class="hero-with-ai-share__action">
+		<AiShareDropdown />
+	</div>
+</div>

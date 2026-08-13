@@ -18,10 +18,22 @@ export const portal = {
   description: 'Documentação para integrar produtos, plataformas e APIs com segurança.',
   apiBaseUrl: 'https://api.suaempresa.com/v1',
   supportEmail: 'developers@suaempresa.com',
+  aiClients: [
+    { name: 'ChatGPT', url: 'https://chatgpt.com/' },
+    { name: 'Claude', url: 'https://claude.ai/new' },
+  ],
 } as const;
 ```
 
 O título e a descrição usados pelo Starlight são obtidos desse arquivo. O endpoint e o e-mail funcionam como referências únicas para quem mantiver o conteúdo.
+
+## Compartilhamento com IA
+
+Cada página inclui o menu **Compartilhar com IA**. A opção **Copiar página** coloca o título, a URL e o conteúdo legível da página na área de transferência. Ao escolher um cliente de IA, o portal também abre esse cliente em outra aba para que o conteúdo seja colado na conversa.
+
+Edite a lista `aiClients` para disponibilizar apenas os clientes aceitos pela sua empresa ou para adicionar outro destino.
+
+O botão **Ask AI**, ao lado da busca, reutiliza essa mesma lista. Ele abre um painel de pergunta, prepara a pergunta com o conteúdo da página atual e abre o cliente escolhido com o prompt copiado. Para respostas dentro do próprio portal, substitua esse handoff por uma integração de servidor — nunca exponha a chave do provedor no navegador.
 
 ## Ajuste a identidade visual
 
