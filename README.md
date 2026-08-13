@@ -12,6 +12,10 @@ Todas as páginas oferecem o menu **Compartilhar com IA**: ele copia o título, 
 
 O cabeçalho também inclui um **Ask AI** ao lado da busca. Ele abre uma interface de conversa, prepara a pergunta com o contexto da página e transfere esse contexto ao cliente de IA selecionado.
 
+## Idiomas
+
+Português (Brasil) é o idioma nativo, sem prefixo de URL. As traduções completas ficam disponíveis em `/en/` e `/es/`, com o seletor de idioma nativo do Starlight. Para manter a associação entre idiomas, crie páginas com o mesmo caminho relativo em `src/content/docs/`, `src/content/docs/en/` e `src/content/docs/es/`.
+
 ## Personalização
 
 Edite `src/config/portal.ts` para definir a empresa, o título do portal, a descrição, a URL base da API e o e-mail de suporte. As cores ficam em `src/styles/custom.css`.

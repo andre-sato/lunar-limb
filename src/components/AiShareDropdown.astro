@@ -2,9 +2,17 @@
 import { portal } from '../config/portal';
 
 const aiClients = portal.aiClients;
+const { t } = Astro.locals;
 ---
 
-<div class="ai-share" data-ai-share>
+<div
+	class="ai-share"
+	data-ai-share
+	data-copy-success={t('aiShare.copySuccess')}
+	data-open-success={t('aiShare.openSuccess')}
+	data-copy-error={t('aiShare.copyError')}
+	data-source-label={t('aiShare.source')}
+>
 	<button
 		class="ai-share__trigger"
 		type="button"
@@ -16,7 +24,7 @@ const aiClients = portal.aiClients;
 			<path d="M12 3v12m0-12 4 4m-4-4-4 4" />
 			<path d="M5 13v5a3 3 0 0 0 3 3h8a3 3 0 0 0 3-3v-5" />
 		</svg>
-		Compartilhar com IA
+		{t('aiShare.trigger')}
 		<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 			<path d="m6 9 6 6 6-6" />
 		</svg>
@@ -24,8 +32,8 @@ const aiClients = portal.aiClients;
 
 	<div class="ai-share__menu" role="menu" hidden data-ai-share-menu>
 		<button type="button" role="menuitem" data-ai-share-action="copy">
-			<span>Copiar página</span>
-			<small>Conteúdo completo</small>
+			<span>{t('aiShare.copyPage')}</span>
+			<small>{t('aiShare.fullContent')}</small>
 		</button>
 		<div class="ai-share__separator" role="separator"></div>
 		{aiClients.map((client) => (
@@ -35,8 +43,8 @@ const aiClients = portal.aiClients;
 				data-ai-share-action="open-client"
 				data-ai-client-url={client.url}
 			>
-				<span>Abrir no {client.name}</span>
-				<small>Copia e abre o cliente</small>
+				<span>{t('aiShare.openClient', { client: client.name })}</span>
+				<small>{t('aiShare.copyAndOpen')}</small>
 			</button>
 		))}
 	</div>
@@ -55,7 +63,8 @@ const aiClients = portal.aiClients;
 		content?.querySelectorAll('[data-ai-share], nav, .pagination-links').forEach((element) => element.remove());
 
 		const text = content?.innerText.replace(/\n{3,}/g, '\n\n').trim() || '';
-		return `# ${title}\n\nFonte: ${window.location.href}\n\n${text}`.trim();
+		const sourceLabel = document.querySelector<HTMLElement>('[data-ai-share]')?.dataset.sourceLabel;
+		return `# ${title}\n\n${sourceLabel}: ${window.location.href}\n\n${text}`.trim();
 	}
 
 	async function copyToClipboard(text: string) {
@@ -110,9 +119,9 @@ const aiClients = portal.aiClients;
 			if (status) {
 				status.textContent = copied
 					? action === 'open-client'
-						? 'Conteúdo copiado. Cole-o na conversa que acabou de abrir.'
-						: 'Página copiada para a área de transferência.'
-					: 'Não foi possível copiar a página. Selecione o conteúdo manualmente.';
+						? root.dataset.openSuccess
+						: root.dataset.copySuccess
+					: root.dataset.copyError;
 			}
 		});
 	});

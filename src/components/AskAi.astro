@@ -2,25 +2,39 @@
 import { portal } from '../config/portal';
 
 const aiClients = portal.aiClients;
+const { t } = Astro.locals;
 ---
 
-<div class="ask-ai" data-ask-ai>
+<div
+	class="ask-ai"
+	data-ask-ai
+	data-preparing={t('askAi.preparing')}
+	data-copy-success={t('askAi.copySuccess')}
+	data-copy-error={t('askAi.copyError')}
+	data-system-prompt={t('askAi.systemPrompt')}
+	data-scope-prompt={t('askAi.scopePrompt')}
+	data-source-prompt={t('askAi.sourcePrompt')}
+	data-context-heading={t('askAi.contextHeading')}
+	data-question-heading={t('askAi.questionHeading')}
+	data-page-label={t('askAi.pageLabel')}
+	data-url-label={t('askAi.urlLabel')}
+>
 	<button class="ask-ai__trigger" type="button" data-ask-ai-trigger aria-haspopup="dialog">
 		<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
 			<path d="m12 3-1.7 5.3L5 10l5.3 1.7L12 17l1.7-5.3L19 10l-5.3-1.7L12 3Z" />
 			<path d="m19 16-.8 2.2L16 19l2.2.8L19 22l.8-2.2L22 19l-2.2-.8L19 16Z" />
 		</svg>
-		<span>Ask AI</span>
+		<span>{t('askAi.trigger')}</span>
 	</button>
 
 	<dialog class="ask-ai__dialog" data-ask-ai-dialog aria-labelledby="ask-ai-title">
 		<div class="ask-ai__panel">
 			<header class="ask-ai__header">
 				<div>
-					<p class="ask-ai__eyebrow">ASSISTENTE DA DOCUMENTAÇÃO</p>
-					<h2 id="ask-ai-title">Como posso ajudar?</h2>
+					<p class="ask-ai__eyebrow">{t('askAi.eyebrow')}</p>
+					<h2 id="ask-ai-title">{t('askAi.title')}</h2>
 				</div>
-				<button class="ask-ai__close" type="button" data-ask-ai-close aria-label="Fechar Ask AI">
+				<button class="ask-ai__close" type="button" data-ask-ai-close aria-label={t('askAi.close')}>
 					<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 						<path d="m6 6 12 12M18 6 6 18" />
 					</svg>
@@ -29,28 +43,28 @@ const aiClients = portal.aiClients;
 
 			<div class="ask-ai__messages" data-ask-ai-messages aria-live="polite">
 				<div class="ask-ai__message ask-ai__message--assistant">
-					Posso preparar sua pergunta com o contexto desta página e abri-la no cliente de IA que você preferir.
+					{t('askAi.intro')}
 				</div>
 			</div>
 
 			<form class="ask-ai__form" data-ask-ai-form>
-				<label for="ask-ai-question">Sua pergunta</label>
+				<label for="ask-ai-question">{t('askAi.question')}</label>
 				<textarea
 					id="ask-ai-question"
 					name="question"
 					rows="3"
-					placeholder="Ex.: Como configuro a autenticação desta API?"
+					placeholder={t('askAi.placeholder')}
 					required
 				></textarea>
 				<div class="ask-ai__actions">
-					<label class="ask-ai__client-label" for="ask-ai-client">Responder com</label>
+					<label class="ask-ai__client-label" for="ask-ai-client">{t('askAi.respondWith')}</label>
 					<select id="ask-ai-client" name="client" data-ask-ai-client>
 						{aiClients.map((client) => <option value={client.url}>{client.name}</option>)}
 					</select>
-					<button class="ask-ai__submit" type="submit">Perguntar</button>
+					<button class="ask-ai__submit" type="submit">{t('askAi.submit')}</button>
 				</div>
 				<p class="ask-ai__disclaimer" data-ask-ai-status>
-					O contexto é copiado para sua área de transferência antes de abrir o cliente selecionado.
+					{t('askAi.disclaimer')}
 				</p>
 			</form>
 		</div>
@@ -60,7 +74,7 @@ const aiClients = portal.aiClients;
 <script>
 	const contentSelector = '.sl-markdown-content, article, main';
 
-	function getPageContext() {
+	function getPageContext(root: HTMLElement) {
 		const title = document.querySelector('h1')?.textContent?.trim() || document.title;
 		const source = document.querySelector<HTMLElement>(contentSelector);
 		const content = source?.cloneNode(true) as HTMLElement | undefined;
@@ -70,19 +84,19 @@ const aiClients = portal.aiClients;
 		});
 
 		const text = content?.innerText.replace(/\n{3,}/g, '\n\n').trim() || '';
-		return `Página: ${title}\nURL: ${window.location.href}\n\n${text}`.trim();
+		return `${root.dataset.pageLabel}: ${title}\n${root.dataset.urlLabel}: ${window.location.href}\n\n${text}`.trim();
 	}
 
-	function buildPrompt(question: string) {
+	function buildPrompt(root: HTMLElement, question: string) {
 		return [
-			'Você é um assistente de documentação para desenvolvedores.',
-			'Responda somente com base no contexto abaixo. Se faltarem informações, diga isso claramente.',
-			'Inclua a URL da página como fonte quando ela embasar a resposta.',
+			root.dataset.systemPrompt,
+			root.dataset.scopePrompt,
+			root.dataset.sourcePrompt,
 			'',
-			'## Contexto da documentação',
-			getPageContext(),
+			`## ${root.dataset.contextHeading}`,
+			getPageContext(root),
 			'',
-			'## Pergunta',
+			`## ${root.dataset.questionHeading}`,
 			question,
 		].join('\n');
 	}
@@ -140,18 +154,17 @@ const aiClients = portal.aiClients;
 			event.preventDefault();
 			const questionText = question?.value.trim();
 			const clientUrl = client?.value;
-			const clientName = client?.selectedOptions[0]?.textContent;
 			if (!questionText || !clientUrl || !messages) return;
 
 			addMessage(messages, 'user', questionText);
-			addMessage(messages, 'assistant', `Preparando o contexto e abrindo ${clientName}…`);
+			addMessage(messages, 'assistant', root.dataset.preparing || '');
 			window.open(clientUrl, '_blank', 'noopener,noreferrer');
 
-			const copied = await copyToClipboard(buildPrompt(questionText));
+			const copied = await copyToClipboard(buildPrompt(root, questionText));
 			if (status) {
 				status.textContent = copied
-					? `Pergunta e contexto copiados. Cole-os na conversa aberta no ${clientName}.`
-					: 'Não foi possível copiar o contexto. Selecione o conteúdo da página manualmente.';
+					? root.dataset.copySuccess
+					: root.dataset.copyError;
 			}
 			if (question) question.value = '';
 		});

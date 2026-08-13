@@ -1,0 +1,41 @@
+---
+title: Portal para Desarrolladores
+description: Guías, referencia de API y cambios del producto en un solo lugar.
+template: splash
+hero:
+  tagline: Una base para crear integraciones confiables con cualquier producto o plataforma.
+  actions:
+    - text: Comienza aquí
+      link: /es/guides/getting-started/
+      icon: right-arrow
+    - text: Referencia de la API
+      link: /es/api-reference/overview/
+      icon: open-book
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## Todo lo que necesita tu integración
+
+<CardGrid stagger>
+	<Card title="Guías" icon="open-book">
+		Instrucciones paso a paso para implementar funcionalidades y entender flujos de integración.
+
+		[Explorar las guías](/es/guides/getting-started/)
+	</Card>
+	<Card title="Referencia de la API" icon="document">
+		Contratos técnicos, autenticación, formatos de respuesta y códigos de error en detalle.
+
+		[Consultar la referencia](/es/api-reference/overview/)
+	</Card>
+	<Card title="Historial de cambios" icon="list-format">
+		Sigue los lanzamientos y los cambios que pueden afectar las integraciones existentes.
+
+		[Ver los cambios](/es/changelog/2026-08-12/)
+	</Card>
+</CardGrid>
+
+## Una estructura lista para tu marca
+
+Este proyecto no depende de un sector específico. Actualiza la empresa, el endpoint de la API y los canales de soporte en [Personaliza tu portal](/es/guides/configure-your-portal/) y publica la documentación de tu producto.
