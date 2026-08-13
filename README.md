@@ -1,49 +1,34 @@
-# Starlight Starter Kit: Basics
+# Developer Portal
 
-[![Built with Starlight](https://astro.badg.es/v2/built-with-starlight/tiny.svg)](https://starlight.astro.build)
+Template white-label de documentação para desenvolvedores, construído com Astro e Starlight.
 
-```
-npm create astro@latest -- --template starlight
-```
+O portal separa três tipos de conteúdo:
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+- **Guias:** instruções orientadas a tarefas e fluxos de integração.
+- **Referência de API:** contratos técnicos, autenticação e erros.
+- **Changelog:** alterações relevantes para integrações existentes.
 
-## 🚀 Project Structure
+## Personalização
 
-Inside of your Astro + Starlight project, you'll see the following folders and files:
+Edite `src/config/portal.ts` para definir a empresa, o título do portal, a descrição, a URL base da API e o e-mail de suporte. As cores ficam em `src/styles/custom.css`.
 
-```
-.
-├── public/
-├── src/
-│   ├── assets/
-│   ├── content/
-│   │   └── docs/
-│   └── content.config.ts
-├── astro.config.mjs
-├── package.json
-└── tsconfig.json
+## Estrutura de conteúdo
+
+```text
+src/content/docs/
+├── api-reference/  # Contratos e convenções da API
+├── changelog/      # Alterações por versão ou data
+├── guides/         # Tutoriais e tarefas de integração
+└── index.mdx       # Página inicial
 ```
 
-Starlight looks for `.md` or `.mdx` files in the `src/content/docs/` directory. Each file is exposed as a route based on its file name.
+Arquivos Markdown e MDX dentro de `src/content/docs/` são publicados automaticamente pelo Starlight. A navegação das três áreas é gerada a partir desses diretórios.
 
-Images can be added to `src/assets/` and embedded in Markdown with a relative link.
+## Comandos
 
-Static assets, like favicons, can be placed in the `public/` directory.
-
-## 🧞 Commands
-
-All commands are run from the root of the project, from a terminal:
-
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
-
-## 👀 Want to learn more?
-
-Check out [Starlight’s docs](https://starlight.astro.build/), read [the Astro documentation](https://docs.astro.build), or jump into the [Astro Discord server](https://astro.build/chat).
+| Comando | Ação |
+| --- | --- |
+| `npm install` | Instala as dependências. |
+| `npm run dev` | Inicia o ambiente de desenvolvimento. |
+| `npm run build` | Gera a versão de produção em `dist/`. |
+| `npm run preview` | Visualiza localmente a versão de produção. |

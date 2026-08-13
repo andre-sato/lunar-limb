@@ -1,24 +1,28 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
+import { portal } from './src/config/portal';
 
 // https://astro.build/config
 export default defineConfig({
 	integrations: [
 		starlight({
-			title: 'Developers Dock Tech',
-			social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/withastro/starlight' }],
+			title: `${portal.companyName} ${portal.portalName}`,
+			description: portal.description,
+			customCss: ['./src/styles/custom.css'],
 			sidebar: [
+				{ label: 'Início', link: '/' },
 				{
-					label: 'Guides',
-					items: [
-						// Each item here is one entry in the navigation menu.
-						{ label: 'Example Guide', slug: 'guides/example' },
-					],
+					label: 'Guias',
+					items: [{ autogenerate: { directory: 'guides' } }],
 				},
 				{
-					label: 'Reference',
-					items: [{ autogenerate: { directory: 'reference' } }],
+					label: 'Referência da API',
+					items: [{ autogenerate: { directory: 'api-reference' } }],
+				},
+				{
+					label: 'Changelog',
+					items: [{ autogenerate: { directory: 'changelog' } }],
 				},
 			],
 		}),

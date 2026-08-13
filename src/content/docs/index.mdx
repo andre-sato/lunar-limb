@@ -1,39 +1,41 @@
 ---
-title: Welcome to Portal Developers
-description: Find out about our products and services, and how to integrate them into your applications.
-template: splash # Remove or comment out this line to display the site sidebar on this page.
+title: Developer Portal
+description: Guias, referências de API e mudanças do produto em um só lugar.
+template: splash
 hero:
-  tagline: Get to know our products and services
-  image:
-    file: ../../assets/dock-logo.png
+  tagline: A base para desenvolver integrações confiáveis com qualquer produto ou plataforma.
   actions:
-    - text: Example Guide
-      link: /guides/example/
+    - text: Comece por aqui
+      link: /guides/getting-started/
       icon: right-arrow
-    - text: Read the Portal Developers docs
-      link: https://portal-developers.astro.build
-      icon: external
+    - text: Referência de API
+      link: /api-reference/overview/
+      icon: open-book
       variant: minimal
 ---
 
 import { Card, CardGrid } from '@astrojs/starlight/components';
 
-## Main Products
+## Tudo o que sua integração precisa
 
 <CardGrid stagger>
-	<Card title="Banking" icon="star">
-		Build and manage banking experiences with Dock, including account-related services, payments, transfers, and other financial operations.
+	<Card title="Guias" icon="open-book">
+		Instruções passo a passo para implementar recursos e entender fluxos de integração.
+
+		[Explorar guias](/guides/getting-started/)
 	</Card>
-	<Card title="Cards & Credit" icon="rocket">
-		Implement card and credit experiences, including card issuing, credit products, card lifecycle management, and transaction-related flows.
+	<Card title="Referência de API" icon="document">
+		Contratos técnicos, autenticação, formatos de resposta e códigos de erro em detalhes.
+
+		[Consultar a referência](/api-reference/overview/)
 	</Card>
-	<Card title="Acquiring" icon="add-document">
-		Access documentation for acquiring integrations, including payment acceptance, transaction processing, settlement, and merchant-related operations.
-	</Card>
-	<Card title="Fraud Prevention" icon="pencil">
-		Integrate fraud prevention capabilities to assess risk, monitor suspicious activity, and support safer financial transactions.
-	</Card>
-	<Card title="Read the docs" icon="open-book">
-		Learn more in [the Starlight Docs](https://starlight.astro.build/).
+	<Card title="Changelog" icon="list-format">
+		Acompanhe lançamentos e alterações que podem impactar integrações existentes.
+
+		[Ver alterações](/changelog/2026-08-12/)
 	</Card>
 </CardGrid>
+
+## Estrutura pronta para sua marca
+
+Este projeto não depende de um setor específico. Atualize a empresa, o endpoint da API e os canais de suporte em [Personalize o portal](/guides/configure-your-portal/) e publique a documentação do seu produto.
