@@ -40,3 +40,23 @@ Arquivos Markdown e MDX dentro de `src/content/docs/` são publicados automatica
 | `npm run dev` | Inicia o ambiente de desenvolvimento. |
 | `npm run build` | Gera a versão de produção em `dist/`. |
 | `npm run preview` | Visualiza localmente a versão de produção. |
+
+## Editor de documentação (`/editor`)
+
+Além do site publicado, o projeto inclui um editor Markdown/MDX interno em **`/editor`**, feito com Monaco (o mesmo editor do VS Code) e React.
+
+Funcionalidades desta primeira fase:
+
+- Editor Monaco com syntax highlighting, multi-cursor, Find/Replace e atalhos padrão (tudo nativo do Monaco).
+- Preview em tempo real (GitHub-flavored Markdown), com debounce.
+- File Explorer sobre `src/content/docs/`, cobrindo as três localidades (raiz `pt-BR`, `en/`, `es/`).
+- Criar página (gera o frontmatter mínimo exigido pelo Starlight), excluir página (com confirmação).
+- Autosave com debounce de 1s, indicador de estado (`Não salvo` / `Salvando…` / `Salvo` / `Erro`), aviso ao fechar a aba com alterações pendentes.
+- Split view / apenas editor / apenas preview, modo Zen (`F11`), tema claro/escuro.
+
+**Como rodar:** `npm install && npm run dev`, depois abra `http://localhost:4321/editor`.
+
+**Limitações desta fase** (previstas para as próximas fases da especificação):
+- O preview renderiza Markdown/GFM puro — ainda não resolve componentes MDX/Starlight nem faz scroll-sync com o editor.
+- Ainda não há reuso de conteúdo (blocos/páginas reutilizáveis), grafo de referências, busca global nem Command Palette — isso é o escopo da Fase 3 em diante.
+- O editor lê e grava diretamente no filesystem via rotas em `src/pages/api/editor/`. Essas rotas são renderizadas sob demanda (`export const prerender = false`) e exigem um servidor Node rodando — funcionam com `astro dev` ou com `node ./dist/server/entry.mjs` (via `@astrojs/node`, modo `standalone`), mas **não** em um host puramente estático (o restante do site continua sendo gerado como HTML estático). Use o editor localmente ou em um servidor interno, não exposto publicamente sem autenticação — ele tem permissão de escrita no repositório.

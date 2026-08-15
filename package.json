@@ -11,7 +11,24 @@
   },
   "dependencies": {
     "@astrojs/starlight": "^0.41.3",
+    "@astrojs/react": "^6.0.1",
+    "@astrojs/node": "^11.1.0",
     "astro": "^7.0.2",
-    "sharp": "^0.34.5"
+    "sharp": "^0.34.5",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "@monaco-editor/react": "^4.6.0",
+    "lucide-react": "^0.383.0",
+    "gray-matter": "^4.0.3",
+    "unified": "^11.0.5",
+    "remark-parse": "^11.0.0",
+    "remark-gfm": "^4.0.1",
+    "remark-rehype": "^11.1.2",
+    "rehype-raw": "^7.0.0",
+    "rehype-stringify": "^10.0.1"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0"
   }
 }
