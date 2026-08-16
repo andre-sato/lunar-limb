@@ -43,31 +43,24 @@ Arquivos Markdown e MDX dentro de `src/content/docs/` são publicados automatica
 
 ## Editor de documentação (`/editor`)
 
-Além do site publicado, o projeto inclui um editor Markdown/MDX interno em **`/editor`**, feito com Monaco (o mesmo editor do VS Code) e React.
+Além do site publicado, o projeto inclui um editor Markdown/MDX interno em **`/editor`**, feito com Monaco (o mesmo editor do VS Code) e React. Ele lê e grava diretamente os arquivos `.md`/`.mdx` em `src/content/docs` através das rotas de API em `src/pages/api/editor/`.
 
-Funcionalidades desta primeira fase:
-
+**Fase 1 — Editor básico:**
 - Editor Monaco com syntax highlighting, multi-cursor, Find/Replace e atalhos padrão (tudo nativo do Monaco).
-- Preview em tempo real (GitHub-flavored Markdown), com debounce.
+- Preview em tempo real, com debounce.
 - File Explorer sobre `src/content/docs/`, cobrindo as três localidades (raiz `pt-BR`, `en/`, `es/`).
 - Criar página (gera o frontmatter mínimo exigido pelo Starlight), excluir página (com confirmação).
 - Autosave com debounce de 1s, indicador de estado (`Não salvo` / `Salvando…` / `Salvo` / `Erro`), aviso ao fechar a aba com alterações pendentes.
 - Split view / apenas editor / apenas preview, modo Zen (`F11`), tema claro/escuro.
 
-**Como rodar:** `npm install && npm run dev`, depois abra `http://localhost:4321/editor`.
+**Fase 2 — Markdown/MDX:**
+- **MDX de verdade:** arquivos `.mdx` são parseados com `remark-mdx` (JSX, `{expressões}`, `import`/`export`) em vez de tratados como Markdown puro. Componentes JSX (`<Aside>`, `<Tabs>` etc.) aparecem no preview como uma caixa com o nome/props do componente, com o conteúdo interno (Markdown) renderizado normalmente — o editor **não executa** componentes React/Astro reais (isso exigiria rodar o pipeline de build do Astro dentro da rota de preview).
+- **Frontmatter visual:** painel recolhível acima do editor com os campos `title`, `description`, `sidebar.label` e `sidebar.order`. Qualquer outro campo do frontmatter (customizado ou não coberto pelo formulário) é preservado intacto ao editar pelos campos visuais.
+- **Imagens:** caminhos relativos de imagem (`![](../assets/foo.png)`) são resolvidos a partir da pasta do arquivo aberto e servidos por `GET /api/editor/asset`, escopado a `src/`. Imagens que não existem ficam com uma borda tracejada no preview em vez de um ícone quebrado do navegador.
+- **Validação/erro de sintaxe:** erros de parsing do Markdown/MDX (JSX mal formado, YAML inválido no frontmatter, etc.) aparecem tanto no preview quanto como marcador vermelho na linha correspondente do Monaco, com o motivo do erro.
+- GFM completo (tabelas, task lists, strikethrough, autolinks) — já coberto desde a Fase 1 via `remark-gfm`.
 
-**Limitações desta fase** (previstas para as próximas fases da especificação):
-- O preview renderiza Markdown/GFM puro — ainda não resolve componentes MDX/Starlight nem faz scroll-sync com o editor.
-- Ainda não há reuso de conteúdo (blocos/páginas reutilizáveis), grafo de referências, busca global nem Command Palette — isso é o escopo da Fase 3 em diante.
-- O editor lê e grava diretamente no filesystem via rotas em `src/pages/api/editor/`. Essas rotas são renderizadas sob demanda (`export const prerender = false`) e exigem um servidor Node rodando — funcionam com `astro dev` ou com `node ./dist/server/entry.mjs` (via `@astrojs/node`, modo `standalone`), mas **não** em um host puramente estático (o restante do site continua sendo gerado como HTML estático). Use o editor localmente ou em um servidor interno, não exposto publicamente sem autenticação — ele tem permissão de escrita no repositório.
-
-## Editor de documentação (`/editor`)
-
-O projeto inclui um editor Markdown/MDX interno em `/editor`, feito com Monaco + React.
-
-O editor lê e grava diretamente os arquivos `.md` e `.mdx` em `src/content/docs` através das rotas de API em `src/pages/api/editor/`.
-
-### Como executar
+**Como rodar:**
 
 ```bash
 npm install
@@ -78,7 +71,7 @@ Depois abra `http://localhost:4321/editor/`.
 
 ### Build e preview de produção
 
-O projeto usa `@astrojs/node` com `output: 'server'`, porque as rotas do editor precisam de execução sob demanda para ler e gravar arquivos no filesystem. O Node adapter é a configuração recomendada pelo Astro para esse tipo de rota. 
+O projeto usa `@astrojs/node` com `output: 'server'`, porque as rotas do editor precisam de execução sob demanda para ler e gravar arquivos no filesystem.
 
 ```bash
 npm run build
@@ -91,12 +84,20 @@ Também é possível iniciar diretamente o servidor standalone gerado:
 node ./dist/server/entry.mjs
 ```
 
+### Limitações atuais (para as próximas fases da especificação)
+
+- O preview de MDX não executa componentes Astro/Starlight reais — mostra um placeholder com nome e props. Renderização real de componente é uma decisão maior (rodar o pipeline de build do Astro dentro da rota de API) e fica para uma fase futura.
+- Ainda não há scroll-sync entre editor e preview.
+- Ainda não há reuso de conteúdo (blocos/páginas reutilizáveis), grafo de referências, busca global nem Command Palette — isso é o escopo da Fase 3 em diante.
+- O editor não tem autenticação própria. Não o exponha publicamente sem colocar algo na frente (ele tem permissão de escrita no repositório) — use-o localmente ou em um servidor interno.
+
 ### Dependências
 
-O projeto utiliza React, `@astrojs/react`, `@astrojs/node` e Monaco. O `package-lock.json` antigo não continha as dependências adicionadas pelo editor, portanto ele foi removido para que o primeiro `npm install` gere um lockfile consistente com o `package.json` atual.
-
+O projeto utiliza React, `@astrojs/react`, `@astrojs/node`, Monaco, `remark-mdx` e `js-yaml`. Rode `npm install` sempre que o `package.json` mudar.
 
 ## Clean install
+
+Se o `node_modules`/lockfile ficarem inconsistentes com o `package.json` (por exemplo depois de puxar uma versão nova do editor):
 
 ```powershell
 Remove-Item -Recurse -Force node_modules -ErrorAction SilentlyContinue
@@ -105,3 +106,4 @@ npm install
 npm run build
 npm run dev
 ```
+

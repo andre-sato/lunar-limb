@@ -7,13 +7,17 @@ export const POST: APIRoute = async ({ request }) => {
 	try {
 		const body = await request.json();
 		const content = body?.content;
+		const docPath = typeof body?.path === 'string' ? body.path : undefined;
+
 		if (typeof content !== 'string') {
 			return new Response(JSON.stringify({ error: 'Corpo inválido: esperado { content }.' }), {
 				status: 400,
 				headers: { 'Content-Type': 'application/json' },
 			});
 		}
-		const result = await renderPreview(content);
+
+		const isMdx = docPath ? docPath.toLowerCase().endsWith('.mdx') : false;
+		const result = await renderPreview(content, { isMdx, docPath });
 		return new Response(JSON.stringify(result), {
 			status: 200,
 			headers: { 'Content-Type': 'application/json' },

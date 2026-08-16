@@ -55,13 +55,14 @@ export interface PreviewResponse {
 	html: string;
 	frontmatter: Record<string, unknown>;
 	warning?: string;
+	errorLine?: number;
 }
 
-export async function fetchPreview(content: string): Promise<PreviewResponse> {
+export async function fetchPreview(content: string, docPath?: string): Promise<PreviewResponse> {
 	const res = await fetch('/api/editor/preview', {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify({ content }),
+		body: JSON.stringify({ content, path: docPath }),
 	});
 	return handle<PreviewResponse>(res);
 }

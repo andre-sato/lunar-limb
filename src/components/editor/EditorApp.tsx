@@ -5,6 +5,7 @@ import PreviewPane from './PreviewPane';
 import Toolbar from './Toolbar';
 import StatusBar from './StatusBar';
 import NewFileModal from './NewFileModal';
+import FrontmatterPanel from './FrontmatterPanel';
 import { createFile, deleteFile, fetchFile, fetchPreview, fetchTree, saveFile } from './api';
 import { useDebouncedCallback } from './useDebouncedCallback';
 import type { CursorPosition, SaveStatus, ThemeMode, TreeNode, ViewMode } from './types';
@@ -39,6 +40,7 @@ export default function EditorApp() {
 
 	const [previewHtml, setPreviewHtml] = useState('');
 	const [previewWarning, setPreviewWarning] = useState<string | undefined>(undefined);
+	const [previewErrorLine, setPreviewErrorLine] = useState<number | undefined>(undefined);
 	const [previewLoading, setPreviewLoading] = useState(false);
 	const [docTitle, setDocTitle] = useState<string | undefined>(undefined);
 
@@ -69,23 +71,25 @@ export default function EditorApp() {
 
 	// ---- Preview --------------------------------------------------------
 
-	const requestPreview = useCallback(async (value: string) => {
+	const requestPreview = useCallback(async (value: string, path: string | null) => {
 		setPreviewLoading(true);
 		try {
-			const res = await fetchPreview(value);
+			const res = await fetchPreview(value, path ?? undefined);
 			setPreviewHtml(res.html);
 			setPreviewWarning(res.warning);
+			setPreviewErrorLine(res.errorLine);
 			const title = res.frontmatter?.title;
 			setDocTitle(typeof title === 'string' ? title : undefined);
 		} catch (err) {
 			setPreviewWarning(err instanceof Error ? err.message : 'Erro ao gerar preview.');
+			setPreviewErrorLine(undefined);
 		} finally {
 			setPreviewLoading(false);
 		}
 	}, []);
 
 	const debouncedPreview = useDebouncedCallback((value: string) => {
-		void requestPreview(value);
+		void requestPreview(value, activePath);
 	}, 400);
 
 	// ---- Save -------------------------------------------------------------
@@ -131,7 +135,7 @@ export default function EditorApp() {
 				setSaveStatus('saved');
 				const title = doc.frontmatter?.title;
 				setDocTitle(typeof title === 'string' ? title : undefined);
-				void requestPreview(doc.content);
+				void requestPreview(doc.content, doc.path);
 
 				const url = new URL(window.location.href);
 				url.searchParams.set('path', doc.path);
@@ -283,16 +287,21 @@ export default function EditorApp() {
 						<>
 							{(viewMode === 'editor' || viewMode === 'split') && (
 								<div className="pane pane-editor">
-									<MarkdownEditorPane
-										value={content}
-										language={isMdx ? 'mdx' : 'markdown'}
-										theme={theme}
-										onChange={handleContentChange}
-										onCursorChange={setCursor}
-										onSaveShortcut={handleManualSave}
-										wordWrap
-										minimap={false}
-									/>
+									<FrontmatterPanel content={content} onChange={handleContentChange} />
+									<div className="editor-scroll-area">
+										<MarkdownEditorPane
+											value={content}
+											language={isMdx ? 'mdx' : 'markdown'}
+											theme={theme}
+											onChange={handleContentChange}
+											onCursorChange={setCursor}
+											onSaveShortcut={handleManualSave}
+											wordWrap
+											minimap={false}
+											errorLine={previewErrorLine}
+											errorMessage={previewWarning}
+										/>
+									</div>
 								</div>
 							)}
 							{(viewMode === 'preview' || viewMode === 'split') && (
