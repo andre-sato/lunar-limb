@@ -7,13 +7,12 @@ import { portal } from './src/config/portal';
 
 // https://astro.build/config
 export default defineConfig({
-	// The docs site itself stays fully static. The Node adapter only powers
-	// the on-demand routes under src/pages/editor and src/pages/api/editor
-	// (marked with `export const prerender = false`), which read and write
-	// files in src/content/docs. Those routes only work where a Node server
-	// is actually running (e.g. `astro dev`, or `node ./dist/server/entry.mjs`
-	// on an internal server) — they are not available on a purely static host.
-	output: 'static',
+	// The editor exposes on-demand pages/API routes that read and write
+	// Markdown files from the repository. A static build cannot serve those
+	// routes, so the portal uses Astro's Node server output. Documentation
+	// pages remain cacheable/static-friendly, while the editor and API routes
+	// are available in both `astro dev` and the built standalone server.
+	output: 'server',
 	adapter: node({ mode: 'standalone' }),
 	integrations: [
 		starlight({

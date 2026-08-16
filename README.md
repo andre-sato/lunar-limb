@@ -60,3 +60,48 @@ Funcionalidades desta primeira fase:
 - O preview renderiza Markdown/GFM puro — ainda não resolve componentes MDX/Starlight nem faz scroll-sync com o editor.
 - Ainda não há reuso de conteúdo (blocos/páginas reutilizáveis), grafo de referências, busca global nem Command Palette — isso é o escopo da Fase 3 em diante.
 - O editor lê e grava diretamente no filesystem via rotas em `src/pages/api/editor/`. Essas rotas são renderizadas sob demanda (`export const prerender = false`) e exigem um servidor Node rodando — funcionam com `astro dev` ou com `node ./dist/server/entry.mjs` (via `@astrojs/node`, modo `standalone`), mas **não** em um host puramente estático (o restante do site continua sendo gerado como HTML estático). Use o editor localmente ou em um servidor interno, não exposto publicamente sem autenticação — ele tem permissão de escrita no repositório.
+
+## Editor de documentação (`/editor`)
+
+O projeto inclui um editor Markdown/MDX interno em `/editor`, feito com Monaco + React.
+
+O editor lê e grava diretamente os arquivos `.md` e `.mdx` em `src/content/docs` através das rotas de API em `src/pages/api/editor/`.
+
+### Como executar
+
+```bash
+npm install
+npm run dev
+```
+
+Depois abra `http://localhost:4321/editor/`.
+
+### Build e preview de produção
+
+O projeto usa `@astrojs/node` com `output: 'server'`, porque as rotas do editor precisam de execução sob demanda para ler e gravar arquivos no filesystem. O Node adapter é a configuração recomendada pelo Astro para esse tipo de rota. 
+
+```bash
+npm run build
+npm run preview
+```
+
+Também é possível iniciar diretamente o servidor standalone gerado:
+
+```bash
+node ./dist/server/entry.mjs
+```
+
+### Dependências
+
+O projeto utiliza React, `@astrojs/react`, `@astrojs/node` e Monaco. O `package-lock.json` antigo não continha as dependências adicionadas pelo editor, portanto ele foi removido para que o primeiro `npm install` gere um lockfile consistente com o `package.json` atual.
+
+
+## Clean install
+
+```powershell
+Remove-Item -Recurse -Force node_modules -ErrorAction SilentlyContinue
+Remove-Item -Force package-lock.json -ErrorAction SilentlyContinue
+npm install
+npm run build
+npm run dev
+```
