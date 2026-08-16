@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node dist/server/entry.mjs)",
+      "Bash(curl -sI http://localhost:4321/)",
+      "Bash(kill %1)",
+      "Bash(curl -s http://localhost:4321/guides/testando-mdx/)"
+    ]
+  }
+}
