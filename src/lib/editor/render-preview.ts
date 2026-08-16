@@ -10,6 +10,9 @@ import path from 'node:path';
 import { mdxHandlers } from './mdx-handlers';
 import { rehypeRewriteImages } from './rehype-rewrite-images';
 import { remarkResolveReusable, type ReusableIssue } from './remark-resolve-reusable';
+import { remarkResolveConditionals, type ConditionalIssue } from './remark-resolve-conditionals';
+import { readVariables } from './variables-fs';
+import { hiddenReasonFor, type HiddenReason } from '../content/variables';
 
 /**
  * Best-effort preview pipeline.
@@ -40,6 +43,10 @@ export interface PreviewResult {
 	errorLine?: number;
 	/** Non-fatal issues found while resolving <ContentBlock>/<IncludePage> references. */
 	reusableIssues?: ReusableIssue[];
+	/** Fase 5: condicionais que apontam para variáveis inexistentes. */
+	conditionalIssues?: ConditionalIssue[];
+	/** Fase 5: por que esta página está invisível para o leitor, se estiver. */
+	hiddenReason?: HiddenReason;
 }
 
 function resolveDocDir(docPath?: string): string {
@@ -66,6 +73,12 @@ export async function renderPreview(rawContent: string, options: PreviewOptions 
 		};
 	}
 
+	// Condicionais valem tanto para .md quanto para .mdx? Não: `<If>` é JSX,
+	// então só o pipeline MDX o enxerga. As variáveis, porém, são lidas sempre,
+	// porque `visible`/`showIf` no frontmatter valem para os dois.
+	const variables = await readVariables();
+	const hiddenReason = hiddenReasonFor((parsed.data ?? {}) as Record<string, unknown>, variables);
+
 	try {
 		const file = isMdx
 			? await unified()
@@ -73,6 +86,7 @@ export async function renderPreview(rawContent: string, options: PreviewOptions 
 					.use(remarkMdx)
 					.use(remarkGfm)
 					.use(remarkResolveReusable)
+					.use(remarkResolveConditionals, variables)
 					.use(remarkRehype, { allowDangerousHtml: false, handlers: mdxHandlers } as any)
 					.use(rehypeRewriteImages, docDir)
 					.use(rehypeStringify, { allowDangerousHtml: true })
@@ -86,12 +100,15 @@ export async function renderPreview(rawContent: string, options: PreviewOptions 
 					.use(rehypeStringify, { allowDangerousHtml: true })
 					.process(parsed.content);
 
-		const reusableIssues = (file.data as { reusableIssues?: ReusableIssue[] }).reusableIssues;
+		const data = file.data as { reusableIssues?: ReusableIssue[]; conditionalIssues?: ConditionalIssue[] };
+		const { reusableIssues, conditionalIssues } = data;
 
 		return {
 			html: String(file),
 			frontmatter: parsed.data ?? {},
 			reusableIssues: reusableIssues && reusableIssues.length > 0 ? reusableIssues : undefined,
+			conditionalIssues: conditionalIssues && conditionalIssues.length > 0 ? conditionalIssues : undefined,
+			hiddenReason,
 		};
 	} catch (err) {
 		const line = (err as { line?: number } | undefined)?.line;
@@ -100,6 +117,7 @@ export async function renderPreview(rawContent: string, options: PreviewOptions 
 			frontmatter: parsed.data ?? {},
 			warning: err instanceof Error ? err.message : 'Erro ao renderizar o conteúdo.',
 			errorLine: typeof line === 'number' ? line : undefined,
+			hiddenReason,
 		};
 	}
 }

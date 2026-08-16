@@ -1,4 +1,13 @@
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState, type Ref } from 'react';
+import {
+	forwardRef,
+	useCallback,
+	useEffect,
+	useImperativeHandle,
+	useRef,
+	useState,
+	type Ref,
+	type RefObject,
+} from 'react';
 import Editor, { type Monaco, type OnMount } from '@monaco-editor/react';
 import type { CursorPosition, ThemeMode } from './types';
 
@@ -40,6 +49,30 @@ interface MarkdownEditorPaneProps {
 	errorMessage?: string;
 	/** Fase 4: linhas com <ContentBlock>/<IncludePage>, decoradas para distinguir conteúdo reutilizado do local. */
 	referenceMarkers?: ReferenceMarker[];
+	/** Fase 5: liga as keybindings do Vim. */
+	vimMode?: boolean;
+	/** Fase 5: onde a barra de status do Vim é desenhada. */
+	vimStatusRef?: RefObject<HTMLDivElement | null>;
+}
+
+/** Envolve a seleção (ou insere no cursor) com um par de marcadores Markdown. */
+function wrapSelection(editor: MonacoEditorInstance, before: string, after: string, placeholder: string): void {
+	const selection = editor.getSelection();
+	const model = editor.getModel();
+	if (!selection || !model) return;
+
+	const selected = model.getValueInRange(selection);
+	const text = selected || placeholder;
+	editor.executeEdits('format', [{ range: selection, text: `${before}${text}${after}` }]);
+
+	// Sem seleção prévia, deixa o cursor dentro dos marcadores, pronto para digitar.
+	if (!selected) {
+		const position = editor.getPosition();
+		if (position) {
+			editor.setPosition({ lineNumber: position.lineNumber, column: position.column - after.length });
+		}
+	}
+	editor.focus();
 }
 
 function MarkdownEditorPaneInner(
@@ -55,6 +88,8 @@ function MarkdownEditorPaneInner(
 		errorLine,
 		errorMessage,
 		referenceMarkers,
+		vimMode = false,
+		vimStatusRef,
 	}: MarkdownEditorPaneProps,
 	ref: Ref<MarkdownEditorHandle>
 ) {
@@ -75,10 +110,19 @@ function MarkdownEditorPaneInner(
 				onCursorChange({ line: e.position.lineNumber, column: e.position.column });
 			});
 
-			// eslint-disable-next-line no-bitwise
-			editorInstance.addCommand(monacoInstance.KeyMod.CtrlCmd | monacoInstance.KeyCode.KeyS, () => {
+			/* eslint-disable no-bitwise */
+			const { CtrlCmd } = monacoInstance.KeyMod;
+			const { KeyS, KeyB, KeyI, KeyK } = monacoInstance.KeyCode;
+
+			editorInstance.addCommand(CtrlCmd | KeyS, () => {
 				onSaveShortcut();
 			});
+
+			// Fase 5 — atalhos de formatação Markdown (§7 da especificação).
+			editorInstance.addCommand(CtrlCmd | KeyB, () => wrapSelection(editorInstance, '**', '**', 'negrito'));
+			editorInstance.addCommand(CtrlCmd | KeyI, () => wrapSelection(editorInstance, '_', '_', 'itálico'));
+			editorInstance.addCommand(CtrlCmd | KeyK, () => wrapSelection(editorInstance, '[', '](url)', 'texto do link'));
+			/* eslint-enable no-bitwise */
 		},
 		[onCursorChange, onSaveShortcut]
 	);
@@ -172,6 +216,31 @@ function MarkdownEditorPaneInner(
 			monacoInstance.editor.setModelMarkers(model, 'editor-preview', []);
 		}
 	}, [errorLine, errorMessage, mounted]);
+
+	// Fase 5 — Vim keybindings. `monaco-vim` é carregado sob demanda: quem não
+	// usa Vim não paga o download, e ele só existe no browser (usa o DOM direto).
+	useEffect(() => {
+		const editorInstance = editorRef.current;
+		const statusNode = vimStatusRef?.current;
+		if (!editorInstance || !vimMode) return;
+
+		let disposed = false;
+		let vim: { dispose: () => void } | null = null;
+
+		void import('monaco-vim')
+			.then(({ initVimMode }) => {
+				if (disposed) return;
+				vim = initVimMode(editorInstance, statusNode ?? undefined);
+			})
+			.catch(() => {
+				// Falhar ao carregar o modo Vim não pode derrubar o editor inteiro.
+			});
+
+		return () => {
+			disposed = true;
+			vim?.dispose();
+		};
+	}, [vimMode, mounted, vimStatusRef]);
 
 	// Monaco has no dedicated MDX grammar; "markdown" gives correct
 	// highlighting/wrap behavior for the JSX-in-Markdown body too.

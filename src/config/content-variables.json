@@ -1,0 +1,14 @@
+{
+  "beta": {
+    "value": false,
+    "description": "Recursos ainda em beta. Ligue para exibir os trechos e páginas marcados como beta."
+  },
+  "interno": {
+    "value": false,
+    "description": "Conteúdo destinado ao time interno — fica oculto na documentação pública."
+  },
+  "plano": {
+    "value": "starter",
+    "description": "Plano do cliente exibido nos exemplos. Use com <If flag=\"plano\" equals=\"enterprise\">."
+  }
+}

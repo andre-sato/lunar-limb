@@ -1,4 +1,20 @@
-import { Columns2, PenLine, Eye, Maximize2, Minimize2, Sun, Moon, Save, Component, Scissors, Network } from 'lucide-react';
+import {
+	Columns2,
+	PenLine,
+	Eye,
+	Maximize2,
+	Minimize2,
+	Sun,
+	Moon,
+	Save,
+	Component,
+	Scissors,
+	Network,
+	GitBranch,
+	Search,
+	SlidersHorizontal,
+	Terminal,
+} from 'lucide-react';
 import type { SaveStatus, ThemeMode, ViewMode } from './types';
 
 interface ToolbarProps {
@@ -18,6 +34,13 @@ interface ToolbarProps {
 	onOpenGraph: () => void;
 	/** Fase 4: total de problemas de referência no projeto, para o badge. */
 	problemCount?: number;
+	/** Fase 5 */
+	onInsertConditional: () => void;
+	onOpenVariables: () => void;
+	onOpenCommands: () => void;
+	onOpenSearch: () => void;
+	vimMode: boolean;
+	onToggleVim: () => void;
 }
 
 const statusLabel: Record<SaveStatus, string> = {
@@ -43,6 +66,12 @@ export default function Toolbar({
 	onExtractReusable,
 	onOpenGraph,
 	problemCount = 0,
+	onInsertConditional,
+	onOpenVariables,
+	onOpenCommands,
+	onOpenSearch,
+	vimMode,
+	onToggleVim,
 }: ToolbarProps) {
 	return (
 		<header className="toolbar">
@@ -89,8 +118,35 @@ export default function Toolbar({
 						<button type="button" className="icon-btn" onClick={onExtractReusable} title="Extrair seleção para conteúdo reutilizável">
 							<Scissors size={16} />
 						</button>
+						<button
+							type="button"
+							className="icon-btn"
+							onClick={onInsertConditional}
+							title="Inserir bloco condicional (<If>)"
+						>
+							<GitBranch size={16} />
+						</button>
 					</>
 				)}
+				<button type="button" className="icon-btn" onClick={onOpenSearch} title="Buscar em todo o conteúdo (Ctrl/Cmd+Shift+F)">
+					<Search size={16} />
+				</button>
+				<button
+					type="button"
+					className="icon-btn"
+					onClick={onOpenVariables}
+					title="Variáveis de conteúdo (Ctrl/Cmd+Shift+V)"
+				>
+					<SlidersHorizontal size={16} />
+				</button>
+				<button
+					type="button"
+					className="icon-btn"
+					onClick={onOpenCommands}
+					title="Command Palette (Ctrl/Cmd+Shift+P)"
+				>
+					<Terminal size={16} />
+				</button>
 				<button
 					type="button"
 					className={`icon-btn${problemCount > 0 ? ' icon-btn--badged' : ''}`}
@@ -111,6 +167,14 @@ export default function Toolbar({
 					title="Salvar (Cmd/Ctrl+S)"
 				>
 					<Save size={16} />
+				</button>
+				<button
+					type="button"
+					className={`icon-btn${vimMode ? ' icon-btn--on' : ''}`}
+					onClick={onToggleVim}
+					title={vimMode ? 'Desligar keybindings do Vim' : 'Ligar keybindings do Vim'}
+				>
+					<span className="vim-toggle-label">VIM</span>
 				</button>
 				<button type="button" className="icon-btn" onClick={onToggleTheme} title="Alternar tema">
 					{theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}

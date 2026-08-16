@@ -28,7 +28,11 @@ export default function NewFileModal({ onClose, onCreate }: NewFileModalProps) {
 	const [subpath, setSubpath] = useState('');
 	const [title, setTitle] = useState('');
 	const [description, setDescription] = useState('');
-	const [isMdx, setIsMdx] = useState(false);
+	// Fase 5: .mdx é o padrão. Uma página .md não aceita <ContentBlock>, <If> nem
+	// qualquer componente — começar em .mdx evita ter que converter depois, e não
+	// custa nada quando os recursos não são usados.
+	const [isMdx, setIsMdx] = useState(true);
+	const [visible, setVisible] = useState(true);
 	const [submitting, setSubmitting] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
@@ -53,6 +57,11 @@ export default function NewFileModal({ onClose, onCreate }: NewFileModalProps) {
 		const frontmatterLines = ['---', `title: ${JSON.stringify(title.trim())}`];
 		if (description.trim()) {
 			frontmatterLines.push(`description: ${JSON.stringify(description.trim())}`);
+		}
+		// Só escreve `visible` quando for false: o padrão do schema já é visível, e
+		// poluir o frontmatter de toda página com `visible: true` não ajuda ninguém.
+		if (!visible) {
+			frontmatterLines.push('visible: false');
 		}
 		frontmatterLines.push('---', '', '');
 		const content = frontmatterLines.join('\n');
@@ -109,8 +118,20 @@ export default function NewFileModal({ onClose, onCreate }: NewFileModalProps) {
 
 					<label className="modal-checkbox">
 						<input type="checkbox" checked={isMdx} onChange={(e) => setIsMdx(e.target.checked)} />
-						Criar como .mdx (permite componentes)
+						Criar como <code>.mdx</code> — permite conteúdo reutilizável e condicionais
 					</label>
+
+					<label className="modal-checkbox">
+						<input type="checkbox" checked={visible} onChange={(e) => setVisible(e.target.checked)} />
+						Visível para o leitor (desmarcado publica a página fora da navegação e da busca)
+					</label>
+
+					{!isMdx && (
+						<p className="modal-hint">
+							Em <code>.md</code> não é possível usar <code>{'<ContentBlock>'}</code> nem{' '}
+							<code>{'<If>'}</code>.
+						</p>
+					)}
 
 					{error && <p className="modal-error">{error}</p>}
 

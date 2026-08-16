@@ -81,7 +81,9 @@ function deletePath(target: Record<string, unknown>, pathSegments: FieldPath): v
 export function updateField(
 	frontmatter: Record<string, unknown>,
 	pathSegments: FieldPath,
-	value: string | number | undefined
+	// `boolean` entrou na Fase 5 por causa de `visible`. Note que só `undefined`
+	// e `''` removem o campo — `false` é um valor legítimo e precisa ser gravado.
+	value: string | number | boolean | undefined
 ): Record<string, unknown> {
 	const next: Record<string, unknown> = JSON.parse(JSON.stringify(frontmatter ?? {}));
 	if (value === undefined || value === '') {

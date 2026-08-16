@@ -77,3 +77,24 @@ export interface ReferenceDetail {
 	resolved: boolean;
 	location: { line: number; column: number };
 }
+
+// ---------------------------------------------------------------------------
+// Fase 5
+// ---------------------------------------------------------------------------
+
+export type { Condition, VariableDefinition, VariableMap, VariableValue } from '../../lib/content/variables';
+export type { SearchHit } from '../../lib/editor/search';
+export type { GitState, GitStatusMap } from '../../lib/editor/git-status';
+
+/** Um comando da Command Palette. */
+export interface EditorCommand {
+	id: string;
+	label: string;
+	/** Agrupa visualmente na paleta ("Arquivo", "Inserir", "Ver"…). */
+	group: string;
+	/** Atalho exibido à direita, apenas informativo. */
+	shortcut?: string;
+	/** Quando false, o comando aparece esmaecido e não executa. */
+	enabled?: boolean;
+	run: () => void;
+}

@@ -7,7 +7,8 @@ export const POST: APIRoute = async ({ request }) => {
 	try {
 		const body = await request.json();
 		const content = body?.content;
-		const docPath = typeof body?.path === 'string' ? body.path : undefined;
+		const filePath = typeof body?.path === 'string' ? body.path : undefined;
+		const root = body?.root === 'snippets' ? 'snippets' : 'docs';
 
 		if (typeof content !== 'string') {
 			return new Response(JSON.stringify({ error: 'Corpo inválido: esperado { content }.' }), {
@@ -16,7 +17,13 @@ export const POST: APIRoute = async ({ request }) => {
 			});
 		}
 
-		const isMdx = docPath ? docPath.toLowerCase().endsWith('.mdx') : false;
+		// O modo MDX vem da extensão do arquivo aberto, seja ele uma página ou um
+		// snippet — um snippet .mdx também precisa do parser MDX para que
+		// <ContentBlock>/<If> dentro dele resolvam no preview.
+		const isMdx = filePath ? filePath.toLowerCase().endsWith('.mdx') : false;
+		// A resolução de imagem relativa só faz sentido a partir de src/content/docs.
+		const docPath = root === 'docs' ? filePath : undefined;
+
 		const result = await renderPreview(content, { isMdx, docPath });
 		return new Response(JSON.stringify(result), {
 			status: 200,

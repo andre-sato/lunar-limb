@@ -11,7 +11,7 @@ export default function FrontmatterPanel({ content, onChange }: FrontmatterPanel
 	const [expanded, setExpanded] = useState(false);
 	const { frontmatter, body, hasFrontmatter } = splitContent(content);
 
-	function update(path: string[], value: string | number | undefined) {
+	function update(path: string[], value: string | number | boolean | undefined) {
 		const next = updateField(frontmatter, path, value);
 		onChange(buildContent(next, body));
 	}
@@ -24,6 +24,10 @@ export default function FrontmatterPanel({ content, onChange }: FrontmatterPanel
 			: {};
 	const sidebarLabel = typeof sidebar.label === 'string' ? sidebar.label : '';
 	const sidebarOrder = typeof sidebar.order === 'number' ? String(sidebar.order) : '';
+
+	// Fase 5 — o campo é opcional; ausente significa visível.
+	const isVisible = frontmatter.visible !== false;
+	const showIf = typeof frontmatter.showIf === 'string' ? frontmatter.showIf : '';
 
 	const titleMissing = title.trim() === '';
 
@@ -48,6 +52,8 @@ export default function FrontmatterPanel({ content, onChange }: FrontmatterPanel
 				{expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
 				<span>Metadados da página</span>
 				{!expanded && <span className="frontmatter-summary">{title || '(sem título)'}</span>}
+				{!isVisible && <span className="frontmatter-badge frontmatter-badge--muted">invisível</span>}
+				{showIf && <span className="frontmatter-badge frontmatter-badge--muted">showIf: {showIf}</span>}
 				{titleMissing && <span className="frontmatter-badge">título obrigatório</span>}
 			</button>
 
@@ -76,6 +82,27 @@ export default function FrontmatterPanel({ content, onChange }: FrontmatterPanel
 							type="number"
 							value={sidebarOrder}
 							onChange={(e) => update(['sidebar', 'order'], e.target.value === '' ? undefined : Number(e.target.value))}
+						/>
+					</label>
+
+					<label className="frontmatter-checkbox">
+						<input
+							type="checkbox"
+							checked={isVisible}
+							// Só grava quando for `false`; voltar a visível remove o campo,
+							// em vez de deixar `visible: true` sobrando no arquivo.
+							onChange={(e) => update(['visible'], e.target.checked ? undefined : false)}
+						/>
+						Visível para o leitor
+					</label>
+
+					<label>
+						Mostrar somente se (variável)
+						<input
+							type="text"
+							placeholder="ex: beta — ou !interno para inverter"
+							value={showIf}
+							onChange={(e) => update(['showIf'], e.target.value.trim() === '' ? undefined : e.target.value.trim())}
 						/>
 					</label>
 				</div>

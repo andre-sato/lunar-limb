@@ -12,14 +12,29 @@ import DeleteWarningModal from './DeleteWarningModal';
 import ReferencePanel from './ReferencePanel';
 import ProblemsPanel from './ProblemsPanel';
 import ContentGraphModal from './ContentGraphModal';
-import { createFile, deleteFile, fetchFile, fetchGraph, fetchPreview, fetchReferences, fetchTree, saveFile } from './api';
+import CommandPalette, { type PaletteMode } from './CommandPalette';
+import SearchModal from './SearchModal';
+import VariablesModal from './VariablesModal';
+import {
+	createFile,
+	deleteFile,
+	fetchFile,
+	fetchGitStatus,
+	fetchGraph,
+	fetchPreview,
+	fetchReferences,
+	fetchTree,
+	saveFile,
+} from './api';
 import { useDebouncedCallback } from './useDebouncedCallback';
 import { useReferences } from './useReferences';
-import { ensureMdxImport, referenceTag } from './insert-helpers';
+import { conditionalBlock, detachReferenceAt, ensureMdxImport, referenceTag } from './insert-helpers';
 import { extractReferences, nodeKey, refOf, typeForRoot } from '../../lib/editor/graph-model';
 import type {
 	ContentRoot,
 	CursorPosition,
+	EditorCommand,
+	GitStatusMap,
 	ImpactAnalysis,
 	ReusableItem,
 	SaveStatus,
@@ -29,6 +44,15 @@ import type {
 } from './types';
 
 const THEME_KEY = 'lunar-limb-editor:theme';
+const VIM_KEY = 'lunar-limb-editor:vim';
+
+function getInitialVim(): boolean {
+	try {
+		return window.localStorage.getItem(VIM_KEY) === '1';
+	} catch {
+		return false;
+	}
+}
 
 function getInitialTheme(): ThemeMode {
 	try {
@@ -91,7 +115,17 @@ export default function EditorApp() {
 	const [showGraphModal, setShowGraphModal] = useState(false);
 	const [globalProblemCount, setGlobalProblemCount] = useState(0);
 
+	// ---- Fase 5 -----------------------------------------------------------
+	const [paletteMode, setPaletteMode] = useState<PaletteMode | null>(null);
+	const [showSearch, setShowSearch] = useState(false);
+	const [showVariables, setShowVariables] = useState(false);
+	const [vimMode, setVimMode] = useState<boolean>(() => getInitialVim());
+	const [gitStatus, setGitStatus] = useState<GitStatusMap | null>(null);
+	const [previewHiddenReason, setPreviewHiddenReason] = useState<'visible-false' | 'condition-off' | null>(null);
+	const [unknownFlags, setUnknownFlags] = useState<string[]>([]);
+
 	const editorHandleRef = useRef<MarkdownEditorHandle>(null);
+	const vimStatusRef = useRef<HTMLDivElement>(null);
 
 	// ---- Fase 4: grafo bidirecional do arquivo aberto ---------------------
 
@@ -144,20 +178,31 @@ export default function EditorApp() {
 		}
 	}, []);
 
+	const refreshGitStatus = useCallback(async () => {
+		try {
+			setGitStatus(await fetchGitStatus());
+		} catch {
+			// Git awareness é enfeite: sem repositório, o editor segue igual.
+		}
+	}, []);
+
 	useEffect(() => {
 		void refreshTree();
 		void refreshSnippetTree();
-	}, [refreshTree, refreshSnippetTree]);
+		void refreshGitStatus();
+	}, [refreshTree, refreshSnippetTree, refreshGitStatus]);
 
 	// ---- Preview --------------------------------------------------------
 
-	const requestPreview = useCallback(async (value: string, path: string | null) => {
+	const requestPreview = useCallback(async (value: string, path: string | null, root: ContentRoot) => {
 		setPreviewLoading(true);
 		try {
-			const res = await fetchPreview(value, path ?? undefined);
+			const res = await fetchPreview(value, path, root);
 			setPreviewHtml(res.html);
 			setPreviewWarning(res.warning);
 			setPreviewErrorLine(res.errorLine);
+			setPreviewHiddenReason(res.hiddenReason ?? null);
+			setUnknownFlags([...new Set((res.conditionalIssues ?? []).map((issue) => issue.flag))]);
 			const title = res.frontmatter?.title;
 			setDocTitle(typeof title === 'string' ? title : undefined);
 		} catch (err) {
@@ -169,7 +214,7 @@ export default function EditorApp() {
 	}, []);
 
 	const debouncedPreview = useDebouncedCallback((value: string) => {
-		void requestPreview(value, activePath);
+		void requestPreview(value, activePath, activeRoot);
 	}, 400);
 
 	// ---- Save -------------------------------------------------------------
@@ -181,10 +226,11 @@ export default function EditorApp() {
 			setDirty(false);
 			setSaveStatus('saved');
 			setReferenceRefreshToken((t) => t + 1);
+			void refreshGitStatus();
 		} catch {
 			setSaveStatus('error');
 		}
-	}, []);
+	}, [refreshGitStatus]);
 
 	const debouncedSave = useDebouncedCallback((value: string) => {
 		if (!activePath) return;
@@ -199,7 +245,7 @@ export default function EditorApp() {
 	// ---- Open / create / delete --------------------------------------------
 
 	const openFile = useCallback(
-		async (path: string, root: ContentRoot = 'docs') => {
+		async (path: string, root: ContentRoot = 'docs', revealAtLine?: number) => {
 			if (dirty) {
 				const ok = window.confirm(
 					'Esta página tem alterações não salvas. Descartar as alterações e abrir outro arquivo?'
@@ -217,7 +263,13 @@ export default function EditorApp() {
 				setSaveStatus('saved');
 				const title = doc.frontmatter?.title;
 				setDocTitle(typeof title === 'string' ? title : undefined);
-				void requestPreview(doc.content, root === 'docs' ? doc.path : null);
+				void requestPreview(doc.content, doc.path, root);
+
+				// Vindo da busca global: o Monaco só tem o conteúdo novo depois do
+				// próximo render, por isso o reveal fica para o fim da fila.
+				if (revealAtLine) {
+					window.setTimeout(() => editorHandleRef.current?.revealLine(revealAtLine), 0);
+				}
 
 				const url = new URL(window.location.href);
 				url.searchParams.set('path', doc.path);
@@ -273,11 +325,12 @@ export default function EditorApp() {
 				// Apagar um arquivo muda o grafo inteiro (pode criar referências
 				// quebradas em outras páginas) — força o recarregamento do índice.
 				setReferenceRefreshToken((t) => t + 1);
+				void refreshGitStatus();
 			} catch (err) {
 				window.alert(err instanceof Error ? err.message : 'Erro ao excluir arquivo.');
 			}
 		},
-		[activePath, activeRoot, refreshTree, refreshSnippetTree]
+		[activePath, activeRoot, refreshTree, refreshSnippetTree, refreshGitStatus]
 	);
 
 	const requestDelete = useCallback(
@@ -370,7 +423,9 @@ export default function EditorApp() {
 		async (id: string, title: string) => {
 			if (!activePath || !extractSelection) return;
 
-			const snippetPath = `${id}.md`;
+			// .mdx desde a Fase 5: um snippet extraído pode precisar, ele mesmo, de
+			// <ContentBlock> ou <If> depois — criar em .md obrigaria a renomear na mão.
+			const snippetPath = `${id}.mdx`;
 			const fmTitle = JSON.stringify(title || id);
 			const snippetContent = `---\ntitle: ${fmTitle}\n---\n\n${extractSelection.text.trim()}\n`;
 			await createFile(snippetPath, snippetContent, 'snippets');
@@ -390,7 +445,109 @@ export default function EditorApp() {
 		[activePath, content, extractSelection, handleContentChange, refreshSnippetTree]
 	);
 
+	// ---- Fase 5: Detach ---------------------------------------------------
+
+	/**
+	 * Transforma uma referência de volta em texto local (§28 da especificação).
+	 * Explicitamente acionado pelo autor, com confirmação: depois disso a página
+	 * deixa de acompanhar mudanças no conteúdo canônico.
+	 */
+	const handleDetach = useCallback(async () => {
+		if (!activePath) return;
+
+		const refs = extractReferences(content);
+		if (refs.length === 0) {
+			window.alert('Esta página não tem nenhuma referência a conteúdo reutilizável.');
+			return;
+		}
+
+		// A referência da linha do cursor, ou a primeira, se o cursor não estiver em uma.
+		const target = refs.find((ref) => ref.location.line === cursor.line) ?? refs[0];
+
+		const ok = window.confirm(
+			`Converter "${target.id}" em texto local?\n\n` +
+				'O conteúdo é copiado para dentro desta página. Mudanças futuras no ' +
+				'conteúdo original deixam de chegar aqui.'
+		);
+		if (!ok) return;
+
+		try {
+			const sourceRoot: ContentRoot = target.type === 'block' ? 'snippets' : 'docs';
+			// O id não carrega a extensão; tenta as duas, como o resolver do preview.
+			let body: string | null = null;
+			for (const candidate of [`${target.id}.md`, `${target.id}.mdx`]) {
+				try {
+					const doc = await fetchFile(candidate, sourceRoot);
+					body = doc.body;
+					break;
+				} catch {
+					// tenta a outra extensão
+				}
+			}
+
+			if (body === null) {
+				window.alert(`Não encontrei o conteúdo original de "${target.id}".`);
+				return;
+			}
+
+			handleContentChange(detachReferenceAt(content, target.location.offset, target.raw.length, body));
+		} catch (err) {
+			window.alert(err instanceof Error ? err.message : 'Erro ao destacar o conteúdo.');
+		}
+	}, [activePath, content, cursor.line, handleContentChange]);
+
+	// ---- Fase 5: condicionais ----------------------------------------------
+
+	const handleInsertConditional = useCallback(() => {
+		if (!activePath) return;
+		if (!isMdx) {
+			window.alert('Condicionais (<If>) só funcionam em arquivos .mdx.');
+			return;
+		}
+
+		const flag = window.prompt('Nome da variável que controla este trecho:', 'beta');
+		if (!flag || flag.trim() === '') return;
+
+		const selection = editorHandleRef.current?.getSelection();
+		const block = conditionalBlock(flag.trim(), selection?.text ?? '');
+		const withImport = ensureMdxImport(content, activePath, 'If');
+		const importDelta = withImport.length - content.length;
+
+		let finalContent: string;
+		if (selection) {
+			// Envolve a seleção, ajustando os offsets pelo import recém-inserido.
+			finalContent =
+				withImport.slice(0, selection.startOffset + importDelta) +
+				block +
+				withImport.slice(selection.endOffset + importDelta);
+		} else {
+			const lines = withImport.split('\n');
+			const at = Math.min(Math.max(cursor.line, 1), lines.length);
+			lines.splice(at, 0, '', block, '');
+			finalContent = lines.join('\n');
+		}
+
+		handleContentChange(finalContent);
+	}, [activePath, content, cursor.line, handleContentChange, isMdx]);
+
+	const handleVariablesSaved = useCallback(() => {
+		// As condicionais são reavaliadas no servidor: basta pedir o preview de novo.
+		if (activePath) void requestPreview(content, activePath, activeRoot);
+	}, [activePath, activeRoot, content, requestPreview]);
+
 	// ---- Theme / Zen ------------------------------------------------------
+
+	const toggleVim = useCallback(() => {
+		setVimMode((prev) => {
+			const next = !prev;
+			try {
+				window.localStorage.setItem(VIM_KEY, next ? '1' : '0');
+			} catch {
+				// ignore
+			}
+			return next;
+		});
+	}, []);
 
 	const toggleTheme = useCallback(() => {
 		setTheme((prev) => {
@@ -406,15 +563,39 @@ export default function EditorApp() {
 
 	const toggleZen = useCallback(() => setZen((z) => !z), []);
 
+	// Atalhos globais da Fase 5. Ficam em um único listener em `capture` porque o
+	// Monaco engole boa parte das combinações antes de elas chegarem ao window.
 	useEffect(() => {
 		function onKeydown(e: KeyboardEvent) {
+			const mod = e.ctrlKey || e.metaKey;
+			const key = e.key.toLowerCase();
+
 			if (e.key === 'F11') {
 				e.preventDefault();
 				toggleZen();
+				return;
+			}
+			if (!mod) return;
+
+			if (e.shiftKey && key === 'z') {
+				e.preventDefault();
+				toggleZen();
+			} else if (e.shiftKey && key === 'p') {
+				e.preventDefault();
+				setPaletteMode('commands');
+			} else if (!e.shiftKey && key === 'p') {
+				e.preventDefault();
+				setPaletteMode('files');
+			} else if (e.shiftKey && key === 'f') {
+				e.preventDefault();
+				setShowSearch(true);
+			} else if (e.shiftKey && key === 'v') {
+				e.preventDefault();
+				setShowVariables(true);
 			}
 		}
-		window.addEventListener('keydown', onKeydown);
-		return () => window.removeEventListener('keydown', onKeydown);
+		window.addEventListener('keydown', onKeydown, true);
+		return () => window.removeEventListener('keydown', onKeydown, true);
 	}, [toggleZen]);
 
 	useEffect(() => {
@@ -461,9 +642,98 @@ export default function EditorApp() {
 				setShowGraphModal(true);
 			}
 		}
-		window.addEventListener('keydown', onKeydown);
-		return () => window.removeEventListener('keydown', onKeydown);
+		window.addEventListener('keydown', onKeydown, true);
+		return () => window.removeEventListener('keydown', onKeydown, true);
 	}, []);
+
+	// ---- Fase 5: comandos da paleta ---------------------------------------
+
+	const commands = useMemo<EditorCommand[]>(() => {
+		const hasFile = Boolean(activePath);
+		return [
+			{ id: 'file.new', label: 'Criar página', group: 'Arquivo', run: () => setShowNewFileModal(true) },
+			{
+				id: 'file.save',
+				label: 'Salvar',
+				group: 'Arquivo',
+				shortcut: 'Ctrl+S',
+				enabled: hasFile,
+				run: handleManualSave,
+			},
+			{ id: 'file.open', label: 'Abrir arquivo', group: 'Arquivo', shortcut: 'Ctrl+P', run: () => setPaletteMode('files') },
+			{
+				id: 'search.content',
+				label: 'Buscar em todo o conteúdo',
+				group: 'Buscar',
+				shortcut: 'Ctrl+Shift+F',
+				run: () => setShowSearch(true),
+			},
+			{
+				id: 'insert.reusable',
+				label: 'Inserir conteúdo reutilizável',
+				group: 'Inserir',
+				enabled: hasFile,
+				run: handleOpenInsertModal,
+			},
+			{
+				id: 'insert.conditional',
+				label: 'Inserir bloco condicional',
+				group: 'Inserir',
+				enabled: hasFile,
+				run: handleInsertConditional,
+			},
+			{
+				id: 'content.extract',
+				label: 'Extrair seleção para conteúdo reutilizável',
+				group: 'Conteúdo',
+				enabled: hasFile,
+				run: handleOpenExtractModal,
+			},
+			{
+				id: 'content.detach',
+				label: 'Destacar referência (virar texto local)',
+				group: 'Conteúdo',
+				enabled: hasFile,
+				run: () => void handleDetach(),
+			},
+			{
+				id: 'content.variables',
+				label: 'Gerenciar variáveis de conteúdo',
+				group: 'Conteúdo',
+				shortcut: 'Ctrl+Shift+V',
+				run: () => setShowVariables(true),
+			},
+			{
+				id: 'graph.show',
+				label: 'Mostrar Content Graph (referências e backlinks)',
+				group: 'Conteúdo',
+				shortcut: 'Ctrl+Shift+G',
+				run: () => setShowGraphModal(true),
+			},
+			{ id: 'view.split', label: 'Ver: editor + preview', group: 'Ver', run: () => setViewMode('split') },
+			{ id: 'view.editor', label: 'Ver: apenas editor', group: 'Ver', run: () => setViewMode('editor') },
+			{ id: 'view.preview', label: 'Ver: apenas preview', group: 'Ver', run: () => setViewMode('preview') },
+			{ id: 'view.zen', label: 'Alternar modo Zen', group: 'Ver', shortcut: 'F11', run: toggleZen },
+			{ id: 'view.theme', label: 'Alternar tema claro/escuro', group: 'Ver', run: toggleTheme },
+			{
+				id: 'view.vim',
+				label: vimMode ? 'Desligar keybindings do Vim' : 'Ligar keybindings do Vim',
+				group: 'Ver',
+				run: toggleVim,
+			},
+		];
+	}, [
+		activePath,
+		handleDetach,
+		handleInsertConditional,
+		handleManualSave,
+		handleOpenExtractModal,
+		handleOpenInsertModal,
+		toggleTheme,
+		toggleVim,
+		toggleZen,
+		vimMode,
+	]);
 
 	return (
 		<div className={`app-shell theme-${theme}${zen ? ' zen' : ''}`}>
@@ -482,6 +752,12 @@ export default function EditorApp() {
 				onExtractReusable={handleOpenExtractModal}
 				onOpenGraph={() => setShowGraphModal(true)}
 				problemCount={globalProblemCount}
+				onInsertConditional={handleInsertConditional}
+				onOpenVariables={() => setShowVariables(true)}
+				onOpenCommands={() => setPaletteMode('commands')}
+				onOpenSearch={() => setShowSearch(true)}
+				vimMode={vimMode}
+				onToggleVim={toggleVim}
 			/>
 
 			<div className="app-body">
@@ -496,6 +772,7 @@ export default function EditorApp() {
 							onNewFile={() => setShowNewFileModal(true)}
 							onRefresh={() => void refreshTree()}
 							loading={treeLoading}
+							gitStatus={gitStatus?.docs}
 						/>
 						<FileExplorer
 							title="Conteúdo reutilizável"
@@ -505,6 +782,7 @@ export default function EditorApp() {
 							onDelete={(path) => void requestDelete(path, 'snippets')}
 							onRefresh={() => void refreshSnippetTree()}
 							loading={snippetTreeLoading}
+							gitStatus={gitStatus?.snippets}
 						/>
 					</div>
 				)}
@@ -548,14 +826,25 @@ export default function EditorApp() {
 											errorLine={previewErrorLine}
 											errorMessage={previewWarning}
 											referenceMarkers={referenceMarkers}
+											vimMode={vimMode}
+											vimStatusRef={vimStatusRef}
 										/>
 									</div>
+									{vimMode && <div className="vim-status" ref={vimStatusRef} />}
 									<ProblemsPanel problems={references.problems} onRevealLine={revealLine} />
 								</div>
 							)}
 							{(viewMode === 'preview' || viewMode === 'split') && (
 								<div className="pane pane-preview">
-									<PreviewPane html={previewHtml} title={docTitle} loading={previewLoading} warning={previewWarning} />
+									<PreviewPane
+										html={previewHtml}
+										title={docTitle}
+										loading={previewLoading}
+										warning={previewWarning}
+										hiddenReason={previewHiddenReason}
+										unknownFlags={unknownFlags}
+										onOpenVariables={() => setShowVariables(true)}
+									/>
 								</div>
 							)}
 						</>
@@ -573,6 +862,9 @@ export default function EditorApp() {
 				problemCount={references.problems.filter((p) => p.severity === 'error').length}
 				usedByCount={references.usedBy.length}
 				onOpenGraph={() => setShowGraphModal(true)}
+				gitBranch={gitStatus?.available ? gitStatus.branch : undefined}
+				gitState={activePath ? gitStatus?.[activeRoot]?.[activePath] : undefined}
+				vimMode={vimMode}
 			/>
 
 			{showNewFileModal && <NewFileModal onClose={() => setShowNewFileModal(false)} onCreate={handleCreate} />}
@@ -621,6 +913,26 @@ export default function EditorApp() {
 					activeRef={activeRef}
 				/>
 			)}
+
+			{paletteMode && (
+				<CommandPalette
+					mode={paletteMode}
+					commands={commands}
+					docsTree={tree}
+					snippetTree={snippetTree}
+					onClose={() => setPaletteMode(null)}
+					onOpenFile={(path, root) => void openFile(path, root)}
+				/>
+			)}
+
+			{showSearch && (
+				<SearchModal
+					onClose={() => setShowSearch(false)}
+					onOpenHit={(path, root, line) => void openFile(path, root, line)}
+				/>
+			)}
+
+			{showVariables && <VariablesModal onClose={() => setShowVariables(false)} onSaved={handleVariablesSaved} />}
 		</div>
 	);
 }

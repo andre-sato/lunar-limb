@@ -3,10 +3,13 @@ import type {
 	ContentNode,
 	ContentProblem,
 	ContentRoot,
+	GitStatusMap,
 	ImpactAnalysis,
 	ReferenceDetail,
 	ReusableItem,
+	SearchHit,
 	TreeNode,
+	VariableMap,
 } from './types';
 
 async function handle<T>(res: Response): Promise<T> {
@@ -74,13 +77,19 @@ export interface PreviewResponse {
 	warning?: string;
 	errorLine?: number;
 	reusableIssues?: { id: string; reason: 'not-found' | 'circular' }[];
+	conditionalIssues?: { flag: string; reason: 'unknown-variable' }[];
+	hiddenReason?: 'visible-false' | 'condition-off' | null;
 }
 
-export async function fetchPreview(content: string, docPath?: string): Promise<PreviewResponse> {
+export async function fetchPreview(
+	content: string,
+	filePath?: string | null,
+	root: ContentRoot = 'docs'
+): Promise<PreviewResponse> {
 	const res = await fetch('/api/editor/preview', {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify({ content, path: docPath }),
+		body: JSON.stringify({ content, path: filePath ?? undefined, root }),
 	});
 	return handle<PreviewResponse>(res);
 }
@@ -129,4 +138,37 @@ export async function checkCycle(sourceKey: string, targetRef: string): Promise<
 	);
 	const data = await handle<{ cycle: string[] | null }>(res);
 	return data.cycle;
+}
+
+// ---------------------------------------------------------------------------
+// Fase 5
+// ---------------------------------------------------------------------------
+
+export async function fetchVariables(): Promise<VariableMap> {
+	const res = await fetch('/api/editor/variables');
+	const data = await handle<{ variables: VariableMap }>(res);
+	return data.variables;
+}
+
+export async function saveVariables(variables: VariableMap): Promise<VariableMap> {
+	const res = await fetch('/api/editor/variables', {
+		method: 'PUT',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({ variables }),
+	});
+	const data = await handle<{ ok: true; variables: VariableMap }>(res);
+	return data.variables;
+}
+
+export async function searchContent(query: string, caseSensitive = false): Promise<SearchHit[]> {
+	const res = await fetch(
+		`/api/editor/search?q=${encodeURIComponent(query)}${caseSensitive ? '&case=1' : ''}`
+	);
+	const data = await handle<{ hits: SearchHit[] }>(res);
+	return data.hits;
+}
+
+export async function fetchGitStatus(): Promise<GitStatusMap> {
+	const res = await fetch('/api/editor/git');
+	return handle<GitStatusMap>(res);
 }

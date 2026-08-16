@@ -1,0 +1,83 @@
+---
+title: Conteúdo condicional
+description: Como esconder trechos ou páginas inteiras usando variáveis, sem manter versões paralelas da documentação.
+sidebar:
+  order: 6
+---
+
+import If from '../../../components/content/If.astro';
+
+Documentar dois planos, ou um recurso que ainda está em beta, normalmente vira
+duas versões do mesmo texto que saem de sincronia. Aqui a página é uma só e o
+que muda é qual trecho aparece.
+
+## Onde as variáveis moram
+
+Em `src/config/content-variables.json`:
+
+```json
+{
+  "beta": { "value": false, "description": "Recursos ainda em beta" },
+  "plano": { "value": "starter", "description": "Plano exibido nos exemplos" }
+}
+```
+
+Uma variável é um booleano ou uma string. O editor tem uma tela para isso
+(`Ctrl/Cmd + Shift + V`), mas o arquivo continua sendo JSON comum, versionado
+em Git e editável à mão.
+
+## Escondendo um trecho
+
+```mdx
+<If flag="beta">
+Este parágrafo só aparece com a flag `beta` ligada.
+</If>
+```
+
+Com `beta` desligada, o resultado é este — nada:
+
+<If flag="beta">
+Se você está lendo isto, a variável `beta` foi ligada.
+</If>
+
+E a forma negada, `not`, que aparece justamente porque `beta` está desligada:
+
+<If flag="beta" not>
+Este aviso existe para quem ainda não está no programa beta.
+</If>
+
+Para variáveis de texto, compare com `equals`:
+
+<If flag="plano" equals="starter">
+Você está vendo os limites do plano **starter**, porque a variável `plano` vale `starter`.
+</If>
+
+## Escondendo a página inteira
+
+Duas formas, ambas no frontmatter:
+
+```yaml
+visible: false        # publicada, mas fora da navegação e da busca
+showIf: beta          # só visível quando a variável `beta` estiver ligada
+```
+
+`showIf` também aceita a negação com `!`, como em `showIf: !interno`.
+
+:::note[O que "invisível" significa aqui]
+A página continua sendo publicada e acessível por URL direta — ela apenas some
+da barra lateral e do índice de busca. Não é um controle de acesso: não use
+`visible: false` para proteger segredo.
+:::
+
+## Uma diferença que importa
+
+No **site publicado**, um trecho oculto não vai para o HTML: ele não está lá
+escondido por CSS, simplesmente não foi gerado. Conteúdo marcado como interno
+não fica recuperável no navegador do leitor.
+
+No **preview do editor** é o contrário: o trecho oculto aparece como um marcador
+cinza dizendo qual condição não foi satisfeita. Quem escreve precisa enxergar
+que existe conteúdo condicional ali.
+
+As variáveis são resolvidas em **build time** — mudar uma variável exige um novo
+build para o site publicado refletir a mudança.

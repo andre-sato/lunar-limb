@@ -3,9 +3,25 @@ import { glob } from 'astro/loaders';
 import { z } from 'astro/zod';
 import { docsLoader, i18nLoader } from '@astrojs/starlight/loaders';
 import { docsSchema, i18nSchema } from '@astrojs/starlight/schema';
+import { withVisibility } from './lib/content/visibility-loader';
 
 export const collections = {
-	docs: defineCollection({ loader: docsLoader(), schema: docsSchema() }),
+	// `withVisibility` traduz os campos `visible` e `showIf` (Fase 5) para os
+	// mecanismos nativos da Starlight — ver src/lib/content/visibility-loader.ts.
+	docs: defineCollection({
+		loader: withVisibility(docsLoader()),
+		schema: docsSchema({
+			extend: z.object({
+				/** `false` mantém a página publicada, mas fora da navegação e da busca. */
+				visible: z.boolean().optional(),
+				/**
+				 * Nome de uma variável de `src/config/content-variables.json`. A página só
+				 * fica visível quando ela estiver ligada; prefixe com `!` para inverter.
+				 */
+				showIf: z.string().optional(),
+			}),
+		}),
+	}),
 	// Reusable content blocks (Fase 3 do editor — see src/components/content/).
 	// Not part of the Starlight sidebar/routing: these are fragments meant to
 	// be pulled into docs pages via <ContentBlock id="..." />, never visited

@@ -26,6 +26,14 @@ export interface RawReference {
 	type: ReusableType;
 	id: string;
 	location: SourceLocation;
+	/**
+	 * O texto exato da tag encontrada. Guardado porque a grafia varia
+	 * (`/>` vs `>`, aspas simples ou duplas, espaçamento), e quem for reescrever
+	 * o arquivo precisa saber exatamente quantos caracteres substituir a partir
+	 * de `location.offset` — procurar a tag de novo por texto acha a ocorrência
+	 * errada quando a mesma tag aparece antes dentro de um bloco de código.
+	 */
+	raw: string;
 }
 
 export interface ContentNode {
@@ -228,6 +236,7 @@ export function extractReferences(raw: string): RawReference[] {
 			type: match[1] === 'ContentBlock' ? 'block' : 'page',
 			id: match[2],
 			location: locationAt(raw, offset),
+			raw: match[0],
 		});
 	}
 

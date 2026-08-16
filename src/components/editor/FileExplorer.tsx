@@ -9,7 +9,7 @@ import {
 	Trash2,
 	RefreshCw,
 } from 'lucide-react';
-import type { TreeNode } from './types';
+import type { GitState, TreeNode } from './types';
 
 interface FileExplorerProps {
 	title: string;
@@ -20,7 +20,18 @@ interface FileExplorerProps {
 	onNewFile?: () => void;
 	onRefresh: () => void;
 	loading: boolean;
+	/** Fase 5: estado no Git por caminho, relativo à raiz desta collection. */
+	gitStatus?: Record<string, GitState>;
 }
+
+/** Letra exibida ao lado do arquivo, no estilo do VS Code. */
+const GIT_BADGE: Record<GitState, { letter: string; label: string }> = {
+	modified: { letter: 'M', label: 'Modificado no working tree' },
+	added: { letter: 'A', label: 'Adicionado ao índice' },
+	deleted: { letter: 'D', label: 'Excluído' },
+	untracked: { letter: 'U', label: 'Ainda não versionado' },
+	renamed: { letter: 'R', label: 'Renomeado' },
+};
 
 export default function FileExplorer({
 	title,
@@ -31,6 +42,7 @@ export default function FileExplorer({
 	onNewFile,
 	onRefresh,
 	loading,
+	gitStatus,
 }: FileExplorerProps) {
 	const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
@@ -71,16 +83,22 @@ export default function FileExplorer({
 		}
 
 		const isActive = node.path === activePath;
+		const git = gitStatus?.[node.path];
 		return (
 			<div
 				key={node.path}
-				className={`tree-row tree-row--file${isActive ? ' tree-row--active' : ''}`}
+				className={`tree-row tree-row--file${isActive ? ' tree-row--active' : ''}${git ? ` tree-row--git-${git}` : ''}`}
 				style={{ paddingLeft: 8 + depth * 14 }}
 			>
 				<button type="button" className="tree-row-open" onClick={() => onOpen(node.path)}>
 					<FileText size={15} />
 					<span className="tree-label">{node.title || node.name}</span>
 				</button>
+				{git && (
+					<span className={`git-badge git-badge--${git}`} title={GIT_BADGE[git].label}>
+						{GIT_BADGE[git].letter}
+					</span>
+				)}
 				<button
 					type="button"
 					className="tree-row-action"

@@ -22,6 +22,7 @@
     "js-yaml": "^4.3.1",
     "lucide-react": "^0.577.0",
     "monaco-editor": "^0.56.0",
+    "monaco-vim": "^0.4.4",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "rehype-raw": "^7.0.0",

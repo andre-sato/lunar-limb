@@ -60,8 +60,18 @@ describe('extractReferences', () => {
 		);
 
 		expect(extractReferences(raw)).toEqual([
-			{ type: 'block', id: 'auth-warning', location: { line: 3, column: 1, offset: 10 } },
-			{ type: 'page', id: 'guides/auth', location: { line: 5, column: 1, offset: 46 } },
+			{
+				type: 'block',
+				id: 'auth-warning',
+				location: { line: 3, column: 1, offset: 10 },
+				raw: '<ContentBlock id="auth-warning" />',
+			},
+			{
+				type: 'page',
+				id: 'guides/auth',
+				location: { line: 5, column: 1, offset: 46 },
+				raw: '<IncludePage id="guides/auth" />',
+			},
 		]);
 	});
 

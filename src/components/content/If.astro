@@ -1,0 +1,30 @@
+---
+// Fase 5 — condicional de conteúdo.
+//
+// Esconde ou mostra um trecho conforme uma variável definida em
+// src/config/content-variables.json:
+//
+//   <If flag="beta">Só aparece com a flag `beta` ligada.</If>
+//   <If flag="beta" not>Só aparece com a flag `beta` desligada.</If>
+//   <If flag="plano" equals="enterprise">Só no plano enterprise.</If>
+//
+// As variáveis são resolvidas em **build time**: o trecho oculto não vai para
+// o HTML publicado, não fica escondido por CSS. Isso é proposital — conteúdo
+// condicionado a `interno` não deve ser recuperável no navegador.
+//
+// A contraparte do preview do editor é src/lib/editor/remark-resolve-conditionals.ts.
+import rawVariables from '../../config/content-variables.json';
+import { isConditionMet, normalizeVariables } from '../../lib/content/variables';
+
+interface Props {
+	flag: string;
+	equals?: string;
+	not?: boolean;
+}
+
+const { flag, equals, not = false } = Astro.props;
+const variables = normalizeVariables(rawVariables);
+const show = isConditionMet(variables, { flag, equals, not });
+---
+
+{show && <slot />}
