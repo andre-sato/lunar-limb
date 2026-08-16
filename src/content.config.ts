@@ -1,10 +1,22 @@
 import { defineCollection } from 'astro:content';
+import { glob } from 'astro/loaders';
 import { z } from 'astro/zod';
 import { docsLoader, i18nLoader } from '@astrojs/starlight/loaders';
 import { docsSchema, i18nSchema } from '@astrojs/starlight/schema';
 
 export const collections = {
 	docs: defineCollection({ loader: docsLoader(), schema: docsSchema() }),
+	// Reusable content blocks (Fase 3 do editor — see src/components/content/).
+	// Not part of the Starlight sidebar/routing: these are fragments meant to
+	// be pulled into docs pages via <ContentBlock id="..." />, never visited
+	// directly.
+	snippets: defineCollection({
+		loader: glob({ pattern: '**/*.{md,mdx}', base: './src/content/snippets' }),
+		schema: z.object({
+			title: z.string().optional(),
+			description: z.string().optional(),
+		}),
+	}),
 	i18n: defineCollection({
 		loader: i18nLoader(),
 		schema: i18nSchema({

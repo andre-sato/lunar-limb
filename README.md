@@ -60,6 +60,16 @@ Além do site publicado, o projeto inclui um editor Markdown/MDX interno em **`/
 - **Validação/erro de sintaxe:** erros de parsing do Markdown/MDX (JSX mal formado, YAML inválido no frontmatter, etc.) aparecem tanto no preview quanto como marcador vermelho na linha correspondente do Monaco, com o motivo do erro.
 - GFM completo (tabelas, task lists, strikethrough, autolinks) — já coberto desde a Fase 1 via `remark-gfm`.
 
+**Fase 3 — Reuso de conteúdo:**
+- **Conteúdo reutilizável de verdade, não só no editor.** `src/content/snippets/*.md|mdx` é uma nova collection (registrada em `src/content.config.ts`). Um bloco é referenciado com `<ContentBlock id="..." />`; uma página inteira, com `<IncludePage id="..." />`. Esses componentes existem em `src/components/content/` e usam `getEntry`/`render` do `astro:content` — funcionam no **site publicado de verdade**, não são um truque só do preview.
+- **Resolver no preview.** `src/lib/editor/remark-resolve-reusable.ts` é a contraparte do preview: ao encontrar `<ContentBlock>`/`<IncludePage>`, resolve e insere o conteúdo referenciado inline (recursivamente, então um bloco pode incluir outro), com detecção de referência circular e de id inexistente — ambos aparecem como um aviso inline no preview em vez de derrubar a página inteira.
+- **Só funciona em `.mdx`.** `<ContentBlock>`/`<IncludePage>` são JSX — arquivos `.md` puros não têm esse conceito. O editor bloqueia Inserir/Extrair em páginas `.md` com uma mensagem explicando isso; crie a página como `.mdx` (checkbox no modal de nova página) para usar reuso de conteúdo.
+- **Insert Reusable Content** (ícone de peça de quebra-cabeça na toolbar): busca por título/id entre blocos e páginas existentes, insere a tag e — se ainda não existir — adiciona automaticamente a linha `import ContentBlock from '.../ContentBlock.astro'` no topo do arquivo. O autor nunca precisa saber que isso é necessário.
+- **Extract → Reusable Content** (ícone de tesoura): pega a seleção atual no Monaco, cria `src/content/snippets/<id>.md` com ela, e substitui a seleção por `<ContentBlock id="..." />` (com o import, se preciso).
+- **Painel de referências:** abaixo do frontmatter, mostra o que a página atual usa e por quantas páginas ela é usada (clicável, navega direto).
+- **Impact analysis ao excluir:** apagar um bloco/página referenciado por outras mostra quem depende dele antes de confirmar, em vez de quebrar silenciosamente.
+- **File Explorer** agora tem duas árvores empilhadas: "Documentação" e "Conteúdo reutilizável".
+
 **Como rodar:**
 
 ```bash
@@ -86,14 +96,17 @@ node ./dist/server/entry.mjs
 
 ### Limitações atuais (para as próximas fases da especificação)
 
-- O preview de MDX não executa componentes Astro/Starlight reais — mostra um placeholder com nome e props. Renderização real de componente é uma decisão maior (rodar o pipeline de build do Astro dentro da rota de API) e fica para uma fase futura.
+- O preview de MDX não executa componentes Astro/Starlight reais (incluindo `<ContentBlock>`/`<IncludePage>` fora do resolver dedicado) — mostra um placeholder com nome e props para componentes genéricos.
 - Ainda não há scroll-sync entre editor e preview.
-- Ainda não há reuso de conteúdo (blocos/páginas reutilizáveis), grafo de referências, busca global nem Command Palette — isso é o escopo da Fase 3 em diante.
+- Extract sempre cria o snippet como `.md`; se ele mesmo precisar reutilizar outro bloco (reuso aninhado), é preciso renomear manualmente para `.mdx` — ainda não há um comando "converter para .mdx" na interface.
+- Resolução de imagem relativa ao pré-visualizar um snippet aberto diretamente (fora de uma página) assume a pasta `content/docs`, então pode ficar imprecisa nesse caso específico.
+- Detecção de referência circular acontece no preview (ao renderizar) e ao excluir (impact analysis) — ainda não há uma checagem no momento de inserir, nem um bloqueio de build.
+- Não há Detach (transformar referência de volta em texto local), grafo visual (`Content Graph Index`), busca global nem Command Palette — isso é o escopo da Fase 4/5.
 - O editor não tem autenticação própria. Não o exponha publicamente sem colocar algo na frente (ele tem permissão de escrita no repositório) — use-o localmente ou em um servidor interno.
 
 ### Dependências
 
-O projeto utiliza React, `@astrojs/react`, `@astrojs/node`, Monaco, `remark-mdx` e `js-yaml`. Rode `npm install` sempre que o `package.json` mudar.
+O projeto utiliza React, `@astrojs/react`, `@astrojs/node`, Monaco, `remark-mdx` e `js-yaml`. A Fase 3 não adiciona nenhuma dependência nova além dessas. Rode `npm install` sempre que o `package.json` mudar.
 
 ## Clean install
 

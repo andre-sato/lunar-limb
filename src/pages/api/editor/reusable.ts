@@ -1,15 +1,12 @@
 import type { APIRoute } from 'astro';
-import { getContentFs, isContentRootKey } from '../../../lib/editor/content-fs';
+import { listReusable } from '../../../lib/editor/content-graph';
 
 export const prerender = false;
 
-export const GET: APIRoute = async ({ url }) => {
-	const rootParam = url.searchParams.get('root');
-	const root = isContentRootKey(rootParam) ? rootParam : 'docs';
-
+export const GET: APIRoute = async () => {
 	try {
-		const tree = await getContentFs(root).getTree();
-		return new Response(JSON.stringify({ tree, root }), {
+		const result = await listReusable();
+		return new Response(JSON.stringify(result), {
 			status: 200,
 			headers: { 'Content-Type': 'application/json' },
 		});

@@ -1,0 +1,30 @@
+---
+// Renders a reusable content block (src/content/snippets/<id>.md|mdx) inline,
+// wherever it's referenced. This is the "single source of truth" mechanism
+// from the editor's Fase 3: the block is never copied, only rendered from
+// its one canonical file — editing that file updates every page that uses
+// it on the next build.
+//
+// This is the *real*, build-time counterpart to the editor's own preview
+// resolver (src/lib/editor/remark-resolve-reusable.ts). They're separate
+// implementations (different rendering pipelines), but both resolve the
+// same id -> the same canonical file.
+import { getEntry, render } from 'astro:content';
+
+interface Props {
+	id: string;
+}
+
+const { id } = Astro.props;
+const entry = await getEntry('snippets', id);
+
+if (!entry) {
+	throw new Error(
+		`<ContentBlock id="${id}" />: nenhum conteúdo reutilizável encontrado em src/content/snippets/${id}.md (ou .mdx).`
+	);
+}
+
+const { Content } = await render(entry);
+---
+
+<Content />

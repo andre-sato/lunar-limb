@@ -1,4 +1,4 @@
-import { Columns2, PenLine, Eye, Maximize2, Minimize2, Sun, Moon, Save } from 'lucide-react';
+import { Columns2, PenLine, Eye, Maximize2, Minimize2, Sun, Moon, Save, Component, Scissors } from 'lucide-react';
 import type { SaveStatus, ThemeMode, ViewMode } from './types';
 
 interface ToolbarProps {
@@ -12,6 +12,8 @@ interface ToolbarProps {
 	onSave: () => void;
 	activeTitle: string | null;
 	hasActiveFile: boolean;
+	onInsertReusable: () => void;
+	onExtractReusable: () => void;
 }
 
 const statusLabel: Record<SaveStatus, string> = {
@@ -33,6 +35,8 @@ export default function Toolbar({
 	onSave,
 	activeTitle,
 	hasActiveFile,
+	onInsertReusable,
+	onExtractReusable,
 }: ToolbarProps) {
 	return (
 		<header className="toolbar">
@@ -71,6 +75,16 @@ export default function Toolbar({
 			</div>
 
 			<div className="toolbar-right">
+				{hasActiveFile && (
+					<>
+						<button type="button" className="icon-btn" onClick={onInsertReusable} title="Inserir conteúdo reutilizável">
+							<Component size={16} />
+						</button>
+						<button type="button" className="icon-btn" onClick={onExtractReusable} title="Extrair seleção para conteúdo reutilizável">
+							<Scissors size={16} />
+						</button>
+					</>
+				)}
 				{hasActiveFile && (
 					<span className={`save-status save-status--${saveStatus}`}>{statusLabel[saveStatus]}</span>
 				)}

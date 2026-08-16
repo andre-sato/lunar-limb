@@ -21,3 +21,24 @@ export interface CursorPosition {
 	line: number;
 	column: number;
 }
+
+export type ContentRoot = 'docs' | 'snippets';
+
+export interface ReusableItem {
+	id: string;
+	type: 'block' | 'page';
+	path: string;
+	title?: string;
+	description?: string;
+}
+
+export interface ContentReference {
+	source: string;
+	target: string;
+	type: 'block' | 'page';
+}
+
+export interface ActiveDocument {
+	path: string;
+	root: ContentRoot;
+}

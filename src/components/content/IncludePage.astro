@@ -1,0 +1,24 @@
+---
+// Renders another docs page's content inline. Same "single source of truth"
+// principle as ContentBlock.astro, but for a whole page instead of a
+// fragment — see that file's comment for how this relates to the editor's
+// own preview resolver.
+import { getEntry, render } from 'astro:content';
+
+interface Props {
+	id: string;
+}
+
+const { id } = Astro.props;
+const entry = await getEntry('docs', id);
+
+if (!entry) {
+	throw new Error(
+		`<IncludePage id="${id}" />: nenhuma página encontrada em src/content/docs/${id}.md (ou .mdx).`
+	);
+}
+
+const { Content } = await render(entry);
+---
+
+<Content />

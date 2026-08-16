@@ -1,8 +1,20 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, type Ref } from 'react';
 import Editor, { type Monaco, type OnMount } from '@monaco-editor/react';
 import type { CursorPosition, ThemeMode } from './types';
 
 type MonacoEditorInstance = Parameters<OnMount>[0];
+
+export interface EditorSelection {
+	text: string;
+	startOffset: number;
+	endOffset: number;
+}
+
+export interface MarkdownEditorHandle {
+	/** Current selection as text + character offsets into the full document string, or null if nothing is selected. */
+	getSelection: () => EditorSelection | null;
+	focus: () => void;
+}
 
 interface MarkdownEditorPaneProps {
 	value: string;
@@ -18,18 +30,21 @@ interface MarkdownEditorPaneProps {
 	errorMessage?: string;
 }
 
-export default function MarkdownEditorPane({
-	value,
-	language,
-	theme,
-	onChange,
-	onCursorChange,
-	onSaveShortcut,
-	wordWrap,
-	minimap,
-	errorLine,
-	errorMessage,
-}: MarkdownEditorPaneProps) {
+function MarkdownEditorPaneInner(
+	{
+		value,
+		language,
+		theme,
+		onChange,
+		onCursorChange,
+		onSaveShortcut,
+		wordWrap,
+		minimap,
+		errorLine,
+		errorMessage,
+	}: MarkdownEditorPaneProps,
+	ref: Ref<MarkdownEditorHandle>
+) {
 	const editorRef = useRef<MonacoEditorInstance | null>(null);
 	const monacoRef = useRef<Monaco | null>(null);
 
@@ -50,9 +65,30 @@ export default function MarkdownEditorPane({
 		[onCursorChange, onSaveShortcut]
 	);
 
+	useImperativeHandle(
+		ref,
+		() => ({
+			getSelection() {
+				const ed = editorRef.current;
+				if (!ed) return null;
+				const selection = ed.getSelection();
+				const model = ed.getModel();
+				if (!selection || !model || selection.isEmpty()) return null;
+				return {
+					text: model.getValueInRange(selection),
+					startOffset: model.getOffsetAt(selection.getStartPosition()),
+					endOffset: model.getOffsetAt(selection.getEndPosition()),
+				};
+			},
+			focus() {
+				editorRef.current?.focus();
+			},
+		}),
+		[]
+	);
+
 	// Surface Markdown/MDX parse errors from the preview as an inline marker,
-	// the same way a linter would — this is the "Problems panel" equivalent
-	// called for in the spec, scoped to what we can actually detect today.
+	// the same way a linter would.
 	useEffect(() => {
 		const ed = editorRef.current;
 		const monacoInstance = monacoRef.current;
@@ -102,3 +138,6 @@ export default function MarkdownEditorPane({
 		/>
 	);
 }
+
+const MarkdownEditorPane = forwardRef(MarkdownEditorPaneInner);
+export default MarkdownEditorPane;

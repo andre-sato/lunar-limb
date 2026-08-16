@@ -12,16 +12,18 @@ import {
 import type { TreeNode } from './types';
 
 interface FileExplorerProps {
+	title: string;
 	tree: TreeNode[];
 	activePath: string | null;
 	onOpen: (path: string) => void;
 	onDelete: (path: string) => void;
-	onNewFile: () => void;
+	onNewFile?: () => void;
 	onRefresh: () => void;
 	loading: boolean;
 }
 
 export default function FileExplorer({
+	title,
 	tree,
 	activePath,
 	onOpen,
@@ -97,11 +99,13 @@ export default function FileExplorer({
 	return (
 		<aside className="file-explorer">
 			<div className="file-explorer-header">
-				<span>Documentação</span>
+				<span>{title}</span>
 				<div className="file-explorer-actions">
-					<button type="button" title="Nova página" onClick={onNewFile}>
-						<FilePlus size={15} />
-					</button>
+					{onNewFile && (
+						<button type="button" title="Nova página" onClick={onNewFile}>
+							<FilePlus size={15} />
+						</button>
+					)}
 					<button type="button" title="Atualizar" onClick={onRefresh}>
 						<RefreshCw size={15} className={loading ? 'spin' : ''} />
 					</button>

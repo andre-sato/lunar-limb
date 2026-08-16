@@ -1,4 +1,4 @@
-import type { TreeNode } from './types';
+import type { ContentReference, ContentRoot, ReusableItem, TreeNode } from './types';
 
 async function handle<T>(res: Response): Promise<T> {
 	const data = await res.json().catch(() => ({}));
@@ -9,8 +9,8 @@ async function handle<T>(res: Response): Promise<T> {
 	return data as T;
 }
 
-export async function fetchTree(): Promise<TreeNode[]> {
-	const res = await fetch('/api/editor/tree');
+export async function fetchTree(root: ContentRoot = 'docs'): Promise<TreeNode[]> {
+	const res = await fetch(`/api/editor/tree?root=${root}`);
 	const data = await handle<{ tree: TreeNode[] }>(res);
 	return data.tree;
 }
@@ -23,31 +23,39 @@ export interface FileResponse {
 	mtimeMs: number;
 }
 
-export async function fetchFile(path: string): Promise<FileResponse> {
-	const res = await fetch(`/api/editor/file?path=${encodeURIComponent(path)}`);
+export async function fetchFile(path: string, root: ContentRoot = 'docs'): Promise<FileResponse> {
+	const res = await fetch(`/api/editor/file?path=${encodeURIComponent(path)}&root=${root}`);
 	return handle<FileResponse>(res);
 }
 
-export async function saveFile(path: string, content: string): Promise<{ ok: true; savedAt: number }> {
+export async function saveFile(
+	path: string,
+	content: string,
+	root: ContentRoot = 'docs'
+): Promise<{ ok: true; savedAt: number }> {
 	const res = await fetch('/api/editor/file', {
 		method: 'PUT',
 		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify({ path, content }),
+		body: JSON.stringify({ path, content, root }),
 	});
 	return handle(res);
 }
 
-export async function createFile(path: string, content: string): Promise<{ ok: true }> {
+export async function createFile(
+	path: string,
+	content: string,
+	root: ContentRoot = 'docs'
+): Promise<{ ok: true }> {
 	const res = await fetch('/api/editor/file', {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify({ path, content }),
+		body: JSON.stringify({ path, content, root }),
 	});
 	return handle(res);
 }
 
-export async function deleteFile(path: string): Promise<{ ok: true }> {
-	const res = await fetch(`/api/editor/file?path=${encodeURIComponent(path)}`, { method: 'DELETE' });
+export async function deleteFile(path: string, root: ContentRoot = 'docs'): Promise<{ ok: true }> {
+	const res = await fetch(`/api/editor/file?path=${encodeURIComponent(path)}&root=${root}`, { method: 'DELETE' });
 	return handle(res);
 }
 
@@ -56,6 +64,7 @@ export interface PreviewResponse {
 	frontmatter: Record<string, unknown>;
 	warning?: string;
 	errorLine?: number;
+	reusableIssues?: { id: string; reason: 'not-found' | 'circular' }[];
 }
 
 export async function fetchPreview(content: string, docPath?: string): Promise<PreviewResponse> {
@@ -65,4 +74,19 @@ export async function fetchPreview(content: string, docPath?: string): Promise<P
 		body: JSON.stringify({ content, path: docPath }),
 	});
 	return handle<PreviewResponse>(res);
+}
+
+export async function fetchReusable(): Promise<{ blocks: ReusableItem[]; pages: ReusableItem[] }> {
+	const res = await fetch('/api/editor/reusable');
+	return handle(res);
+}
+
+export interface ReferencesResponse {
+	uses: ContentReference[];
+	usedBy: ContentReference[];
+}
+
+export async function fetchReferences(path: string, root: ContentRoot = 'docs'): Promise<ReferencesResponse> {
+	const res = await fetch(`/api/editor/references?path=${encodeURIComponent(path)}&root=${root}`);
+	return handle(res);
 }

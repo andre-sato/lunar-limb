@@ -2,14 +2,6 @@ import { readFile, writeFile, mkdir, readdir, stat, unlink } from 'node:fs/promi
 import path from 'node:path';
 import matter from 'gray-matter';
 
-/**
- * Everything the editor can touch lives under this directory. All paths that
- * come in from the client are relative to this root, and every function here
- * re-resolves + re-validates them before touching the filesystem — never
- * trust a path coming from a request.
- */
-const CONTENT_ROOT = path.join(process.cwd(), 'src', 'content', 'docs');
-
 const ALLOWED_EXTENSIONS = new Set(['.md', '.mdx']);
 
 export class ContentFsError extends Error {
@@ -20,75 +12,17 @@ export class ContentFsError extends Error {
 	}
 }
 
-/** Turns a client-supplied relative path into a safe, absolute path inside CONTENT_ROOT. */
-export function resolveSafePath(relativePath: string): string {
-	if (!relativePath || typeof relativePath !== 'string') {
-		throw new ContentFsError('Caminho inválido.', 400);
-	}
-	// Normalize slashes and strip any leading slash so path.join can't escape the root.
-	const cleaned = relativePath.replace(/\\/g, '/').replace(/^\/+/, '');
-	const resolved = path.resolve(CONTENT_ROOT, cleaned);
-	const rootWithSep = CONTENT_ROOT.endsWith(path.sep) ? CONTENT_ROOT : CONTENT_ROOT + path.sep;
-
-	if (resolved !== CONTENT_ROOT && !resolved.startsWith(rootWithSep)) {
-		throw new ContentFsError('Caminho fora da área de conteúdo permitida.', 403);
-	}
-	return resolved;
-}
-
 function toPosix(p: string): string {
 	return p.split(path.sep).join('/');
 }
 
 export interface TreeNode {
 	name: string;
-	path: string; // posix, relative to CONTENT_ROOT
+	path: string; // posix, relative to the collection root
 	type: 'dir' | 'file';
 	ext?: string;
 	title?: string;
 	children?: TreeNode[];
-}
-
-/** Recursively walks CONTENT_ROOT and returns a nested tree of folders/files. */
-export async function getTree(): Promise<TreeNode[]> {
-	async function walk(dirAbs: string, dirRel: string): Promise<TreeNode[]> {
-		const entries = await readdir(dirAbs, { withFileTypes: true });
-		const nodes: TreeNode[] = [];
-
-		for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
-			if (entry.name.startsWith('.')) continue;
-			const abs = path.join(dirAbs, entry.name);
-			const rel = dirRel ? `${dirRel}/${entry.name}` : entry.name;
-
-			if (entry.isDirectory()) {
-				const children = await walk(abs, rel);
-				nodes.push({ name: entry.name, path: toPosix(rel), type: 'dir', children });
-			} else {
-				const ext = path.extname(entry.name);
-				if (!ALLOWED_EXTENSIONS.has(ext)) continue;
-
-				let title: string | undefined;
-				try {
-					const raw = await readFile(abs, 'utf-8');
-					const parsed = matter(raw);
-					title = typeof parsed.data?.title === 'string' ? parsed.data.title : undefined;
-				} catch {
-					// Unreadable/invalid frontmatter shouldn't break the whole tree.
-				}
-
-				nodes.push({ name: entry.name, path: toPosix(rel), type: 'file', ext, title });
-			}
-		}
-
-		// Folders first, then files, both alphabetically.
-		nodes.sort((a, b) => {
-			if (a.type !== b.type) return a.type === 'dir' ? -1 : 1;
-			return a.name.localeCompare(b.name);
-		});
-		return nodes;
-	}
-
-	return walk(CONTENT_ROOT, '');
 }
 
 export interface ReadResult {
@@ -99,72 +33,163 @@ export interface ReadResult {
 	mtimeMs: number;
 }
 
-export async function readDocument(relativePath: string): Promise<ReadResult> {
-	const abs = resolveSafePath(relativePath);
-	const ext = path.extname(abs);
-	if (!ALLOWED_EXTENSIONS.has(ext)) {
-		throw new ContentFsError('Apenas arquivos .md e .mdx podem ser abertos.', 400);
+/**
+ * Builds a small filesystem API scoped to one collection root (docs or
+ * snippets). Every function re-resolves + re-validates the incoming path
+ * against `root` before touching disk — never trust a path coming from a
+ * request.
+ */
+export function createContentFs(root: string) {
+	function resolveSafePath(relativePath: string): string {
+		if (!relativePath || typeof relativePath !== 'string') {
+			throw new ContentFsError('Caminho inválido.', 400);
+		}
+		const cleaned = relativePath.replace(/\\/g, '/').replace(/^\/+/, '');
+		const resolved = path.resolve(root, cleaned);
+		const rootWithSep = root.endsWith(path.sep) ? root : root + path.sep;
+
+		if (resolved !== root && !resolved.startsWith(rootWithSep)) {
+			throw new ContentFsError('Caminho fora da área de conteúdo permitida.', 403);
+		}
+		return resolved;
 	}
 
-	let raw: string;
-	try {
-		raw = await readFile(abs, 'utf-8');
-	} catch {
-		throw new ContentFsError('Arquivo não encontrado.', 404);
+	async function getTree(): Promise<TreeNode[]> {
+		async function walk(dirAbs: string, dirRel: string): Promise<TreeNode[]> {
+			let entries;
+			try {
+				entries = await readdir(dirAbs, { withFileTypes: true });
+			} catch {
+				return [];
+			}
+			const nodes: TreeNode[] = [];
+
+			for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
+				if (entry.name.startsWith('.')) continue;
+				const abs = path.join(dirAbs, entry.name);
+				const rel = dirRel ? `${dirRel}/${entry.name}` : entry.name;
+
+				if (entry.isDirectory()) {
+					const children = await walk(abs, rel);
+					nodes.push({ name: entry.name, path: toPosix(rel), type: 'dir', children });
+				} else {
+					const ext = path.extname(entry.name);
+					if (!ALLOWED_EXTENSIONS.has(ext)) continue;
+
+					let title: string | undefined;
+					try {
+						const raw = await readFile(abs, 'utf-8');
+						const parsed = matter(raw);
+						title = typeof parsed.data?.title === 'string' ? parsed.data.title : undefined;
+					} catch {
+						// Unreadable/invalid frontmatter shouldn't break the whole tree.
+					}
+
+					nodes.push({ name: entry.name, path: toPosix(rel), type: 'file', ext, title });
+				}
+			}
+
+			nodes.sort((a, b) => {
+				if (a.type !== b.type) return a.type === 'dir' ? -1 : 1;
+				return a.name.localeCompare(b.name);
+			});
+			return nodes;
+		}
+
+		return walk(root, '');
 	}
 
-	const info = await stat(abs);
-	const parsed = matter(raw);
+	async function readDocument(relativePath: string): Promise<ReadResult> {
+		const abs = resolveSafePath(relativePath);
+		const ext = path.extname(abs);
+		if (!ALLOWED_EXTENSIONS.has(ext)) {
+			throw new ContentFsError('Apenas arquivos .md e .mdx podem ser abertos.', 400);
+		}
 
-	return {
-		path: toPosix(path.relative(CONTENT_ROOT, abs)),
-		content: raw,
-		frontmatter: parsed.data ?? {},
-		body: parsed.content,
-		mtimeMs: info.mtimeMs,
-	};
+		let raw: string;
+		try {
+			raw = await readFile(abs, 'utf-8');
+		} catch {
+			throw new ContentFsError('Arquivo não encontrado.', 404);
+		}
+
+		const info = await stat(abs);
+		const parsed = matter(raw);
+
+		return {
+			path: toPosix(path.relative(root, abs)),
+			content: raw,
+			frontmatter: parsed.data ?? {},
+			body: parsed.content,
+			mtimeMs: info.mtimeMs,
+		};
+	}
+
+	async function writeDocument(relativePath: string, content: string): Promise<void> {
+		const abs = resolveSafePath(relativePath);
+		const ext = path.extname(abs);
+		if (!ALLOWED_EXTENSIONS.has(ext)) {
+			throw new ContentFsError('Apenas arquivos .md e .mdx podem ser salvos.', 400);
+		}
+		try {
+			await stat(abs);
+		} catch {
+			throw new ContentFsError('Arquivo não encontrado. Use "criar" para um novo arquivo.', 404);
+		}
+		await writeFile(abs, content, 'utf-8');
+	}
+
+	async function createDocument(relativePath: string, content: string): Promise<void> {
+		const abs = resolveSafePath(relativePath);
+		const ext = path.extname(abs);
+		if (!ALLOWED_EXTENSIONS.has(ext)) {
+			throw new ContentFsError('O novo arquivo precisa terminar em .md ou .mdx.', 400);
+		}
+
+		let exists = true;
+		try {
+			await stat(abs);
+		} catch {
+			exists = false;
+		}
+		if (exists) {
+			throw new ContentFsError('Já existe um arquivo nesse caminho.', 409);
+		}
+
+		await mkdir(path.dirname(abs), { recursive: true });
+		await writeFile(abs, content, 'utf-8');
+	}
+
+	async function deleteDocument(relativePath: string): Promise<void> {
+		const abs = resolveSafePath(relativePath);
+		try {
+			await unlink(abs);
+		} catch {
+			throw new ContentFsError('Arquivo não encontrado.', 404);
+		}
+	}
+
+	return { root, resolveSafePath, getTree, readDocument, writeDocument, createDocument, deleteDocument };
 }
 
-export async function writeDocument(relativePath: string, content: string): Promise<void> {
-	const abs = resolveSafePath(relativePath);
-	const ext = path.extname(abs);
-	if (!ALLOWED_EXTENSIONS.has(ext)) {
-		throw new ContentFsError('Apenas arquivos .md e .mdx podem ser salvos.', 400);
+export type ContentFs = ReturnType<typeof createContentFs>;
+
+export const CONTENT_ROOTS = {
+	docs: path.join(process.cwd(), 'src', 'content', 'docs'),
+	snippets: path.join(process.cwd(), 'src', 'content', 'snippets'),
+} as const;
+
+export type ContentRootKey = keyof typeof CONTENT_ROOTS;
+
+const instances: Partial<Record<ContentRootKey, ContentFs>> = {};
+
+export function getContentFs(key: ContentRootKey): ContentFs {
+	if (!instances[key]) {
+		instances[key] = createContentFs(CONTENT_ROOTS[key]);
 	}
-	try {
-		await stat(abs);
-	} catch {
-		throw new ContentFsError('Arquivo não encontrado. Use "criar" para um novo arquivo.', 404);
-	}
-	await writeFile(abs, content, 'utf-8');
+	return instances[key]!;
 }
 
-export async function createDocument(relativePath: string, content: string): Promise<void> {
-	const abs = resolveSafePath(relativePath);
-	const ext = path.extname(abs);
-	if (!ALLOWED_EXTENSIONS.has(ext)) {
-		throw new ContentFsError('O novo arquivo precisa terminar em .md ou .mdx.', 400);
-	}
-
-	let exists = true;
-	try {
-		await stat(abs);
-	} catch {
-		exists = false;
-	}
-	if (exists) {
-		throw new ContentFsError('Já existe um arquivo nesse caminho.', 409);
-	}
-
-	await mkdir(path.dirname(abs), { recursive: true });
-	await writeFile(abs, content, 'utf-8');
-}
-
-export async function deleteDocument(relativePath: string): Promise<void> {
-	const abs = resolveSafePath(relativePath);
-	try {
-		await unlink(abs);
-	} catch {
-		throw new ContentFsError('Arquivo não encontrado.', 404);
-	}
+export function isContentRootKey(value: string | null): value is ContentRootKey {
+	return value === 'docs' || value === 'snippets';
 }

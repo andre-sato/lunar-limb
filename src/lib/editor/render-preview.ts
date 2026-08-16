@@ -9,6 +9,7 @@ import matter from 'gray-matter';
 import path from 'node:path';
 import { mdxHandlers } from './mdx-handlers';
 import { rehypeRewriteImages } from './rehype-rewrite-images';
+import { remarkResolveReusable, type ReusableIssue } from './remark-resolve-reusable';
 
 /**
  * Best-effort preview pipeline.
@@ -37,6 +38,8 @@ export interface PreviewResult {
 	warning?: string;
 	/** 1-based line number of a parse error, when available, for Monaco markers. */
 	errorLine?: number;
+	/** Non-fatal issues found while resolving <ContentBlock>/<IncludePage> references. */
+	reusableIssues?: ReusableIssue[];
 }
 
 function resolveDocDir(docPath?: string): string {
@@ -69,6 +72,7 @@ export async function renderPreview(rawContent: string, options: PreviewOptions 
 					.use(remarkParse)
 					.use(remarkMdx)
 					.use(remarkGfm)
+					.use(remarkResolveReusable)
 					.use(remarkRehype, { allowDangerousHtml: false, handlers: mdxHandlers } as any)
 					.use(rehypeRewriteImages, docDir)
 					.use(rehypeStringify, { allowDangerousHtml: true })
@@ -82,9 +86,12 @@ export async function renderPreview(rawContent: string, options: PreviewOptions 
 					.use(rehypeStringify, { allowDangerousHtml: true })
 					.process(parsed.content);
 
+		const reusableIssues = (file.data as { reusableIssues?: ReusableIssue[] }).reusableIssues;
+
 		return {
 			html: String(file),
 			frontmatter: parsed.data ?? {},
+			reusableIssues: reusableIssues && reusableIssues.length > 0 ? reusableIssues : undefined,
 		};
 	} catch (err) {
 		const line = (err as { line?: number } | undefined)?.line;

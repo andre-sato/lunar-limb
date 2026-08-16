@@ -1,11 +1,5 @@
 import type { APIRoute } from 'astro';
-import {
-	ContentFsError,
-	readDocument,
-	writeDocument,
-	createDocument,
-	deleteDocument,
-} from '../../../lib/editor/content-fs';
+import { ContentFsError, getContentFs, isContentRootKey } from '../../../lib/editor/content-fs';
 
 export const prerender = false;
 
@@ -24,12 +18,17 @@ function errorResponse(err: unknown): Response {
 	return json({ error: message }, 500);
 }
 
+function pickRoot(value: string | null) {
+	return getContentFs(isContentRootKey(value) ? value : 'docs');
+}
+
 export const GET: APIRoute = async ({ url }) => {
 	const filePath = url.searchParams.get('path');
 	if (!filePath) return json({ error: 'Parâmetro "path" é obrigatório.' }, 400);
+	const fs = pickRoot(url.searchParams.get('root'));
 
 	try {
-		const doc = await readDocument(filePath);
+		const doc = await fs.readDocument(filePath);
 		return json(doc);
 	} catch (err) {
 		return errorResponse(err);
@@ -39,11 +38,11 @@ export const GET: APIRoute = async ({ url }) => {
 export const PUT: APIRoute = async ({ request }) => {
 	try {
 		const body = await request.json();
-		const { path: filePath, content } = body ?? {};
+		const { path: filePath, content, root } = body ?? {};
 		if (!filePath || typeof content !== 'string') {
 			return json({ error: 'Corpo inválido: esperado { path, content }.' }, 400);
 		}
-		await writeDocument(filePath, content);
+		await pickRoot(typeof root === 'string' ? root : null).writeDocument(filePath, content);
 		return json({ ok: true, savedAt: Date.now() });
 	} catch (err) {
 		return errorResponse(err);
@@ -53,11 +52,11 @@ export const PUT: APIRoute = async ({ request }) => {
 export const POST: APIRoute = async ({ request }) => {
 	try {
 		const body = await request.json();
-		const { path: filePath, content } = body ?? {};
+		const { path: filePath, content, root } = body ?? {};
 		if (!filePath || typeof content !== 'string') {
 			return json({ error: 'Corpo inválido: esperado { path, content }.' }, 400);
 		}
-		await createDocument(filePath, content);
+		await pickRoot(typeof root === 'string' ? root : null).createDocument(filePath, content);
 		return json({ ok: true }, 201);
 	} catch (err) {
 		return errorResponse(err);
@@ -67,9 +66,10 @@ export const POST: APIRoute = async ({ request }) => {
 export const DELETE: APIRoute = async ({ url }) => {
 	const filePath = url.searchParams.get('path');
 	if (!filePath) return json({ error: 'Parâmetro "path" é obrigatório.' }, 400);
+	const fs = pickRoot(url.searchParams.get('root'));
 
 	try {
-		await deleteDocument(filePath);
+		await fs.deleteDocument(filePath);
 		return json({ ok: true });
 	} catch (err) {
 		return errorResponse(err);

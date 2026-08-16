@@ -210,14 +210,27 @@ body {
 
 /* ---------- File explorer ---------- */
 
-.file-explorer {
+.file-explorer-stack {
 	width: 260px;
 	flex-shrink: 0;
 	border-right: 1px solid var(--border);
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
+
+.file-explorer {
+	width: 100%;
+	flex: 1;
+	min-height: 0;
 	background: var(--bg-elevated);
 	display: flex;
 	flex-direction: column;
 	overflow: hidden;
+}
+
+.file-explorer-stack .file-explorer:last-child {
+	border-top: 1px solid var(--border);
 }
 
 .file-explorer-header {
@@ -580,6 +593,180 @@ body {
 	min-width: 120px;
 }
 
+.preview-content .reusable-error {
+	color: var(--danger);
+	background: #fee2e2;
+	border-radius: 6px;
+	padding: 8px 10px;
+	font-size: 13px;
+}
+
+/* ---------- Reference panel ---------- */
+
+.reference-panel {
+	flex-shrink: 0;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 16px;
+	padding: 8px 12px;
+	border-bottom: 1px solid var(--border);
+	background: var(--bg-elevated);
+	font-size: 12px;
+}
+
+.reference-panel--error {
+	color: var(--danger);
+}
+
+.reference-group {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+.reference-group-title {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	margin: 0;
+	color: var(--text-muted);
+	white-space: nowrap;
+}
+
+.reference-group button {
+	border: 1px solid var(--border);
+	background: var(--bg);
+	color: var(--accent);
+	border-radius: 12px;
+	padding: 2px 9px;
+	font-size: 12px;
+	cursor: pointer;
+	font-family: var(--el-mono);
+}
+
+.reference-group button:hover {
+	background: var(--accent);
+	color: var(--accent-contrast);
+}
+
+/* ---------- Reusable content picker (Insert modal) ---------- */
+
+.modal--wide {
+	width: 480px;
+}
+
+.reusable-picker {
+	max-height: 360px;
+	overflow-y: auto;
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+}
+
+.reusable-group-title {
+	font-size: 11px;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: var(--text-muted);
+	margin: 0 0 6px;
+}
+
+.reusable-item {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	width: 100%;
+	padding: 8px 10px;
+	border: 1px solid var(--border);
+	border-radius: 8px;
+	background: var(--bg);
+	color: var(--text);
+	cursor: pointer;
+	text-align: left;
+	margin-bottom: 6px;
+}
+
+.reusable-item:hover {
+	border-color: var(--accent);
+}
+
+.reusable-item-title {
+	flex: 1;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.reusable-item-id {
+	font-family: var(--el-mono);
+	font-size: 11px;
+	color: var(--text-muted);
+}
+
+.reusable-empty,
+.reusable-loading {
+	color: var(--text-muted);
+	font-size: 13px;
+}
+
+/* ---------- Extract modal ---------- */
+
+.extract-preview {
+	max-height: 140px;
+	overflow-y: auto;
+	background: var(--bg-elevated);
+	border: 1px solid var(--border);
+	border-radius: 8px;
+	padding: 8px 10px;
+}
+
+.extract-preview pre {
+	margin: 0;
+	white-space: pre-wrap;
+	font-size: 12px;
+	font-family: var(--el-mono);
+	color: var(--text-muted);
+}
+
+.modal-hint {
+	font-size: 12px;
+	color: var(--text-muted);
+	margin: 0;
+}
+
+.modal-hint code {
+	font-family: var(--el-mono);
+	background: var(--bg-elevated);
+	padding: 1px 4px;
+	border-radius: 4px;
+}
+
+/* ---------- Delete warning modal ---------- */
+
+.modal-header--warning {
+	color: var(--danger);
+}
+
+.modal-header--warning h2 {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.delete-warning-list {
+	margin: 8px 0 0;
+	padding-left: 18px;
+	font-size: 13px;
+	max-height: 160px;
+	overflow-y: auto;
+}
+
+.modal-actions button.danger {
+	background: var(--danger);
+	border-color: var(--danger);
+	color: #fff;
+}
 
 
 .status-bar {
@@ -709,7 +896,7 @@ body {
 /* ---------- Responsive ---------- */
 
 @media (max-width: 860px) {
-	.file-explorer {
+	.file-explorer-stack {
 		position: absolute;
 		z-index: 4;
 		height: 100%;
