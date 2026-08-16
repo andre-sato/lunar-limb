@@ -1,0 +1,426 @@
+/**
+ * Estilos das telas fora da Starlight: login, 403 e o dashboard administrativo.
+ *
+ * A Starlight injeta suas variáveis `--sl-color-*` apenas nas páginas dela, e
+ * estas páginas não passam por seu layout. A paleta abaixo repete a de
+ * `custom.css` para a identidade visual continuar a mesma nos dois lados —
+ * mesmos tokens, mesmos nomes, mesmo comportamento de tema.
+ */
+
+:root {
+	--sl-color-accent-low: #e8edff;
+	--sl-color-accent: #4458c8;
+	--sl-color-accent-high: #273887;
+	--sl-color-white: #18202f;
+	--sl-color-gray-1: #3f4b5e;
+	--sl-color-gray-2: #627086;
+	--sl-color-gray-3: #aab4c3;
+	--sl-color-gray-4: #d9dee7;
+	--sl-color-gray-5: #eef1f6;
+	--sl-color-gray-6: #f7f8fb;
+	--sl-color-black: #ffffff;
+	--sl-color-red: #b3261e;
+	--sl-color-green: #1f7a45;
+
+	--shell-radius: 10px;
+	--shell-font:
+		ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+	--shell-font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Consolas, 'Liberation Mono', monospace;
+
+	color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+	--sl-color-accent-low: #1f2b62;
+	--sl-color-accent: #91a4ff;
+	--sl-color-accent-high: #dbe2ff;
+	--sl-color-white: #f3f5fb;
+	--sl-color-gray-1: #c7cfde;
+	--sl-color-gray-2: #a7b1c2;
+	--sl-color-gray-3: #6e788c;
+	--sl-color-gray-4: #455064;
+	--sl-color-gray-5: #293344;
+	--sl-color-gray-6: #1b2331;
+	--sl-color-black: #111722;
+	--sl-color-red: #f2879b;
+	--sl-color-green: #6ed69a;
+
+	color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+body {
+	margin: 0;
+	font-family: var(--shell-font);
+	background: var(--sl-color-black);
+	color: var(--sl-color-white);
+	-webkit-font-smoothing: antialiased;
+}
+
+a {
+	color: var(--sl-color-accent);
+}
+
+/* ---------------------------------------------------------------- header */
+
+.shell-header {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+	padding: 0 20px;
+	height: 56px;
+	border-bottom: 1px solid var(--sl-color-gray-5);
+	background: var(--sl-color-gray-6);
+	position: sticky;
+	top: 0;
+	z-index: 20;
+}
+
+.shell-brand {
+	display: flex;
+	align-items: center;
+	gap: 9px;
+	font-weight: 600;
+	color: var(--sl-color-white);
+	text-decoration: none;
+	font-size: 0.95rem;
+}
+
+.shell-brand-mark {
+	width: 22px;
+	height: 22px;
+	border-radius: 6px;
+	background: var(--sl-color-accent);
+	display: grid;
+	place-items: center;
+	color: #fff;
+	font-size: 0.7rem;
+	font-weight: 700;
+}
+
+:root[data-theme='dark'] .shell-brand-mark {
+	color: var(--sl-color-black);
+}
+
+.shell-nav {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	margin-left: 8px;
+}
+
+.shell-nav a {
+	padding: 6px 10px;
+	border-radius: 7px;
+	font-size: 0.875rem;
+	color: var(--sl-color-gray-1);
+	text-decoration: none;
+}
+
+.shell-nav a:hover {
+	background: var(--sl-color-gray-5);
+	color: var(--sl-color-white);
+}
+
+.shell-nav a[aria-current='page'] {
+	background: var(--sl-color-accent-low);
+	color: var(--sl-color-accent-high);
+	font-weight: 600;
+}
+
+.shell-header-end {
+	margin-left: auto;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+/* ------------------------------------------------------------ user menu */
+
+.user-menu {
+	position: relative;
+}
+
+.user-menu-trigger {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	background: transparent;
+	border: 1px solid var(--sl-color-gray-5);
+	border-radius: 999px;
+	padding: 4px 10px 4px 4px;
+	cursor: pointer;
+	color: var(--sl-color-white);
+	font: inherit;
+	font-size: 0.85rem;
+}
+
+.user-menu-trigger:hover {
+	border-color: var(--sl-color-gray-4);
+	background: var(--sl-color-gray-5);
+}
+
+.user-avatar {
+	width: 26px;
+	height: 26px;
+	border-radius: 999px;
+	background: var(--sl-color-accent);
+	color: #fff;
+	display: grid;
+	place-items: center;
+	font-size: 0.72rem;
+	font-weight: 700;
+	flex-shrink: 0;
+}
+
+:root[data-theme='dark'] .user-avatar {
+	color: var(--sl-color-black);
+}
+
+.user-menu-panel {
+	position: absolute;
+	right: 0;
+	top: calc(100% + 8px);
+	min-width: 220px;
+	background: var(--sl-color-black);
+	border: 1px solid var(--sl-color-gray-5);
+	border-radius: var(--shell-radius);
+	box-shadow: 0 12px 32px rgb(0 0 0 / 0.16);
+	padding: 6px;
+	z-index: 40;
+}
+
+.user-menu-panel[hidden] {
+	display: none;
+}
+
+.user-menu-identity {
+	padding: 8px 10px 10px;
+	border-bottom: 1px solid var(--sl-color-gray-5);
+	margin-bottom: 6px;
+}
+
+.user-menu-identity strong {
+	display: block;
+	font-size: 0.9rem;
+}
+
+.user-menu-identity span {
+	display: block;
+	font-size: 0.78rem;
+	color: var(--sl-color-gray-2);
+	overflow-wrap: anywhere;
+}
+
+.user-menu-panel a,
+.user-menu-panel button {
+	display: block;
+	width: 100%;
+	text-align: left;
+	padding: 8px 10px;
+	border: 0;
+	border-radius: 7px;
+	background: transparent;
+	color: var(--sl-color-white);
+	font: inherit;
+	font-size: 0.86rem;
+	cursor: pointer;
+	text-decoration: none;
+}
+
+.user-menu-panel a:hover,
+.user-menu-panel button:hover {
+	background: var(--sl-color-gray-5);
+}
+
+/* ---------------------------------------------------------------- badges */
+
+.role-badge {
+	display: inline-block;
+	padding: 2px 8px;
+	border-radius: 999px;
+	font-size: 0.72rem;
+	font-weight: 600;
+	letter-spacing: 0.02em;
+	border: 1px solid transparent;
+}
+
+.role-badge--viewer {
+	background: var(--sl-color-gray-5);
+	color: var(--sl-color-gray-1);
+	border-color: var(--sl-color-gray-4);
+}
+
+.role-badge--editor {
+	background: var(--sl-color-accent-low);
+	color: var(--sl-color-accent-high);
+	border-color: var(--sl-color-accent);
+}
+
+.role-badge--admin {
+	background: var(--sl-color-accent);
+	color: #fff;
+}
+
+:root[data-theme='dark'] .role-badge--admin {
+	color: var(--sl-color-black);
+}
+
+.status-badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 0.8rem;
+	color: var(--sl-color-gray-1);
+}
+
+.status-dot {
+	width: 7px;
+	height: 7px;
+	border-radius: 999px;
+	background: var(--sl-color-green);
+}
+
+.status-dot--inactive {
+	background: var(--sl-color-gray-3);
+}
+
+/* ------------------------------------------------------------ centered */
+
+.centered-screen {
+	min-height: calc(100vh - 56px);
+	display: grid;
+	place-items: center;
+	padding: 32px 20px 64px;
+}
+
+.centered-card {
+	width: 100%;
+	max-width: 380px;
+	background: var(--sl-color-gray-6);
+	border: 1px solid var(--sl-color-gray-5);
+	border-radius: 14px;
+	padding: 28px;
+}
+
+.centered-card h1 {
+	margin: 0 0 6px;
+	font-size: 1.4rem;
+}
+
+.centered-card p.subtitle {
+	margin: 0 0 22px;
+	color: var(--sl-color-gray-2);
+	font-size: 0.9rem;
+	line-height: 1.5;
+}
+
+/* ----------------------------------------------------------------- form */
+
+.field {
+	display: block;
+	margin-bottom: 16px;
+	font-size: 0.85rem;
+	font-weight: 500;
+	color: var(--sl-color-gray-1);
+}
+
+.field input,
+.field select {
+	display: block;
+	width: 100%;
+	margin-top: 6px;
+	padding: 9px 11px;
+	border: 1px solid var(--sl-color-gray-4);
+	border-radius: 8px;
+	background: var(--sl-color-black);
+	color: var(--sl-color-white);
+	font: inherit;
+	font-size: 0.9rem;
+}
+
+.field input:focus,
+.field select:focus {
+	outline: 2px solid var(--sl-color-accent);
+	outline-offset: -1px;
+	border-color: transparent;
+}
+
+.btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 7px;
+	padding: 9px 15px;
+	border-radius: 8px;
+	border: 1px solid var(--sl-color-gray-4);
+	background: var(--sl-color-black);
+	color: var(--sl-color-white);
+	font: inherit;
+	font-size: 0.875rem;
+	font-weight: 500;
+	cursor: pointer;
+	text-decoration: none;
+}
+
+.btn:hover:not(:disabled) {
+	background: var(--sl-color-gray-5);
+}
+
+.btn:disabled {
+	opacity: 0.55;
+	cursor: not-allowed;
+}
+
+.btn--primary {
+	background: var(--sl-color-accent);
+	border-color: var(--sl-color-accent);
+	color: #fff;
+}
+
+:root[data-theme='dark'] .btn--primary {
+	color: var(--sl-color-black);
+}
+
+.btn--primary:hover:not(:disabled) {
+	background: var(--sl-color-accent-high);
+	border-color: var(--sl-color-accent-high);
+}
+
+:root[data-theme='dark'] .btn--primary:hover:not(:disabled) {
+	color: var(--sl-color-black);
+}
+
+.btn--danger {
+	color: var(--sl-color-red);
+	border-color: var(--sl-color-red);
+}
+
+.btn--block {
+	width: 100%;
+}
+
+.form-error {
+	margin: 0 0 16px;
+	padding: 9px 12px;
+	border-radius: 8px;
+	background: color-mix(in srgb, var(--sl-color-red) 12%, transparent);
+	border: 1px solid color-mix(in srgb, var(--sl-color-red) 40%, transparent);
+	color: var(--sl-color-red);
+	font-size: 0.85rem;
+}
+
+.form-notice {
+	margin: 0 0 16px;
+	padding: 9px 12px;
+	border-radius: 8px;
+	background: var(--sl-color-accent-low);
+	border: 1px solid var(--sl-color-accent);
+	color: var(--sl-color-accent-high);
+	font-size: 0.85rem;
+}

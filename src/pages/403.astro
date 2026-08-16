@@ -1,0 +1,34 @@
+---
+import PortalShell from '../layouts/PortalShell.astro';
+import { can } from '../lib/auth/permissions';
+
+export const prerender = false;
+
+// A resposta precisa carregar o status real: um 403 servido como 200 engana
+// monitoramento, cache e qualquer cliente automatizado.
+Astro.response.status = 403;
+
+const user = Astro.locals.user;
+const canEdit = can(Astro.locals.authUser, 'editor.access');
+---
+
+<PortalShell title="Acesso negado">
+	<main class="centered-screen">
+		<div class="centered-card">
+			<h1>Acesso negado</h1>
+			<p class="subtitle">
+				{
+					/* Nem a mensagem nem o restante da página revelam o que existe do
+					   outro lado — só que este usuário não pode chegar lá. */
+					'Você não tem permissão para acessar esta página.'
+				}
+			</p>
+
+			<div style="display:flex; gap:8px; flex-wrap:wrap">
+				<a class="btn btn--primary" href="/">Ir para a documentação</a>
+				{canEdit && <a class="btn" href="/editor">Abrir o editor</a>}
+				{!user && <a class="btn" href="/login">Entrar com outra conta</a>}
+			</div>
+		</div>
+	</main>
+</PortalShell>

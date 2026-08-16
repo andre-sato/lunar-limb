@@ -121,6 +121,31 @@ npm run dev
 
 Depois abra `http://localhost:4321/editor/`.
 
+## Usuários e controle de acesso
+
+O portal tem três grupos. A leitura da documentação é pública; editar e administrar exigem entrar.
+
+| | viewer | editor | admin |
+| --- | :-: | :-: | :-: |
+| Ler e pesquisar a documentação | ✓ | ✓ | ✓ |
+| Ver "Editar esta página" e abrir o editor | | ✓ | ✓ |
+| Criar, editar e excluir páginas | | ✓ | ✓ |
+| Acessar Settings, gerenciar usuários e papéis | | | ✓ |
+
+**Primeiro acesso.** Sem nenhum usuário cadastrado, o primeiro request cria um administrador e imprime a senha **uma única vez** no console do servidor. Para definir as credenciais você mesmo:
+
+```bash
+PORTAL_ADMIN_EMAIL=voce@empresa.com PORTAL_ADMIN_PASSWORD=uma-senha-longa npm run dev
+```
+
+Em produção, defina também `AUTH_SECRET` (≥ 32 caracteres). Sem ela, uma chave é gerada em `data/secret`, o que funciona localmente mas não sobrevive a várias réplicas.
+
+**Onde ficam os dados.** Usuários, sessões e auditoria vivem em `data/*.json`, que é **ignorado pelo Git** — hash de senha, token de sessão e chave HMAC não vão para o repositório. O conteúdo continua sendo Markdown/MDX versionado: usuários não são conteúdo.
+
+**Como a autorização é aplicada.** O código pergunta por capacidade (`can(user, 'users.update')`), nunca por nome de grupo, e um único middleware protege `/editor/*`, `/settings/*` e as APIs. O botão "Editar esta página" é uma *server island*: a página é estática, mas o botão é renderizado sob demanda no servidor — um viewer nunca recebe esse HTML. Ainda assim, quem barra o acesso é o middleware, não o botão escondido.
+
+Arquitetura detalhada, incluindo as proteções contra escalação de privilégio e remoção do último admin, em [docs/controle-de-acesso.md](docs/controle-de-acesso.md).
+
 ### Build e preview de produção
 
 O projeto usa `@astrojs/node` com `output: 'server'`, porque as rotas do editor precisam de execução sob demanda para ler e gravar arquivos no filesystem.
@@ -140,7 +165,6 @@ node ./dist/server/entry.mjs
 
 - O preview de MDX não executa componentes Astro/Starlight reais (incluindo `<ContentBlock>`/`<IncludePage>` fora do resolver dedicado) — mostra um placeholder com nome e props para componentes genéricos.
 - Ainda não há scroll-sync entre editor e preview.
-- Extract sempre cria o snippet como `.md`; se ele mesmo precisar reutilizar outro bloco (reuso aninhado), é preciso renomear manualmente para `.mdx` — ainda não há um comando "converter para .mdx" na interface.
 - Resolução de imagem relativa ao pré-visualizar um snippet aberto diretamente (fora de uma página) assume a pasta `content/docs`, então pode ficar imprecisa nesse caso específico.
 - Referências quebradas e circulares aparecem no Problems panel e no Content Graph, mas ainda **não bloqueiam o build** em modo strict.
 - Mover ou renomear um arquivo quebra as referências a ele (o `id` é o caminho sem extensão) — ainda não há um "rename refactor" que atualize os consumidores.
@@ -150,7 +174,9 @@ node ./dist/server/entry.mjs
 - `showIf` aceita uma variável só, com negação opcional; não há expressões booleanas compostas.
 - A busca global varre o conteúdo a cada consulta, sem índice — adequado ao volume de um portal, não a dezenas de milhares de arquivos.
 - Git awareness é somente leitura: nenhum commit, stage ou checkout parte do editor.
-- O editor não tem autenticação própria. Não o exponha publicamente sem colocar algo na frente (ele tem permissão de escrita no repositório) — use-o localmente ou em um servidor interno.
+- A leitura da documentação é pública por decisão de produto: gatear as páginas exigiria desligar o prerender da Starlight, o que desativa a busca Pagefind. Conteúdo que não pode ser lido por qualquer um não deve estar no portal.
+- Não há "esqueci minha senha" nem tela de perfil: a redefinição é feita por um admin em Settings → Users.
+- Usuários e sessões ficam em JSON local, adequado a uma instalação; várias réplicas precisariam de um store compartilhado. O limitador de tentativas de login também é por processo.
 
 ### Dependências
 

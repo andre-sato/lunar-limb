@@ -1,0 +1,78 @@
+---
+/**
+ * Link direto para o editor a partir de uma página de documentação:
+ *
+ *   /guides/authentication  →  /editor/guides/authentication
+ *
+ * A rota resolve o slug no arquivo real (`.mdx` ou `.md`) e redireciona para
+ * `/editor?path=...`, que é o estado que o editor já sabe restaurar. Assim
+ * existe **um** editor, e não um segundo caminho de renderização para manter
+ * em sincronia.
+ *
+ * O middleware já exigiu `editor.access` antes de chegar aqui: um viewer que
+ * digite esta URL recebe 403 sem que este arquivo precise verificar nada.
+ */
+import { readdir } from 'node:fs/promises';
+import path from 'node:path';
+import { CONTENT_ROOTS, type ContentRootKey } from '../../lib/editor/content-fs';
+
+export const prerender = false;
+
+const segments = Astro.params.path ?? '';
+const slug = segments.replace(/^\/+|\/+$/g, '');
+
+/** `/editor/snippets/foo` abre a árvore de conteúdo reutilizável. */
+const root: ContentRootKey = slug.startsWith('snippets/') ? 'snippets' : 'docs';
+const relative = root === 'snippets' ? slug.slice('snippets/'.length) : slug;
+
+/**
+ * Impede que `..` no caminho escape da raiz de conteúdo. O middleware autoriza
+ * o acesso ao editor, não a leitura de arquivos arbitrários do disco.
+ */
+function isSafeRelative(value: string): boolean {
+	if (!value) return false;
+	if (value.includes('\0')) return false;
+	const normalized = path.posix.normalize(value);
+	return !normalized.startsWith('..') && !path.isAbsolute(normalized);
+}
+
+async function resolveFile(): Promise<string | null> {
+	if (!isSafeRelative(relative)) return null;
+
+	// O slug vem sem extensão; a página pode ser .mdx ou .md.
+	if (/\.mdx?$/.test(relative)) return relative;
+
+	const rootDir = CONTENT_ROOTS[root];
+	const dir = path.posix.dirname(relative);
+	const base = path.posix.basename(relative);
+	const absoluteDir = path.resolve(rootDir, dir === '.' ? '' : dir);
+
+	// Confirma que o diretório resolvido continua dentro da raiz.
+	const rootAbsolute = path.resolve(rootDir);
+	if (absoluteDir !== rootAbsolute && !absoluteDir.startsWith(rootAbsolute + path.sep)) return null;
+
+	let entries: string[];
+	try {
+		entries = await readdir(absoluteDir);
+	} catch {
+		return null;
+	}
+
+	for (const extension of ['.mdx', '.md']) {
+		if (entries.includes(base + extension)) {
+			return dir === '.' ? base + extension : `${dir}/${base}${extension}`;
+		}
+	}
+	return null;
+}
+
+const file = await resolveFile();
+
+const target = new URL('/editor', Astro.url);
+if (file) {
+	target.searchParams.set('path', file);
+	if (root === 'snippets') target.searchParams.set('root', root);
+}
+
+return Astro.redirect(target.pathname + target.search, 302);
+---

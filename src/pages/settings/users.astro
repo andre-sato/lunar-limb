@@ -1,0 +1,17 @@
+---
+import SettingsLayout from '../../layouts/SettingsLayout.astro';
+import UsersManager from '../../components/settings/UsersManager';
+
+export const prerender = false;
+
+// O middleware já garantiu `settings.access` + `users.read`.
+const currentUserId = Astro.locals.user!.id;
+---
+
+<SettingsLayout
+	title="Users"
+	description="Quem tem acesso ao portal e o que cada um pode fazer."
+	active="users"
+>
+	<UsersManager client:load currentUserId={currentUserId} />
+</SettingsLayout>

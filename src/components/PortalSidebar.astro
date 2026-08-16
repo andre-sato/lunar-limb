@@ -1,0 +1,13 @@
+---
+/**
+ * Sidebar do portal = sidebar padrão da Starlight + bloco de conta.
+ *
+ * A navegação de documentação continua sendo derivada da estrutura de
+ * conteúdo (autogenerate), como antes — nada aqui é escrito à mão.
+ */
+import Default from '@astrojs/starlight/components/Sidebar.astro';
+import SidebarAccount from './auth/SidebarAccount.astro';
+---
+
+<Default {...Astro.props}><slot /></Default>
+<SidebarAccount server:defer />

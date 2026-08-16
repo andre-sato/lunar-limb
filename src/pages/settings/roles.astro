@@ -1,0 +1,79 @@
+---
+/**
+ * Settings → Roles & Permissions.
+ *
+ * A tela é gerada a partir de `ROLE_PERMISSIONS` e `PERMISSION_GROUPS`, não de
+ * uma lista escrita à mão: uma permissão nova aparece aqui sozinha, e a tela
+ * não pode divergir do que o servidor realmente aplica.
+ */
+import SettingsLayout from '../../layouts/SettingsLayout.astro';
+import {
+	PERMISSION_GROUPS,
+	ROLES,
+	ROLE_DESCRIPTIONS,
+	ROLE_LABELS,
+	permissionsFor,
+} from '../../lib/auth/permissions';
+
+export const prerender = false;
+
+const matrix = ROLES.map((role) => ({
+	role,
+	granted: new Set(permissionsFor(role)),
+}));
+---
+
+<SettingsLayout
+	title="Roles & Permissions"
+	description="As capacidades de cada grupo. Esta é a mesma matriz aplicada pelo servidor."
+	active="roles"
+>
+	<div class="role-columns">
+		{
+			matrix.map(({ role, granted }) => (
+				<section class="role-card">
+					<header>
+						<span class={`role-badge role-badge--${role}`}>{ROLE_LABELS[role]}</span>
+					</header>
+					<p class="role-desc">{ROLE_DESCRIPTIONS[role]}</p>
+
+					{PERMISSION_GROUPS.map((group) => {
+						const anyGranted = group.permissions.some((entry) => granted.has(entry.permission));
+						return (
+							anyGranted && (
+								<div class="perm-group">
+									<p class="perm-group-label">{group.label}</p>
+									<ul class="perm-list">
+										{group.permissions.map((entry) => {
+											const on = granted.has(entry.permission);
+											return (
+												<li class={`perm-item ${on ? 'perm-item--on' : 'perm-item--off'}`}>
+													<span class="perm-mark">{on ? '✓' : '·'}</span>
+													<span>{entry.label}</span>
+												</li>
+											);
+										})}
+									</ul>
+								</div>
+							)
+						);
+					})}
+				</section>
+			))
+		}
+	</div>
+
+	<section class="panel" style="margin-top:20px">
+		<h2>Como a autorização é aplicada</h2>
+		<p style="margin:0 0 10px; font-size:0.89rem; line-height:1.6; color:var(--sl-color-gray-1)">
+			O código nunca pergunta pelo nome do grupo — pergunta pela capacidade
+			(<code>can(user, 'users.update')</code>). A matriz acima é a única fonte dessa
+			resposta, consultada tanto pela interface quanto pelo middleware que protege
+			<code>/editor</code>, <code>/settings</code> e as APIs.
+		</p>
+		<p style="margin:0; font-size:0.89rem; line-height:1.6; color:var(--sl-color-gray-1)">
+			Esconder um botão é experiência de uso, não segurança: cada requisição é
+			verificada de novo no servidor.
+		</p>
+	</section>
+</SettingsLayout>

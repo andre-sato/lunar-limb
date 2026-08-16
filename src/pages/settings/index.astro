@@ -1,0 +1,96 @@
+---
+/**
+ * Settings → Overview.
+ *
+ * Todos os números são derivados do estado real: usuários vêm do serviço,
+ * páginas e última alteração vêm do filesystem de conteúdo. Nada é fixo no
+ * código — um painel administrativo com número inventado é pior do que não
+ * ter painel.
+ */
+import SettingsLayout from '../../layouts/SettingsLayout.astro';
+import { countUsers } from '../../lib/auth/users';
+import { listAudit } from '../../lib/auth/audit';
+import { countContent } from '../../lib/auth/metrics';
+import { ROLE_LABELS, ROLES } from '../../lib/auth/permissions';
+
+export const prerender = false;
+
+const [users, content, recentEvents] = await Promise.all([countUsers(), countContent(), listAudit({ limit: 5 })]);
+
+function relativeTime(iso: string | null): string {
+	if (!iso) return 'sem alterações registradas';
+	const diff = Date.now() - new Date(iso).getTime();
+	const minutes = Math.floor(diff / 60000);
+	if (minutes < 1) return 'agora há pouco';
+	if (minutes < 60) return `há ${minutes} min`;
+	const hours = Math.floor(minutes / 60);
+	if (hours < 24) return `há ${hours} h`;
+	const days = Math.floor(hours / 24);
+	return `há ${days} d`;
+}
+
+const maxRoleCount = Math.max(1, ...ROLES.map((role) => users.byRole[role]));
+---
+
+<SettingsLayout title="Overview" description="Resumo do portal e dos acessos." active="overview">
+	<div class="stat-grid">
+		<div class="stat-card">
+			<p class="stat-card-label">Usuários</p>
+			<p class="stat-card-value">{users.total}</p>
+			<p class="stat-card-hint">{users.active} ativos</p>
+		</div>
+		<div class="stat-card">
+			<p class="stat-card-label">Páginas de documentação</p>
+			<p class="stat-card-value">{content.pages}</p>
+			<p class="stat-card-hint">{content.locales} idiomas</p>
+		</div>
+		<div class="stat-card">
+			<p class="stat-card-label">Conteúdo reutilizável</p>
+			<p class="stat-card-value">{content.snippets}</p>
+			<p class="stat-card-hint">blocos canônicos</p>
+		</div>
+		<div class="stat-card">
+			<p class="stat-card-label">Última alteração</p>
+			<p class="stat-card-value" style="font-size:1.15rem">{relativeTime(content.lastModified)}</p>
+			<p class="stat-card-hint">{content.lastModifiedPath ?? '—'}</p>
+		</div>
+	</div>
+
+	<section class="panel">
+		<h2>Usuários por grupo</h2>
+		<div class="breakdown">
+			{
+				ROLES.map((role) => (
+					<div class="breakdown-row">
+						<span class={`role-badge role-badge--${role}`}>{ROLE_LABELS[role]}</span>
+						<span class="breakdown-bar">
+							<span style={`width:${Math.round((users.byRole[role] / maxRoleCount) * 100)}%`} />
+						</span>
+						<span class="breakdown-count">{users.byRole[role]}</span>
+					</div>
+				))
+			}
+		</div>
+	</section>
+
+	<section class="panel">
+		<h2>Atividade recente</h2>
+		{
+			recentEvents.length === 0 ? (
+				<p class="empty-state" style="padding:12px 0">
+					Nenhum evento registrado ainda.
+				</p>
+			) : (
+				<ul class="audit-list">
+					{recentEvents.map((event) => (
+						<li class="audit-item">
+							<span class="audit-action">{event.action}</span>
+							<span class="audit-time">{relativeTime(event.timestamp)}</span>
+						</li>
+					))}
+				</ul>
+			)
+		}
+		<p style="margin:14px 0 0"><a href="/settings/audit">Ver auditoria completa →</a></p>
+	</section>
+</SettingsLayout>

@@ -1,0 +1,91 @@
+---
+import PortalShell from '../layouts/PortalShell.astro';
+
+export const prerender = false;
+
+// Quem já está autenticado não tem o que fazer aqui.
+if (Astro.locals.user) {
+	const next = Astro.url.searchParams.get('next');
+	return Astro.redirect(isSafeNext(next) ? next! : '/', 302);
+}
+
+/**
+ * Só aceita caminhos internos. Sem esta checagem, `?next=https://evil.example`
+ * transformaria o login numa página de redirecionamento aberto — útil para
+ * phishing, porque o link começa no domínio legítimo.
+ */
+function isSafeNext(value: string | null): boolean {
+	if (!value) return false;
+	return value.startsWith('/') && !value.startsWith('//');
+}
+
+const nextParam = Astro.url.searchParams.get('next');
+const next = isSafeNext(nextParam) ? nextParam! : '/';
+---
+
+<PortalShell title="Entrar">
+	<main class="centered-screen">
+		<div class="centered-card">
+			<h1>Entrar</h1>
+			<p class="subtitle">Acesse para editar a documentação ou administrar o portal.</p>
+
+			<p class="form-error" hidden data-login-error></p>
+
+			<form data-login-form novalidate>
+				<input type="hidden" name="next" value={next} />
+
+				<label class="field">
+					E-mail
+					<input type="email" name="email" autocomplete="username" required autofocus />
+				</label>
+
+				<label class="field">
+					Senha
+					<input type="password" name="password" autocomplete="current-password" required />
+				</label>
+
+				<button type="submit" class="btn btn--primary btn--block" data-login-submit>Entrar</button>
+			</form>
+		</div>
+	</main>
+</PortalShell>
+
+<script>
+	const form = document.querySelector<HTMLFormElement>('[data-login-form]');
+	const errorBox = document.querySelector<HTMLElement>('[data-login-error]');
+	const submit = document.querySelector<HTMLButtonElement>('[data-login-submit]');
+
+	form?.addEventListener('submit', async (event) => {
+		event.preventDefault();
+		if (!errorBox || !submit) return;
+
+		errorBox.hidden = true;
+		submit.disabled = true;
+		submit.textContent = 'Entrando…';
+
+		const data = new FormData(form);
+
+		try {
+			const response = await fetch('/api/auth/login', {
+				method: 'POST',
+				headers: { 'content-type': 'application/json' },
+				body: JSON.stringify({ email: data.get('email'), password: data.get('password') }),
+			});
+
+			if (!response.ok) {
+				const body = await response.json().catch(() => ({}));
+				errorBox.textContent = body.message ?? 'Não foi possível entrar.';
+				errorBox.hidden = false;
+				return;
+			}
+
+			window.location.href = String(data.get('next') || '/');
+		} catch {
+			errorBox.textContent = 'Não foi possível conectar ao servidor.';
+			errorBox.hidden = false;
+		} finally {
+			submit.disabled = false;
+			submit.textContent = 'Entrar';
+		}
+	});
+</script>

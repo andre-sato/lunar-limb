@@ -1,0 +1,82 @@
+---
+/**
+ * Menu do usuário: identidade, papel e logout.
+ *
+ * O logout é um POST, não um link: um GET que destrói sessão pode ser
+ * disparado por qualquer `<img>` numa página de terceiros.
+ */
+import { ROLE_LABELS, can } from '../../lib/auth/permissions';
+import type { PublicUser } from '../../lib/auth/users';
+
+interface Props {
+	user: PublicUser;
+}
+
+const { user } = Astro.props;
+
+const initials = user.name
+	.split(/\s+/)
+	.filter(Boolean)
+	.slice(0, 2)
+	.map((word) => word[0])
+	.join('')
+	.toUpperCase();
+---
+
+<div class="user-menu" data-user-menu>
+	<button type="button" class="user-menu-trigger" aria-expanded="false" aria-haspopup="true" data-user-menu-trigger>
+		<span class="user-avatar" aria-hidden="true">{initials}</span>
+		<span>{user.name}</span>
+	</button>
+
+	<div class="user-menu-panel" hidden data-user-menu-panel>
+		<div class="user-menu-identity">
+			<strong>{user.name}</strong>
+			<span>{user.email}</span>
+			<span style="margin-top:6px">
+				<span class={`role-badge role-badge--${user.role}`}>{ROLE_LABELS[user.role]}</span>
+			</span>
+		</div>
+
+		{can(user, 'editor.access') && <a href="/editor">Editor</a>}
+		{can(user, 'settings.access') && <a href="/settings">Settings</a>}
+
+		<form method="POST" action="/api/auth/logout" data-logout-form>
+			<button type="submit">Sair</button>
+		</form>
+	</div>
+</div>
+
+<script>
+	document.querySelectorAll<HTMLElement>('[data-user-menu]').forEach((menu) => {
+		const trigger = menu.querySelector<HTMLButtonElement>('[data-user-menu-trigger]');
+		const panel = menu.querySelector<HTMLElement>('[data-user-menu-panel]');
+		if (!trigger || !panel) return;
+
+		function setOpen(open: boolean) {
+			panel!.hidden = !open;
+			trigger!.setAttribute('aria-expanded', String(open));
+		}
+
+		trigger.addEventListener('click', (event) => {
+			event.stopPropagation();
+			setOpen(panel.hidden === true);
+		});
+
+		document.addEventListener('click', (event) => {
+			if (!menu.contains(event.target as Node)) setOpen(false);
+		});
+
+		document.addEventListener('keydown', (event) => {
+			if (event.key === 'Escape') setOpen(false);
+		});
+
+		// O logout responde JSON; o navegador não deve navegar para ele.
+		const form = menu.querySelector<HTMLFormElement>('[data-logout-form]');
+		form?.addEventListener('submit', async (event) => {
+			event.preventDefault();
+			await fetch('/api/auth/logout', { method: 'POST' });
+			window.location.href = '/';
+		});
+	});
+</script>

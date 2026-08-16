@@ -1,0 +1,74 @@
+---
+import SettingsLayout from '../../layouts/SettingsLayout.astro';
+import { listAudit } from '../../lib/auth/audit';
+import { listUsers } from '../../lib/auth/users';
+
+export const prerender = false;
+
+const [events, users] = await Promise.all([listAudit({ limit: 200 }), listUsers()]);
+const names = new Map(users.map((user) => [user.id, user.name]));
+
+function actorName(id: string): string {
+	if (id === 'anonymous') return 'Anônimo';
+	return names.get(id) ?? 'Usuário removido';
+}
+
+const formatter = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+
+const DESCRIPTIONS: Record<string, string> = {
+	USER_CREATED: 'criou o usuário',
+	USER_UPDATED: 'atualizou o usuário',
+	USER_ROLE_CHANGED: 'alterou o grupo de',
+	USER_DEACTIVATED: 'desativou',
+	USER_REACTIVATED: 'reativou',
+	USER_DELETED: 'excluiu o usuário',
+	SESSION_STARTED: 'entrou',
+	SESSION_ENDED: 'saiu',
+	SESSION_DENIED: 'teve uma tentativa de login negada',
+	DOCUMENT_CREATED: 'criou o documento',
+	DOCUMENT_UPDATED: 'atualizou o documento',
+	DOCUMENT_DELETED: 'excluiu o documento',
+	PERMISSION_CHANGED: 'alterou permissões',
+};
+---
+
+<SettingsLayout
+	title="Audit Log"
+	description="Alterações administrativas e de conteúdo, mais recentes primeiro."
+	active="audit"
+>
+	<section class="panel">
+		{
+			events.length === 0 ? (
+				<p class="empty-state">Nenhum evento registrado ainda.</p>
+			) : (
+				<ul class="audit-list">
+					{events.map((event) => {
+						const target =
+							event.metadata && typeof event.metadata.path === 'string'
+								? event.metadata.path
+								: event.targetId
+									? actorName(event.targetId)
+									: null;
+						return (
+							<li class="audit-item">
+								<span class="audit-action">{event.action}</span>
+								<span>
+									<strong>{actorName(event.actorId)}</strong>{' '}
+									{DESCRIPTIONS[event.action] ?? event.action}
+									{target && <> <strong>{target}</strong></>}
+									{event.action === 'USER_ROLE_CHANGED' &&
+										event.metadata &&
+										typeof event.metadata.from === 'string' && (
+											<> ({event.metadata.from} → {String(event.metadata.to)})</>
+										)}
+								</span>
+								<span class="audit-time">{formatter.format(new Date(event.timestamp))}</span>
+							</li>
+						);
+					})}
+				</ul>
+			)
+		}
+	</section>
+</SettingsLayout>

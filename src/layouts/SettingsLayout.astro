@@ -1,0 +1,48 @@
+---
+/**
+ * Casca do dashboard administrativo: navegação própria + conteúdo.
+ *
+ * Todas as rotas sob `/settings` já foram autorizadas pelo middleware
+ * (`settings.access`), então nenhuma página filha precisa verificar de novo.
+ */
+import PortalShell from './PortalShell.astro';
+import '../styles/settings.css';
+
+interface Props {
+	title: string;
+	description?: string;
+	active: 'overview' | 'users' | 'roles' | 'audit';
+}
+
+const { title, description, active } = Astro.props;
+
+const items = [
+	{ key: 'overview', label: 'Overview', href: '/settings' },
+	{ key: 'users', label: 'Users', href: '/settings/users' },
+	{ key: 'roles', label: 'Roles & Permissions', href: '/settings/roles' },
+	{ key: 'audit', label: 'Audit Log', href: '/settings/audit' },
+] as const;
+---
+
+<PortalShell title={`Settings — ${title}`} section="settings">
+	<div class="settings-layout">
+		<nav class="settings-nav" aria-label="Administração">
+			<p class="settings-nav-title">Administration</p>
+			{
+				items.map((item) => (
+					<a href={item.href} aria-current={item.key === active ? 'page' : undefined}>
+						{item.label}
+					</a>
+				))
+			}
+		</nav>
+
+		<main class="settings-main">
+			<div class="settings-header">
+				<h1>{title}</h1>
+				{description && <p>{description}</p>}
+			</div>
+			<slot />
+		</main>
+	</div>
+</PortalShell>

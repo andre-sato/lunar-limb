@@ -1,0 +1,47 @@
+---
+/**
+ * Botão "Editar esta página" — renderizado como **server island**.
+ *
+ * As páginas de documentação são pré-renderizadas e públicas, então o HTML
+ * estático não pode conhecer o usuário. Com `server:defer` (no ponto de uso),
+ * este fragmento é renderizado sob demanda, no servidor, já com o cookie da
+ * sessão: a requisição da island passa pelo middleware como qualquer outra
+ * rota.
+ *
+ * A consequência é a exigida pelo §8: para um viewer o servidor devolve vazio,
+ * e o botão **nunca chega ao navegador**. Não há regra de CSS escondendo nada,
+ * nem JavaScript decidindo no cliente — quem decide é o servidor.
+ *
+ * A camada que de fato barra o acesso continua sendo o middleware em
+ * `/editor/*`. Este componente controla a experiência, não a segurança.
+ */
+import { can } from '../../lib/auth/permissions';
+
+interface Props {
+	/** Caminho do arquivo relativo a `src/content/docs`. */
+	editorPath?: string;
+	label: string;
+	title: string;
+}
+
+const { editorPath, label, title } = Astro.props;
+
+const allowed = can(Astro.locals.authUser, 'editor.access');
+---
+
+{
+	allowed && editorPath && (
+		<a
+			class="edit-page-link"
+			href={`/editor/${editorPath.replace(/\.mdx?$/, '')}`}
+			title={label}
+			aria-label={`${label}: ${title}`}
+		>
+			<svg viewBox="0 0 24 24" aria-hidden="true">
+				<path d="M12 20h9" />
+				<path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L8 18l-4 1 1-4Z" />
+			</svg>
+			<span>{label}</span>
+		</a>
+	)
+}

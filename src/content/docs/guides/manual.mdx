@@ -276,6 +276,63 @@ build para o site refletir a mudança.
 
 ---
 
+## Usuários e permissões
+
+A leitura da documentação é pública. Editar e administrar exigem entrar.
+
+### Os três grupos
+
+| | viewer | editor | admin |
+| --- | :-: | :-: | :-: |
+| Ler e pesquisar | ✓ | ✓ | ✓ |
+| Ver "Editar esta página" e abrir o editor | | ✓ | ✓ |
+| Criar, editar e excluir páginas | | ✓ | ✓ |
+| Acessar Settings, gerenciar usuários e papéis | | | ✓ |
+
+Um usuário **inativo** não tem permissão nenhuma, qualquer que seja o grupo — e
+a perda de acesso vale na hora, inclusive para uma sessão já aberta.
+
+### Entrar e sair
+
+O link **Entrar** fica no rodapé do menu lateral e no cabeçalho das telas
+administrativas. Depois de autenticado, o mesmo lugar mostra seu nome, seu grupo
+e o acesso a **Settings** (só para admin) e ao **Editor**.
+
+### O botão "Editar esta página"
+
+Ele aparece no topo de cada página, ao lado de "Compartilhar com IA", para quem
+pode editar. Clicar abre o editor já com o arquivo correspondente.
+
+Para um viewer o botão não é escondido por CSS: o servidor simplesmente não o
+gera. E digitar a URL do editor à mão não adianta — quem barra é o servidor, não
+o botão ausente.
+
+### Administração (`/settings`)
+
+Disponível apenas para admin:
+
+- **Overview** — usuários por grupo, total de páginas e blocos, última alteração
+  no conteúdo e atividade recente. Todos os números vêm do estado real.
+- **Users** — buscar, filtrar por grupo e status, ordenar, criar, editar,
+  desativar e excluir. Criar um usuário gera uma senha exibida **uma única vez**.
+- **Roles & Permissions** — a matriz de capacidades de cada grupo, gerada a
+  partir da mesma tabela que o servidor aplica.
+- **Audit Log** — quem fez o quê e quando, incluindo alterações de conteúdo.
+
+Duas regras que o sistema aplica sozinho:
+
+:::caution[Proteções que não podem ser contornadas pela interface]
+O sistema recusa remover o **último administrador ativo** — rebaixar, desativar
+ou excluir. E alterar o grupo de alguém exige permissão própria: mesmo enviando
+a requisição por fora do navegador, um editor não consegue se promover.
+:::
+
+### Desativar em vez de excluir
+
+Para tirar o acesso de alguém preservando o histórico, mude o status para
+**Inativo**. A pessoa deixa de autenticar e de editar, mas os registros de
+auditoria continuam apontando para ela. Excluir é definitivo.
+
 ## Atalhos de teclado
 
 ### Navegação e comandos
@@ -399,7 +456,9 @@ Vale saber de antemão:
   em `en/` e `es/`.
 - **Não renomeia referências**: mover ou renomear um arquivo quebra as
   referências a ele, porque o id é o caminho sem extensão.
-- **Não tem controle de acesso**: `visible: false` esconde da navegação, não do
-  mundo.
+- **Não controla quem lê**: a documentação é pública. `visible: false` esconde da
+  navegação, não do mundo — e os grupos controlam quem **edita**, não quem lê.
+- **Não tem "esqueci minha senha"** nem tela de perfil: a redefinição é feita por
+  um admin em Settings → Users.
 - **Não substitui revisão**: o conteúdo continua em Git, e o pull request
   continua sendo o lugar de revisar mudanças.

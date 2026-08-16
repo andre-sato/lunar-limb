@@ -1,5 +1,6 @@
 ---
 import AiShareDropdown from './AiShareDropdown.astro';
+import EditThisPage from './auth/EditThisPage.astro';
 
 const { title, description } = Astro.locals.starlightRoute.entry.data;
 const entryFilePath = Astro.locals.starlightRoute.entry.filePath;
@@ -28,20 +29,9 @@ const editLabel =
 	</div>
 
 	<div class="page-title-actions">
-		{editorPath && (
-			<a
-				class="edit-page-link"
-				href={`/editor?path=${encodeURIComponent(editorPath)}`}
-				title={editLabel}
-				aria-label={`${editLabel}: ${title}`}
-			>
-				<svg viewBox="0 0 24 24" aria-hidden="true">
-					<path d="M12 20h9" />
-					<path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L8 18l-4 1 1-4Z" />
-				</svg>
-				<span>{editLabel}</span>
-			</a>
-		)}
+		{/* server:defer — a página é estática, mas este fragmento é renderizado
+		    sob demanda com o cookie da sessão. Viewer e anônimo recebem vazio. */}
+		<EditThisPage server:defer editorPath={editorPath} label={editLabel} title={title} />
 		<AiShareDropdown />
 	</div>
 </div>

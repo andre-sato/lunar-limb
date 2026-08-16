@@ -1,0 +1,79 @@
+---
+/**
+ * Casca das telas que não pertencem à Starlight: login, 403 e o dashboard
+ * administrativo.
+ *
+ * Repete o header do portal para a navegação não parecer outro produto, e lê o
+ * mesmo `localStorage` de tema que a Starlight usa, para quem escolheu o modo
+ * escuro na documentação não levar um clarão ao abrir Settings.
+ */
+import '../styles/portal-shell.css';
+import { portal } from '../config/portal';
+import { can } from '../lib/auth/permissions';
+import UserMenu from '../components/auth/UserMenu.astro';
+
+interface Props {
+	title: string;
+	/** Marca o item ativo do header. */
+	section?: 'docs' | 'settings' | null;
+}
+
+const { title, section = null } = Astro.props;
+const user = Astro.locals.user;
+const initials = portal.companyName
+	.split(/\s+/)
+	.slice(0, 2)
+	.map((word) => word[0])
+	.join('')
+	.toUpperCase();
+---
+
+<!doctype html>
+<html lang="pt-BR">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="robots" content="noindex, nofollow" />
+		<title>{title} — {portal.companyName} {portal.portalName}</title>
+		<script is:inline>
+			// Antes da primeira pintura, para não haver piscada de tema.
+			(() => {
+				const stored = localStorage.getItem('starlight-theme');
+				const theme =
+					stored === 'light' || stored === 'dark'
+						? stored
+						: matchMedia('(prefers-color-scheme: dark)').matches
+							? 'dark'
+							: 'light';
+				document.documentElement.dataset.theme = theme;
+			})();
+		</script>
+	</head>
+	<body>
+		<header class="shell-header">
+			<a class="shell-brand" href="/">
+				<span class="shell-brand-mark">{initials}</span>
+				<span>{portal.portalName}</span>
+			</a>
+
+			<nav class="shell-nav" aria-label="Principal">
+				<a href="/" aria-current={section === 'docs' ? 'page' : undefined}>Documentação</a>
+				{
+					/* Settings só existe no HTML para quem tem a capacidade.
+					   Para os demais o link não é escondido — ele não é renderizado. */
+					can(Astro.locals.authUser, 'settings.access') && (
+						<a href="/settings" aria-current={section === 'settings' ? 'page' : undefined}>
+							Settings
+						</a>
+					)
+				}
+			</nav>
+
+			<div class="shell-header-end">
+				{user ? <UserMenu user={user} /> : <a class="btn" href="/login">Entrar</a>}
+			</div>
+		</header>
+
+		<slot />
+	</body>
+</html>

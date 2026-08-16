@@ -47,6 +47,7 @@ export default defineConfig({
 				PageTitle: './src/components/PageTitle.astro',
 				Hero: './src/components/Hero.astro',
 				Search: './src/components/Search.astro',
+				Sidebar: './src/components/PortalSidebar.astro',
 			},
 			sidebar: [
 				{
