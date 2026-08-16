@@ -1,0 +1,144 @@
+---
+// Contrasta a duplicação (texto copiado em cada página) com o reuso
+// (uma fonte canônica referenciada por várias páginas).
+---
+
+<figure class="diagrama">
+	<svg viewBox="0 0 620 300" role="img" aria-labelledby="reuso-titulo reuso-desc">
+		<title id="reuso-titulo">Duplicação contra reuso</title>
+		<desc id="reuso-desc">
+			À esquerda, três páginas com o mesmo texto copiado, que saem de sincronia. À direita, um bloco canônico
+			referenciado pelas três páginas, com uma seta indicando que editá-lo atualiza todas.
+		</desc>
+
+		<text x="150" y="22" class="rotulo rotulo--titulo rotulo--erro">Duplicado</text>
+		<text x="470" y="22" class="rotulo rotulo--titulo rotulo--ok">Reutilizado</text>
+
+		<line x1="310" y1="10" x2="310" y2="290" class="divisoria" />
+
+		<rect x="30" y="46" width="106" height="40" rx="6" class="caixa caixa--erro" />
+		<text x="83" y="63" class="rotulo">página A</text>
+		<text x="83" y="78" class="rotulo rotulo--fraco">texto copiado</text>
+
+		<rect x="30" y="112" width="106" height="40" rx="6" class="caixa caixa--erro" />
+		<text x="83" y="129" class="rotulo">página B</text>
+		<text x="83" y="144" class="rotulo rotulo--fraco">texto copiado</text>
+
+		<rect x="30" y="178" width="106" height="40" rx="6" class="caixa caixa--erro" />
+		<text x="83" y="195" class="rotulo">página C</text>
+		<text x="83" y="210" class="rotulo rotulo--fraco">texto copiado</text>
+
+		<text x="150" y="252" class="rotulo rotulo--fraco">três cópias para manter</text>
+		<text x="150" y="270" class="rotulo rotulo--fraco">— e para sair de sincronia</text>
+
+		<rect x="356" y="112" width="132" height="46" rx="6" class="caixa caixa--destaque" />
+		<text x="422" y="132" class="rotulo rotulo--forte">aviso.md</text>
+		<text x="422" y="148" class="rotulo rotulo--fraco">fonte canônica</text>
+
+		<line x1="488" y1="124" x2="536" y2="72" class="seta" marker-end="url(#ponta2)" />
+		<line x1="488" y1="135" x2="536" y2="135" class="seta" marker-end="url(#ponta2)" />
+		<line x1="488" y1="146" x2="536" y2="198" class="seta" marker-end="url(#ponta2)" />
+
+		<rect x="540" y="52" width="62" height="34" rx="6" class="caixa" />
+		<text x="571" y="73" class="rotulo">A</text>
+
+		<rect x="540" y="118" width="62" height="34" rx="6" class="caixa" />
+		<text x="571" y="139" class="rotulo">B</text>
+
+		<rect x="540" y="184" width="62" height="34" rx="6" class="caixa" />
+		<text x="571" y="205" class="rotulo">C</text>
+
+		<text x="470" y="252" class="rotulo rotulo--fraco">edite uma vez,</text>
+		<text x="470" y="270" class="rotulo rotulo--fraco">as três atualizam no build</text>
+
+		<defs>
+			<marker id="ponta2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+				<path d="M 0 0 L 10 5 L 0 10 z" class="ponta-seta" />
+			</marker>
+		</defs>
+	</svg>
+	<figcaption>
+		O arquivo da página guarda a referência, não o texto. O grafo do editor mostra as setas nos dois sentidos.
+	</figcaption>
+</figure>
+
+<style>
+	.diagrama {
+		margin: 1.5rem 0;
+	}
+
+	.diagrama svg {
+		width: 100%;
+		height: auto;
+	}
+
+	.diagrama figcaption {
+		font-size: var(--sl-text-sm);
+		color: var(--sl-color-gray-3);
+		margin-top: 0.5rem;
+	}
+
+	.caixa {
+		fill: var(--sl-color-gray-6);
+		stroke: var(--sl-color-gray-5);
+		stroke-width: 1;
+	}
+
+	.caixa--destaque {
+		stroke: var(--sl-color-accent);
+		stroke-width: 2;
+	}
+
+	.caixa--erro {
+		stroke: var(--sl-color-red);
+		stroke-width: 1.5;
+		stroke-dasharray: 4 3;
+	}
+
+	.divisoria {
+		stroke: var(--sl-color-gray-5);
+		stroke-width: 1;
+		stroke-dasharray: 3 4;
+	}
+
+	.rotulo {
+		fill: var(--sl-color-white);
+		font-size: 13px;
+		font-family: var(--sl-font);
+		text-anchor: middle;
+	}
+
+	.rotulo--titulo {
+		font-size: 13px;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.06em;
+	}
+
+	.rotulo--forte {
+		font-weight: 600;
+	}
+
+	.rotulo--fraco {
+		fill: var(--sl-color-gray-3);
+		font-size: 11px;
+	}
+
+	.rotulo--erro {
+		fill: var(--sl-color-red);
+	}
+
+	.rotulo--ok {
+		fill: var(--sl-color-accent);
+	}
+
+	.seta {
+		stroke: var(--sl-color-accent);
+		stroke-width: 1.5;
+		fill: none;
+	}
+
+	.ponta-seta {
+		fill: var(--sl-color-accent);
+	}
+</style>

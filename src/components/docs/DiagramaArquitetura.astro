@@ -1,0 +1,111 @@
+---
+// Diagrama do princípio arquitetural do projeto: os arquivos Markdown/MDX são a
+// fonte de verdade, e tudo mais (editor, Git, build) gira em torno deles.
+// As cores vêm das variáveis da Starlight, então o desenho acompanha o tema.
+---
+
+<figure class="diagrama">
+	<svg viewBox="0 0 560 330" role="img" aria-labelledby="arq-titulo arq-desc">
+		<title id="arq-titulo">Arquitetura do portal</title>
+		<desc id="arq-desc">
+			Os arquivos Markdown e MDX são a fonte de verdade. O editor e o Git escrevem nesses arquivos; o Astro e a
+			Starlight os transformam no site publicado.
+		</desc>
+
+		<rect x="150" y="10" width="260" height="52" rx="8" class="caixa caixa--destaque" />
+		<text x="280" y="32" class="rotulo rotulo--forte">Markdown / MDX</text>
+		<text x="280" y="50" class="rotulo rotulo--fraco">fonte de verdade (src/content)</text>
+
+		<line x1="215" y1="62" x2="140" y2="108" class="seta" marker-end="url(#ponta)" />
+		<line x1="345" y1="62" x2="420" y2="108" class="seta" marker-end="url(#ponta)" />
+
+		<rect x="40" y="110" width="200" height="46" rx="8" class="caixa" />
+		<text x="140" y="130" class="rotulo">Editor (/editor)</text>
+		<text x="140" y="147" class="rotulo rotulo--fraco">autoria visual</text>
+
+		<rect x="320" y="110" width="200" height="46" rx="8" class="caixa" />
+		<text x="420" y="130" class="rotulo">Git / editor de código</text>
+		<text x="420" y="147" class="rotulo rotulo--fraco">edição direta</text>
+
+		<line x1="140" y1="156" x2="140" y2="188" class="seta seta--tracejada" marker-end="url(#ponta)" />
+		<line x1="420" y1="156" x2="420" y2="188" class="seta seta--tracejada" marker-end="url(#ponta)" />
+		<text x="280" y="182" class="rotulo rotulo--fraco">escrevem os mesmos arquivos</text>
+
+		<rect x="150" y="190" width="260" height="44" rx="8" class="caixa" />
+		<text x="280" y="217" class="rotulo">Astro + Starlight</text>
+
+		<line x1="280" y1="234" x2="280" y2="264" class="seta" marker-end="url(#ponta)" />
+
+		<rect x="150" y="266" width="260" height="44" rx="8" class="caixa caixa--destaque" />
+		<text x="280" y="293" class="rotulo rotulo--forte">Documentação publicada</text>
+
+		<defs>
+			<marker id="ponta" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+				<path d="M 0 0 L 10 5 L 0 10 z" class="ponta-seta" />
+			</marker>
+		</defs>
+	</svg>
+	<figcaption>
+		O editor é uma ferramenta de autoria <em>sobre</em> o projeto, não o dono do conteúdo. Nada impede editar os
+		mesmos arquivos pelo VS Code ou por um agente de código.
+	</figcaption>
+</figure>
+
+<style>
+	.diagrama {
+		margin: 1.5rem 0;
+	}
+
+	.diagrama svg {
+		width: 100%;
+		height: auto;
+		max-width: 34rem;
+	}
+
+	.diagrama figcaption {
+		font-size: var(--sl-text-sm);
+		color: var(--sl-color-gray-3);
+		margin-top: 0.5rem;
+	}
+
+	.caixa {
+		fill: var(--sl-color-gray-6);
+		stroke: var(--sl-color-gray-5);
+		stroke-width: 1;
+	}
+
+	.caixa--destaque {
+		stroke: var(--sl-color-accent);
+		stroke-width: 2;
+	}
+
+	.rotulo {
+		fill: var(--sl-color-white);
+		font-size: 13px;
+		font-family: var(--sl-font);
+		text-anchor: middle;
+	}
+
+	.rotulo--forte {
+		font-weight: 600;
+	}
+
+	.rotulo--fraco {
+		fill: var(--sl-color-gray-3);
+		font-size: 11px;
+	}
+
+	.seta {
+		stroke: var(--sl-color-gray-4);
+		stroke-width: 1.5;
+		fill: none;
+	}
+
+	.seta--tracejada {
+		stroke-dasharray: 4 3;
+	}
+
+	.ponta-seta {
+		fill: var(--sl-color-gray-4);
+	}
+</style>

@@ -1,0 +1,112 @@
+---
+// Mapa das regiões da tela do editor, para o leitor localizar cada recurso
+// citado no texto.
+---
+
+<figure class="diagrama">
+	<svg viewBox="0 0 640 360" role="img" aria-labelledby="layout-titulo layout-desc">
+		<title id="layout-titulo">Layout do editor</title>
+		<desc id="layout-desc">
+			Da esquerda para a direita: explorador de arquivos com duas árvores, painel de edição com metadados,
+			referências, editor e problemas, e o painel de preview. Acima, a barra de ferramentas; abaixo, a barra de
+			status.
+		</desc>
+
+		<rect x="8" y="8" width="624" height="34" rx="6" class="regiao regiao--barra" />
+		<text x="20" y="30" class="rotulo rotulo--esq">Toolbar — visualização, inserir, buscar, variáveis, paleta, grafo, tema, Zen</text>
+
+		<rect x="8" y="50" width="150" height="264" rx="6" class="regiao" />
+		<text x="83" y="72" class="rotulo">File Explorer</text>
+		<text x="83" y="92" class="rotulo rotulo--fraco">Documentação</text>
+		<text x="83" y="110" class="rotulo rotulo--fraco">Conteúdo</text>
+		<text x="83" y="124" class="rotulo rotulo--fraco">reutilizável</text>
+		<text x="83" y="150" class="rotulo rotulo--mono">M  A  U</text>
+		<text x="83" y="166" class="rotulo rotulo--fraco">estado no Git</text>
+
+		<rect x="166" y="50" width="228" height="40" rx="6" class="regiao" />
+		<text x="280" y="75" class="rotulo">Metadados da página</text>
+
+		<rect x="166" y="96" width="228" height="40" rx="6" class="regiao" />
+		<text x="280" y="115" class="rotulo">Referências</text>
+		<text x="280" y="130" class="rotulo rotulo--fraco">usa / usado por</text>
+
+		<rect x="166" y="142" width="228" height="126" rx="6" class="regiao regiao--destaque" />
+		<text x="280" y="200" class="rotulo rotulo--forte">Editor Monaco</text>
+		<text x="280" y="218" class="rotulo rotulo--fraco">Markdown / MDX</text>
+
+		<rect x="166" y="274" width="228" height="40" rx="6" class="regiao" />
+		<text x="280" y="299" class="rotulo">Problemas</text>
+
+		<rect x="402" y="50" width="230" height="264" rx="6" class="regiao regiao--destaque" />
+		<text x="517" y="176" class="rotulo rotulo--forte">Live Preview</text>
+		<text x="517" y="194" class="rotulo rotulo--fraco">reuso e condicionais</text>
+		<text x="517" y="208" class="rotulo rotulo--fraco">já resolvidos</text>
+
+		<rect x="8" y="322" width="624" height="30" rx="6" class="regiao regiao--barra" />
+		<text x="20" y="342" class="rotulo rotulo--esq">Status bar — Ln/Col · MDX · palavras · grafo · branch · VIM · estado do save</text>
+	</svg>
+	<figcaption>
+		Os painéis de metadados, referências e problemas aparecem só quando têm algo a dizer — uma página sem
+		referências nem problemas mostra apenas o editor.
+	</figcaption>
+</figure>
+
+<style>
+	.diagrama {
+		margin: 1.5rem 0;
+	}
+
+	.diagrama svg {
+		width: 100%;
+		height: auto;
+	}
+
+	.diagrama figcaption {
+		font-size: var(--sl-text-sm);
+		color: var(--sl-color-gray-3);
+		margin-top: 0.5rem;
+	}
+
+	.regiao {
+		fill: var(--sl-color-gray-6);
+		stroke: var(--sl-color-gray-5);
+		stroke-width: 1;
+	}
+
+	.regiao--barra {
+		fill: var(--sl-color-gray-7, var(--sl-color-gray-6));
+	}
+
+	.regiao--destaque {
+		stroke: var(--sl-color-accent);
+		stroke-width: 2;
+	}
+
+	.rotulo {
+		fill: var(--sl-color-white);
+		font-size: 13px;
+		font-family: var(--sl-font);
+		text-anchor: middle;
+	}
+
+	.rotulo--esq {
+		text-anchor: start;
+		font-size: 12px;
+	}
+
+	.rotulo--forte {
+		font-weight: 600;
+	}
+
+	.rotulo--fraco {
+		fill: var(--sl-color-gray-3);
+		font-size: 11px;
+	}
+
+	.rotulo--mono {
+		font-family: var(--sl-font-mono);
+		fill: var(--sl-color-gray-3);
+		font-size: 11px;
+		letter-spacing: 0.1em;
+	}
+</style>

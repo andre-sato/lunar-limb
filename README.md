@@ -43,6 +43,8 @@ Arquivos Markdown e MDX dentro de `src/content/docs/` são publicados automatica
 | `npm run check` | Typecheck de `.astro`, `.ts` e `.tsx` (`astro check`). |
 | `npm test` | Roda os testes (Vitest). |
 
+> **Comece pelo [Manual completo](src/content/docs/guides/manual.mdx)** (publicado em `/guides/manual/`): recursos do portal e do editor, atalhos de teclado, fluxos de trabalho e casos de uso, com diagramas.
+
 ## Editor de documentação (`/editor`)
 
 Além do site publicado, o projeto inclui um editor Markdown/MDX interno em **`/editor`**, feito com Monaco (o mesmo editor do VS Code) e React. Ele lê e grava diretamente os arquivos `.md`/`.mdx` em `src/content/docs` através das rotas de API em `src/pages/api/editor/`.
