@@ -2,6 +2,23 @@
 import AiShareDropdown from './AiShareDropdown.astro';
 
 const { title, description } = Astro.locals.starlightRoute.entry.data;
+const entryFilePath = Astro.locals.starlightRoute.entry.filePath;
+
+// Starlight exposes the local content file path for Content Layer entries.
+// Convert it to the path expected by the editor API, which is relative to
+// src/content/docs.
+const contentRoot = 'src/content/docs/';
+const normalizedEntryFilePath = entryFilePath?.replaceAll('\\\\', '/');
+const editorPath = normalizedEntryFilePath?.startsWith(contentRoot)
+	? normalizedEntryFilePath.slice(contentRoot.length)
+	: undefined;
+
+const editLabel =
+	Astro.locals.starlightRoute.lang === 'en'
+		? 'Edit this page'
+		: Astro.locals.starlightRoute.lang === 'es'
+			? 'Editar esta página'
+			: 'Editar esta página';
 ---
 
 <div class="page-title-with-actions">
@@ -9,5 +26,22 @@ const { title, description } = Astro.locals.starlightRoute.entry.data;
 		<h1 id="_top">{title}</h1>
 		{description && <p class="page-title-description">{description}</p>}
 	</div>
-	<AiShareDropdown />
+
+	<div class="page-title-actions">
+		{editorPath && (
+			<a
+				class="edit-page-link"
+				href={`/editor?path=${encodeURIComponent(editorPath)}`}
+				title={editLabel}
+				aria-label={`${editLabel}: ${title}`}
+			>
+				<svg viewBox="0 0 24 24" aria-hidden="true">
+					<path d="M12 20h9" />
+					<path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L8 18l-4 1 1-4Z" />
+				</svg>
+				<span>{editLabel}</span>
+			</a>
+		)}
+		<AiShareDropdown />
+	</div>
 </div>
