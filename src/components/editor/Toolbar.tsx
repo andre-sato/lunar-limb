@@ -1,4 +1,4 @@
-import { Columns2, PenLine, Eye, Maximize2, Minimize2, Sun, Moon, Save, Component, Scissors } from 'lucide-react';
+import { Columns2, PenLine, Eye, Maximize2, Minimize2, Sun, Moon, Save, Component, Scissors, Network } from 'lucide-react';
 import type { SaveStatus, ThemeMode, ViewMode } from './types';
 
 interface ToolbarProps {
@@ -14,6 +14,10 @@ interface ToolbarProps {
 	hasActiveFile: boolean;
 	onInsertReusable: () => void;
 	onExtractReusable: () => void;
+	/** Fase 4: abre o Content Graph (Ctrl/Cmd + Shift + G). */
+	onOpenGraph: () => void;
+	/** Fase 4: total de problemas de referência no projeto, para o badge. */
+	problemCount?: number;
 }
 
 const statusLabel: Record<SaveStatus, string> = {
@@ -37,6 +41,8 @@ export default function Toolbar({
 	hasActiveFile,
 	onInsertReusable,
 	onExtractReusable,
+	onOpenGraph,
+	problemCount = 0,
 }: ToolbarProps) {
 	return (
 		<header className="toolbar">
@@ -85,6 +91,15 @@ export default function Toolbar({
 						</button>
 					</>
 				)}
+				<button
+					type="button"
+					className={`icon-btn${problemCount > 0 ? ' icon-btn--badged' : ''}`}
+					onClick={onOpenGraph}
+					title="Content Graph (Ctrl/Cmd + Shift + G)"
+				>
+					<Network size={16} />
+					{problemCount > 0 && <span className="icon-badge">{problemCount}</span>}
+				</button>
 				{hasActiveFile && (
 					<span className={`save-status save-status--${saveStatus}`}>{statusLabel[saveStatus]}</span>
 				)}

@@ -11,7 +11,11 @@ export const GET: APIRoute = async ({ url }) => {
 
 	try {
 		const { buffer, mime } = await readAsset(assetPath);
-		return new Response(buffer, {
+		// `Buffer` funciona em runtime, mas não satisfaz o tipo `BodyInit`
+		// (que exige uma view sobre `ArrayBuffer`, não `ArrayBufferLike`).
+		// A view abaixo é a mesma memória, sem cópia.
+		const body = new Uint8Array(buffer.buffer as ArrayBuffer, buffer.byteOffset, buffer.byteLength);
+		return new Response(body, {
 			status: 200,
 			headers: {
 				'Content-Type': mime,

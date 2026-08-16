@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { ContentFsError, getContentFs, isContentRootKey } from '../../../lib/editor/content-fs';
+import { invalidateGraphCache } from '../../../lib/editor/content-graph';
 
 export const prerender = false;
 
@@ -43,6 +44,8 @@ export const PUT: APIRoute = async ({ request }) => {
 			return json({ error: 'Corpo inválido: esperado { path, content }.' }, 400);
 		}
 		await pickRoot(typeof root === 'string' ? root : null).writeDocument(filePath, content);
+		// O grafo é derivado dos arquivos: qualquer escrita invalida o índice.
+		invalidateGraphCache();
 		return json({ ok: true, savedAt: Date.now() });
 	} catch (err) {
 		return errorResponse(err);
@@ -57,6 +60,7 @@ export const POST: APIRoute = async ({ request }) => {
 			return json({ error: 'Corpo inválido: esperado { path, content }.' }, 400);
 		}
 		await pickRoot(typeof root === 'string' ? root : null).createDocument(filePath, content);
+		invalidateGraphCache();
 		return json({ ok: true }, 201);
 	} catch (err) {
 		return errorResponse(err);
@@ -70,6 +74,7 @@ export const DELETE: APIRoute = async ({ url }) => {
 
 	try {
 		await fs.deleteDocument(filePath);
+		invalidateGraphCache();
 		return json({ ok: true });
 	} catch (err) {
 		return errorResponse(err);

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import FileExplorer from './FileExplorer';
-import MarkdownEditorPane, { type MarkdownEditorHandle } from './MarkdownEditorPane';
+import MarkdownEditorPane, { type MarkdownEditorHandle, type ReferenceMarker } from './MarkdownEditorPane';
 import PreviewPane from './PreviewPane';
 import Toolbar from './Toolbar';
 import StatusBar from './StatusBar';
@@ -10,10 +10,23 @@ import InsertReusableModal from './InsertReusableModal';
 import ExtractReusableModal from './ExtractReusableModal';
 import DeleteWarningModal from './DeleteWarningModal';
 import ReferencePanel from './ReferencePanel';
-import { createFile, deleteFile, fetchFile, fetchPreview, fetchReferences, fetchTree, saveFile } from './api';
+import ProblemsPanel from './ProblemsPanel';
+import ContentGraphModal from './ContentGraphModal';
+import { createFile, deleteFile, fetchFile, fetchGraph, fetchPreview, fetchReferences, fetchTree, saveFile } from './api';
 import { useDebouncedCallback } from './useDebouncedCallback';
+import { useReferences } from './useReferences';
 import { ensureMdxImport, referenceTag } from './insert-helpers';
-import type { ContentRoot, CursorPosition, ReusableItem, SaveStatus, ThemeMode, TreeNode, ViewMode } from './types';
+import { extractReferences, nodeKey, refOf, typeForRoot } from '../../lib/editor/graph-model';
+import type {
+	ContentRoot,
+	CursorPosition,
+	ImpactAnalysis,
+	ReusableItem,
+	SaveStatus,
+	ThemeMode,
+	TreeNode,
+	ViewMode,
+} from './types';
 
 const THEME_KEY = 'lunar-limb-editor:theme';
 
@@ -38,7 +51,7 @@ function pathToId(relPath: string): string {
 interface DeleteWarningState {
 	path: string;
 	root: ContentRoot;
-	usedBy: string[];
+	impact: ImpactAnalysis;
 }
 
 export default function EditorApp() {
@@ -75,8 +88,36 @@ export default function EditorApp() {
 		null
 	);
 	const [deleteWarning, setDeleteWarning] = useState<DeleteWarningState | null>(null);
+	const [showGraphModal, setShowGraphModal] = useState(false);
+	const [globalProblemCount, setGlobalProblemCount] = useState(0);
 
 	const editorHandleRef = useRef<MarkdownEditorHandle>(null);
+
+	// ---- Fase 4: grafo bidirecional do arquivo aberto ---------------------
+
+	const references = useReferences(activePath, activeRoot, referenceRefreshToken);
+
+	const revealLine = useCallback((line: number) => {
+		editorHandleRef.current?.revealLine(line);
+	}, []);
+
+	/**
+	 * As decorações do Monaco vêm do *buffer atual*, não da resposta da API:
+	 * enquanto o autor digita, as linhas mudam antes de o arquivo ser salvo, e
+	 * a marca precisa acompanhar. A resolução (existe ou não) vem do grafo.
+	 */
+	const referenceMarkers = useMemo<ReferenceMarker[]>(() => {
+		// Só marcamos como quebrada uma referência que o grafo *confirmou* estar
+		// quebrada. Uma tag recém-digitada ainda não está no índice (o grafo é
+		// construído a partir do arquivo salvo) e não deve piscar em vermelho.
+		const brokenIds = new Set(references.uses.filter((ref) => !ref.resolved).map((ref) => `${ref.type}:${ref.id}`));
+		return extractReferences(content).map((ref) => ({
+			line: ref.location.line,
+			id: ref.id,
+			type: ref.type,
+			resolved: !brokenIds.has(`${ref.type}:${ref.id}`),
+		}));
+	}, [content, references.uses]);
 
 	// ---- Tree loading -------------------------------------------------
 
@@ -176,7 +217,7 @@ export default function EditorApp() {
 				setSaveStatus('saved');
 				const title = doc.frontmatter?.title;
 				setDocTitle(typeof title === 'string' ? title : undefined);
-				void requestPreview(doc.content, root === 'docs' ? doc.path : undefined);
+				void requestPreview(doc.content, root === 'docs' ? doc.path : null);
 
 				const url = new URL(window.location.href);
 				url.searchParams.set('path', doc.path);
@@ -192,27 +233,9 @@ export default function EditorApp() {
 		[dirty, requestPreview]
 	);
 
-	// Navigate to a reusable item by id — resolves the id to its actual file
-	// (extension + which collection) via the tree we already loaded.
-	const openById = useCallback(
-		(id: string, type: 'block' | 'page') => {
-			const source = type === 'block' ? snippetTree : tree;
-			const flat: TreeNode[] = [];
-			(function flatten(nodes: TreeNode[]) {
-				for (const n of nodes) {
-					if (n.type === 'file') flat.push(n);
-					else if (n.children) flatten(n.children);
-				}
-			})(source);
-			const match = flat.find((n) => pathToId(n.path) === id);
-			if (!match) {
-				window.alert(`Não encontrei "${id}".`);
-				return;
-			}
-			void openFile(match.path, type === 'block' ? 'snippets' : 'docs');
-		},
-		[tree, snippetTree, openFile]
-	);
+	// A navegação por id da Fase 3 virou navegação por caminho: o grafo já
+	// devolve o arquivo exato de cada ponta da aresta (ver ReferencePanel), então
+	// não é mais preciso adivinhar a extensão varrendo a árvore.
 
 	// Deep-link support: /editor?path=guides/getting-started.md[&root=snippets]
 	useEffect(() => {
@@ -247,6 +270,9 @@ export default function EditorApp() {
 				}
 				await refreshTree();
 				await refreshSnippetTree();
+				// Apagar um arquivo muda o grafo inteiro (pode criar referências
+				// quebradas em outras páginas) — força o recarregamento do índice.
+				setReferenceRefreshToken((t) => t + 1);
 			} catch (err) {
 				window.alert(err instanceof Error ? err.message : 'Erro ao excluir arquivo.');
 			}
@@ -258,12 +284,8 @@ export default function EditorApp() {
 		async (path: string, root: ContentRoot) => {
 			try {
 				const refs = await fetchReferences(path, root);
-				if (refs.usedBy.length > 0) {
-					setDeleteWarning({
-						path,
-						root,
-						usedBy: refs.usedBy.map((r) => (r.source.includes(':') ? r.source.slice(r.source.indexOf(':') + 1) : r.source)),
-					});
+				if (refs.impact.total > 0) {
+					setDeleteWarning({ path, root, impact: refs.impact });
 					return;
 				}
 			} catch {
@@ -413,6 +435,35 @@ export default function EditorApp() {
 	const charCount = content.length;
 	const languageLabel = isMdx ? 'MDX' : 'Markdown';
 	const activeId = activePath ? pathToId(activePath) : null;
+	const activeKey = activePath ? nodeKey(activeRoot, activePath) : null;
+	const activeRef = activeId ? refOf(typeForRoot(activeRoot), activeId) : undefined;
+
+	// Contador global de problemas no badge da toolbar — atualizado a cada save.
+	useEffect(() => {
+		let cancelled = false;
+		fetchGraph()
+			.then((res) => {
+				if (!cancelled) setGlobalProblemCount(res.problems.filter((p) => p.severity === 'error').length);
+			})
+			.catch(() => {
+				// O badge é informativo; falhar aqui não deve atrapalhar a edição.
+			});
+		return () => {
+			cancelled = true;
+		};
+	}, [referenceRefreshToken]);
+
+	// Ctrl/Cmd + Shift + G abre o grafo.
+	useEffect(() => {
+		function onKeydown(e: KeyboardEvent) {
+			if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'g') {
+				e.preventDefault();
+				setShowGraphModal(true);
+			}
+		}
+		window.addEventListener('keydown', onKeydown);
+		return () => window.removeEventListener('keydown', onKeydown);
+	}, []);
 
 	return (
 		<div className={`app-shell theme-${theme}${zen ? ' zen' : ''}`}>
@@ -429,6 +480,8 @@ export default function EditorApp() {
 				hasActiveFile={Boolean(activePath)}
 				onInsertReusable={handleOpenInsertModal}
 				onExtractReusable={handleOpenExtractModal}
+				onOpenGraph={() => setShowGraphModal(true)}
+				problemCount={globalProblemCount}
 			/>
 
 			<div className="app-body">
@@ -469,15 +522,18 @@ export default function EditorApp() {
 							{(viewMode === 'editor' || viewMode === 'split') && (
 								<div className="pane pane-editor">
 									<FrontmatterPanel content={content} onChange={handleContentChange} />
-									{activePath && (
-										<ReferencePanel
-											path={activePath}
-											root={activeRoot}
-											onNavigateById={openById}
-											onNavigatePath={(path, root) => void openFile(path, root)}
-											refreshToken={referenceRefreshToken}
-										/>
-									)}
+									<ReferencePanel
+										path={activePath}
+										node={references.node}
+										uses={references.uses}
+										usedBy={references.usedBy}
+										impact={references.impact}
+										loading={references.loading}
+										error={references.error}
+										onNavigate={(path, root) => void openFile(path, root)}
+										onRevealLine={revealLine}
+										onOpenGraph={() => setShowGraphModal(true)}
+									/>
 									<div className="editor-scroll-area">
 										<MarkdownEditorPane
 											ref={editorHandleRef}
@@ -491,8 +547,10 @@ export default function EditorApp() {
 											minimap={false}
 											errorLine={previewErrorLine}
 											errorMessage={previewWarning}
+											referenceMarkers={referenceMarkers}
 										/>
 									</div>
+									<ProblemsPanel problems={references.problems} onRevealLine={revealLine} />
 								</div>
 							)}
 							{(viewMode === 'preview' || viewMode === 'split') && (
@@ -512,6 +570,9 @@ export default function EditorApp() {
 				charCount={charCount}
 				saveStatus={saveStatus}
 				visible={Boolean(activePath)}
+				problemCount={references.problems.filter((p) => p.severity === 'error').length}
+				usedByCount={references.usedBy.length}
+				onOpenGraph={() => setShowGraphModal(true)}
 			/>
 
 			{showNewFileModal && <NewFileModal onClose={() => setShowNewFileModal(false)} onCreate={handleCreate} />}
@@ -521,6 +582,8 @@ export default function EditorApp() {
 					onClose={() => setShowInsertModal(false)}
 					onSelect={handleInsertReusable}
 					excludeId={activeId ?? undefined}
+					sourceKey={activeKey ?? undefined}
+					sourceRoot={activeRoot}
 				/>
 			)}
 
@@ -538,12 +601,24 @@ export default function EditorApp() {
 			{deleteWarning && (
 				<DeleteWarningModal
 					path={deleteWarning.path}
-					usedBy={deleteWarning.usedBy}
+					impact={deleteWarning.impact}
 					onCancel={() => setDeleteWarning(null)}
+					onNavigate={(path, root) => {
+						setDeleteWarning(null);
+						void openFile(path, root);
+					}}
 					onConfirm={() => {
 						void performDelete(deleteWarning.path, deleteWarning.root);
 						setDeleteWarning(null);
 					}}
+				/>
+			)}
+
+			{showGraphModal && (
+				<ContentGraphModal
+					onClose={() => setShowGraphModal(false)}
+					onNavigate={(path, root) => void openFile(path, root)}
+					activeRef={activeRef}
 				/>
 			)}
 		</div>

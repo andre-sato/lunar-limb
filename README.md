@@ -40,6 +40,8 @@ Arquivos Markdown e MDX dentro de `src/content/docs/` são publicados automatica
 | `npm run dev` | Inicia o ambiente de desenvolvimento. |
 | `npm run build` | Gera a versão de produção em `dist/`. |
 | `npm run preview` | Visualiza localmente a versão de produção. |
+| `npm run check` | Typecheck de `.astro`, `.ts` e `.tsx` (`astro check`). |
+| `npm test` | Roda os testes do Content Graph (Vitest). |
 
 ## Editor de documentação (`/editor`)
 
@@ -69,6 +71,18 @@ Além do site publicado, o projeto inclui um editor Markdown/MDX interno em **`/
 - **Painel de referências:** abaixo do frontmatter, mostra o que a página atual usa e por quantas páginas ela é usada (clicável, navega direto).
 - **Impact analysis ao excluir:** apagar um bloco/página referenciado por outras mostra quem depende dele antes de confirmar, em vez de quebrar silenciosamente.
 - **File Explorer** agora tem duas árvores empilhadas: "Documentação" e "Conteúdo reutilizável".
+
+**Fase 4 — Content Graph bidirecional:**
+- **Grafo de dependências de verdade.** `src/lib/editor/graph-model.ts` (algoritmos puros) + `src/lib/editor/content-graph.ts` (leitura do filesystem) montam um índice de nós (arquivos) e arestas (cada `<ContentBlock>`/`<IncludePage>`, com linha e coluna). O índice é **derivado**: os arquivos continuam sendo a fonte de verdade, nada é persistido em banco.
+- **Painel de referências nos dois sentidos.** Acima do editor: *Esta página usa* (com o número da linha de cada tag — clicar leva o cursor até lá) e *Usado por N páginas* (clicar abre a página consumidora). Quando o arquivo aberto é consumido por outros, o painel abre com o aviso de impacto antes de você digitar.
+- **Impact analysis com efeito indireto.** Se A usa B e B usa o bloco que você está editando, A também aparece — separado em *diretas* e *indiretas*. Vale para o painel e para o aviso de exclusão.
+- **Detecção de ciclo antes da inserção.** O modal *Inserir conteúdo reutilizável* desabilita, com o motivo, qualquer item cuja inserção fecharia um laço. Na Fase 3 isso só aparecia quando o preview quebrava.
+- **Problems panel.** Referências quebradas e circulares do arquivo aberto aparecem no rodapé do editor com a linha exata; clicar leva o cursor até ela. Também há badge na toolbar e na status bar.
+- **Content Graph (`Ctrl/Cmd + Shift + G`).** Visão global: todos os blocos e páginas que participam do grafo, ordenados por uso, expansíveis para ver *usa* / *usado por* / impacto total; e uma aba de problemas do projeto inteiro — incluindo **conteúdo órfão** (bloco que ninguém consome) e **id duplicado** (`x.md` e `x.mdx` lado a lado).
+- **Decoração no Monaco.** Linhas que trazem conteúdo de outro arquivo ganham faixa lateral e hover explicando a origem — dá para distinguir conteúdo local de conteúdo reutilizado sem ler a tag.
+- **Testes automatizados** (`npm test`, Vitest): 38 testes cobrindo extração de referências, backlinks, impacto transitivo, ciclos, referências quebradas, ids duplicados e conteúdo órfão — incluindo o caso `A → B, C → B, D → C` da especificação e um teste de integração que monta um repositório de conteúdo em diretório temporário.
+- **Exemplos reais no projeto:** `src/content/snippets/{authentication-warning,rate-limit,api-essentials}.*` e a página [Conteúdo reutilizável](src/content/docs/guides/conteudo-reutilizavel.mdx), que documenta a sintaxe **e** a usa (inclusive reuso aninhado: `api-essentials` compõe os outros dois).
+- Arquitetura detalhada em [docs/content-graph.md](docs/content-graph.md).
 
 **Como rodar:**
 
@@ -100,13 +114,17 @@ node ./dist/server/entry.mjs
 - Ainda não há scroll-sync entre editor e preview.
 - Extract sempre cria o snippet como `.md`; se ele mesmo precisar reutilizar outro bloco (reuso aninhado), é preciso renomear manualmente para `.mdx` — ainda não há um comando "converter para .mdx" na interface.
 - Resolução de imagem relativa ao pré-visualizar um snippet aberto diretamente (fora de uma página) assume a pasta `content/docs`, então pode ficar imprecisa nesse caso específico.
-- Detecção de referência circular acontece no preview (ao renderizar) e ao excluir (impact analysis) — ainda não há uma checagem no momento de inserir, nem um bloqueio de build.
-- Não há Detach (transformar referência de volta em texto local), grafo visual (`Content Graph Index`), busca global nem Command Palette — isso é o escopo da Fase 4/5.
+- Referências quebradas e circulares aparecem no Problems panel e no Content Graph, mas ainda **não bloqueiam o build** em modo strict.
+- Mover ou renomear um arquivo quebra as referências a ele (o `id` é o caminho sem extensão) — ainda não há um "rename refactor" que atualize os consumidores.
+- O grafo só enxerga a sintaxe que o próprio editor gera (`<ContentBlock id="…" />` / `<IncludePage id="…" />`); referências escritas com props em outra ordem ou `id` vindo de expressão ficam de fora.
+- Não há Detach (transformar referência de volta em texto local), busca global nem Command Palette — isso é o escopo da Fase 5.
 - O editor não tem autenticação própria. Não o exponha publicamente sem colocar algo na frente (ele tem permissão de escrita no repositório) — use-o localmente ou em um servidor interno.
 
 ### Dependências
 
-O projeto utiliza React, `@astrojs/react`, `@astrojs/node`, Monaco, `remark-mdx` e `js-yaml`. A Fase 3 não adiciona nenhuma dependência nova além dessas. Rode `npm install` sempre que o `package.json` mudar.
+O projeto utiliza React, `@astrojs/react`, `@astrojs/node`, Monaco, `remark-mdx` e `js-yaml`. A Fase 4 não adiciona nenhuma dependência de runtime — só as de desenvolvimento `vitest`, `typescript` e `@astrojs/check`. Rode `npm install` sempre que o `package.json` mudar.
+
+> `astro check` depende de uma API programática que o compilador nativo do TypeScript 7 ainda não expõe, por isso o projeto fixa `typescript@^6` em devDependencies.
 
 ## Clean install
 

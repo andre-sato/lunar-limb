@@ -7,34 +7,40 @@
     "start": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "check": "astro check",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
-    "@astrojs/starlight": "^0.41.3",
-    "@astrojs/react": "^6.0.2",
     "@astrojs/node": "^11.1.0",
+    "@astrojs/react": "^6.0.2",
+    "@astrojs/starlight": "^0.41.3",
+    "@monaco-editor/react": "^4.7.0",
     "astro": "^7.0.2",
-    "sharp": "^0.34.5",
+    "gray-matter": "^4.0.3",
+    "js-yaml": "^4.3.1",
+    "lucide-react": "^0.577.0",
+    "monaco-editor": "^0.56.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "@monaco-editor/react": "^4.7.0",
-    "lucide-react": "^0.577.0",
-    "gray-matter": "^4.0.3",
-    "unified": "^11.0.5",
-    "remark-parse": "^11.0.0",
-    "remark-gfm": "^4.0.1",
-    "remark-rehype": "^11.1.2",
     "rehype-raw": "^7.0.0",
     "rehype-stringify": "^10.0.1",
+    "remark-gfm": "^4.0.1",
     "remark-mdx": "^3.1.1",
-    "js-yaml": "^4.3.1",
-    "unist-util-visit": "^5.1.0",
-    "monaco-editor": "^0.56.0"
+    "remark-parse": "^11.0.0",
+    "remark-rehype": "^11.1.2",
+    "sharp": "^0.34.5",
+    "unified": "^11.0.5",
+    "unist-util-visit": "^5.1.0"
   },
   "devDependencies": {
+    "@astrojs/check": "^0.9.10",
+    "@types/js-yaml": "^4.0.9",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
-    "@types/js-yaml": "^4.0.9"
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.10"
   },
   "engines": {
     "node": ">=20.19.0"

@@ -162,9 +162,7 @@ const { t } = Astro.locals;
 
 			const copied = await copyToClipboard(buildPrompt(root, questionText));
 			if (status) {
-				status.textContent = copied
-					? root.dataset.copySuccess
-					: root.dataset.copyError;
+				status.textContent = (copied ? root.dataset.copySuccess : root.dataset.copyError) ?? '';
 			}
 			if (question) question.value = '';
 		});

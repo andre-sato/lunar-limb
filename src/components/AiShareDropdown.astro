@@ -117,11 +117,12 @@ const { t } = Astro.locals;
 
 			const copied = await copyToClipboard(getPageContent());
 			if (status) {
-				status.textContent = copied
-					? action === 'open-client'
-						? root.dataset.openSuccess
-						: root.dataset.copySuccess
-					: root.dataset.copyError;
+				status.textContent =
+					(copied
+						? action === 'open-client'
+							? root.dataset.openSuccess
+							: root.dataset.copySuccess
+						: root.dataset.copyError) ?? '';
 			}
 		});
 	});

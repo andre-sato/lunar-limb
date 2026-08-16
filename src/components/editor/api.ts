@@ -1,4 +1,13 @@
-import type { ContentReference, ContentRoot, ReusableItem, TreeNode } from './types';
+import type {
+	ContentGraph,
+	ContentNode,
+	ContentProblem,
+	ContentRoot,
+	ImpactAnalysis,
+	ReferenceDetail,
+	ReusableItem,
+	TreeNode,
+} from './types';
 
 async function handle<T>(res: Response): Promise<T> {
 	const data = await res.json().catch(() => ({}));
@@ -82,11 +91,42 @@ export async function fetchReusable(): Promise<{ blocks: ReusableItem[]; pages: 
 }
 
 export interface ReferencesResponse {
-	uses: ContentReference[];
-	usedBy: ContentReference[];
+	/** O arquivo consultado, quando ele já existe no grafo. */
+	node?: ContentNode;
+	/** Conteúdo reutilizável que este arquivo consome. */
+	uses: ReferenceDetail[];
+	/** Arquivos que consomem este conteúdo (backlinks diretos). */
+	usedBy: ReferenceDetail[];
+	/** Impacto transitivo de editar este arquivo. */
+	impact: ImpactAnalysis;
+	/** Problemas do grafo que pertencem a este arquivo. */
+	problems: ContentProblem[];
 }
 
 export async function fetchReferences(path: string, root: ContentRoot = 'docs'): Promise<ReferencesResponse> {
 	const res = await fetch(`/api/editor/references?path=${encodeURIComponent(path)}&root=${root}`);
 	return handle(res);
+}
+
+export interface GraphResponse {
+	graph: ContentGraph;
+	problems: ContentProblem[];
+}
+
+/** Grafo completo + problemas globais (referências quebradas, ciclos, órfãos). */
+export async function fetchGraph(options: { fresh?: boolean } = {}): Promise<GraphResponse> {
+	const res = await fetch(`/api/editor/graph${options.fresh ? '?fresh=1' : ''}`);
+	return handle<GraphResponse>(res);
+}
+
+/**
+ * Inserir `targetRef` ("block:auth-warning") dentro de `sourceKey`
+ * ("docs:guides/a.mdx") fecharia um ciclo? Retorna a cadeia culpada ou null.
+ */
+export async function checkCycle(sourceKey: string, targetRef: string): Promise<string[] | null> {
+	const res = await fetch(
+		`/api/editor/graph?source=${encodeURIComponent(sourceKey)}&target=${encodeURIComponent(targetRef)}`
+	);
+	const data = await handle<{ cycle: string[] | null }>(res);
+	return data.cycle;
 }
