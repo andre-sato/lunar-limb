@@ -15,7 +15,12 @@ import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { randomBytes } from 'node:crypto';
 
-const DATA_DIR = path.resolve(process.cwd(), 'data');
+/**
+ * `PORTAL_DATA_DIR` move o diretório de dados. Existe para poder subir uma
+ * instância de verificação sem tocar nos usuários e sessões reais — e serve
+ * também a um deploy que guarde estado num volume montado.
+ */
+const DATA_DIR = path.resolve(process.cwd(), process.env.PORTAL_DATA_DIR ?? 'data');
 
 export function dataPath(file: string): string {
 	return path.join(DATA_DIR, file);

@@ -1,0 +1,450 @@
+---
+/**
+ * Chatbot de documentação (§41–§53).
+ *
+ * Substitui o antigo `AskAi`, que montava um prompt para o leitor colar em
+ * outra ferramenta. Aqui a conversa acontece no portal: o cliente só desenha a
+ * interface e chama `/api/chat/message`; retrieval, guardrails e modelo ficam
+ * no servidor, onde o leitor não alcança.
+ *
+ * As páginas de documentação são pré-renderizadas, então este componente não
+ * pode saber no build quem está lendo. A autenticação é resolvida na primeira
+ * mensagem: um 401 vira o convite para entrar, com `next` de volta para a
+ * página atual.
+ */
+const { t } = Astro.locals;
+---
+
+<div
+	class="doc-chat"
+	data-doc-chat
+	data-intro={t('chat.intro')}
+	data-thinking={t('chat.thinking')}
+	data-error={t('chat.error')}
+	data-login-required={t('chat.loginRequired')}
+	data-login={t('chat.login')}
+	data-sources={t('chat.sources')}
+	data-retrieval-only={t('chat.retrievalOnly')}
+	data-feedback-thanks={t('chat.feedbackThanks')}
+	data-helpful={t('chat.helpful')}
+	data-not-helpful={t('chat.notHelpful')}
+>
+	<button class="doc-chat__trigger" type="button" data-chat-open aria-haspopup="dialog">
+		<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+			<path d="M21 12a8 8 0 0 1-8 8H7l-4 3v-7a8 8 0 0 1 8-8h2a8 8 0 0 1 8 4Z" />
+		</svg>
+		<span>{t('chat.trigger')}</span>
+	</button>
+
+	<dialog class="doc-chat__dialog" data-chat-dialog aria-labelledby="doc-chat-title">
+		<div class="doc-chat__panel">
+			<header class="doc-chat__header">
+				<div>
+					<p class="doc-chat__eyebrow">{t('chat.eyebrow')}</p>
+					<h2 id="doc-chat-title">{t('chat.title')}</h2>
+				</div>
+				<div class="doc-chat__header-actions">
+					<button class="doc-chat__ghost" type="button" data-chat-clear>{t('chat.clear')}</button>
+					<button class="doc-chat__close" type="button" data-chat-close aria-label={t('chat.close')}>
+						<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+							<path d="m6 6 12 12M18 6 6 18" />
+						</svg>
+					</button>
+				</div>
+			</header>
+
+			<div class="doc-chat__messages" data-chat-messages aria-live="polite">
+				<div class="doc-chat__message doc-chat__message--assistant">{t('chat.intro')}</div>
+			</div>
+
+			<form class="doc-chat__form" data-chat-form>
+				<label class="sr-only" for="doc-chat-input">{t('chat.title')}</label>
+				<textarea
+					id="doc-chat-input"
+					name="message"
+					rows="2"
+					placeholder={t('chat.placeholder')}
+					maxlength="8000"
+					required></textarea>
+				<button class="doc-chat__send" type="submit">{t('chat.send')}</button>
+			</form>
+
+			<p class="doc-chat__disclaimer">{t('chat.disclaimer')}</p>
+		</div>
+	</dialog>
+</div>
+
+<script>
+	const root = document.querySelector<HTMLElement>('[data-doc-chat]');
+	if (root) {
+		const dialog = root.querySelector<HTMLDialogElement>('[data-chat-dialog]')!;
+		const messages = root.querySelector<HTMLElement>('[data-chat-messages]')!;
+		const form = root.querySelector<HTMLFormElement>('[data-chat-form]')!;
+		const input = form.querySelector<HTMLTextAreaElement>('textarea')!;
+		const label = (name: string) => root.dataset[name] ?? '';
+
+		let conversationId: string | undefined;
+		let busy = false;
+
+		root.querySelector('[data-chat-open]')?.addEventListener('click', () => {
+			dialog.showModal();
+			input.focus();
+		});
+		root.querySelector('[data-chat-close]')?.addEventListener('click', () => dialog.close());
+		root.querySelector('[data-chat-clear]')?.addEventListener('click', () => {
+			conversationId = undefined;
+			messages.replaceChildren();
+			// A introdução volta: uma conversa nova precisa parecer nova.
+			append('assistant', root.dataset.intro ?? '');
+		});
+
+		function append(role: 'user' | 'assistant' | 'system', text: string): HTMLElement {
+			const element = document.createElement('div');
+			element.className = `doc-chat__message doc-chat__message--${role}`;
+			// `textContent`, nunca `innerHTML`: a resposta passa pelos guardrails
+			// do servidor, mas renderizá-la como HTML seria dar ao conteúdo da
+			// documentação um caminho para executar script no navegador do leitor.
+			element.textContent = text;
+			messages.append(element);
+			messages.scrollTop = messages.scrollHeight;
+			return element;
+		}
+
+		function appendSources(sources: Array<{ title: string; url: string }>): void {
+			if (sources.length === 0) return;
+			const wrapper = document.createElement('div');
+			wrapper.className = 'doc-chat__sources';
+
+			const heading = document.createElement('p');
+			heading.textContent = label('sources');
+			wrapper.append(heading);
+
+			const list = document.createElement('ul');
+			for (const source of sources) {
+				const item = document.createElement('li');
+				const link = document.createElement('a');
+				// Só caminho interno é aceito: uma "fonte" apontando para fora
+				// seria um vetor de exfiltração disfarçado de citação.
+				link.href = source.url.startsWith('/') ? source.url : '#';
+				link.textContent = source.title;
+				item.append(link);
+				list.append(item);
+			}
+			wrapper.append(list);
+			messages.append(wrapper);
+			messages.scrollTop = messages.scrollHeight;
+		}
+
+		function appendFeedback(messageId: string): void {
+			const wrapper = document.createElement('div');
+			wrapper.className = 'doc-chat__feedback';
+
+			for (const [value, key] of [
+				['up', 'helpful'],
+				['down', 'notHelpful'],
+			] as const) {
+				const button = document.createElement('button');
+				button.type = 'button';
+				button.className = 'doc-chat__vote';
+				button.textContent = value === 'up' ? '👍' : '👎';
+				button.title = label(key);
+				button.setAttribute('aria-label', label(key));
+				button.addEventListener('click', async () => {
+					wrapper.textContent = label('feedbackThanks');
+					try {
+						await fetch('/api/chat/feedback', {
+							method: 'POST',
+							headers: { 'content-type': 'application/json' },
+							body: JSON.stringify({ messageId, conversationId, vote: value }),
+						});
+					} catch {
+						// Retorno de qualidade não vale interromper a leitura.
+					}
+				});
+				wrapper.append(button);
+			}
+
+			messages.append(wrapper);
+		}
+
+		function appendLoginPrompt(): void {
+			const wrapper = append('system', label('loginRequired'));
+			const link = document.createElement('a');
+			link.className = 'doc-chat__login';
+			link.href = `/login?next=${encodeURIComponent(location.pathname)}`;
+			link.textContent = label('login');
+			wrapper.append(document.createTextNode(' '));
+			wrapper.append(link);
+		}
+
+		form.addEventListener('submit', async (event) => {
+			event.preventDefault();
+			if (busy) return;
+
+			const question = input.value.trim();
+			if (question === '') return;
+
+			busy = true;
+			input.value = '';
+			append('user', question);
+			const pending = append('assistant', label('thinking'));
+			pending.classList.add('is-pending');
+
+			try {
+				const response = await fetch('/api/chat/message', {
+					method: 'POST',
+					headers: { 'content-type': 'application/json' },
+					// O idioma vem do caminho da página: quem lê em `/en/…`
+					// pergunta sobre a documentação em inglês.
+					body: JSON.stringify({
+						message: question,
+						conversationId,
+						locale: location.pathname.split('/')[1] ?? '',
+					}),
+				});
+
+				pending.remove();
+
+				if (response.status === 401) {
+					appendLoginPrompt();
+					return;
+				}
+
+				const data = await response.json().catch(() => null);
+
+				if (!response.ok || !data) {
+					append('system', data?.message ?? label('error'));
+					return;
+				}
+
+				conversationId = data.conversationId;
+				append('assistant', data.message);
+				if (data.retrievalOnly) append('system', label('retrievalOnly'));
+				appendSources(Array.isArray(data.sources) ? data.sources : []);
+				if (data.messageId) appendFeedback(data.messageId);
+			} catch {
+				pending.remove();
+				append('system', label('error'));
+			} finally {
+				busy = false;
+				input.focus();
+			}
+		});
+	}
+</script>
+
+<style>
+	.doc-chat__trigger {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		padding: 0.35rem 0.7rem;
+		border: 1px solid var(--sl-color-gray-5);
+		border-radius: 999px;
+		background: var(--sl-color-black);
+		color: var(--sl-color-white);
+		font-size: var(--sl-text-xs);
+		cursor: pointer;
+	}
+
+	.doc-chat__trigger:hover {
+		border-color: var(--sl-color-accent);
+		color: var(--sl-color-accent-high);
+	}
+
+	.doc-chat__trigger svg {
+		width: 1rem;
+		height: 1rem;
+	}
+
+	.doc-chat__dialog {
+		border: none;
+		padding: 0;
+		background: transparent;
+		max-width: min(46rem, 94vw);
+		width: 100%;
+	}
+
+	.doc-chat__dialog::backdrop {
+		background: rgb(0 0 0 / 0.55);
+	}
+
+	.doc-chat__panel {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+		padding: 1.25rem;
+		border: 1px solid var(--sl-color-gray-5);
+		border-radius: 0.75rem;
+		background: var(--sl-color-bg);
+		color: var(--sl-color-white);
+		max-height: min(80vh, 44rem);
+	}
+
+	.doc-chat__header {
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 1rem;
+	}
+
+	.doc-chat__header h2 {
+		margin: 0;
+		font-size: var(--sl-text-h4);
+	}
+
+	.doc-chat__eyebrow {
+		margin: 0;
+		font-size: var(--sl-text-xs);
+		text-transform: uppercase;
+		letter-spacing: 0.08em;
+		color: var(--sl-color-gray-3);
+	}
+
+	.doc-chat__header-actions {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.doc-chat__ghost,
+	.doc-chat__close {
+		border: 1px solid transparent;
+		background: none;
+		color: var(--sl-color-gray-2);
+		cursor: pointer;
+		border-radius: 0.4rem;
+		font-size: var(--sl-text-xs);
+		padding: 0.25rem 0.5rem;
+	}
+
+	.doc-chat__ghost:hover,
+	.doc-chat__close:hover {
+		border-color: var(--sl-color-gray-5);
+		color: var(--sl-color-white);
+	}
+
+	.doc-chat__close svg {
+		width: 1rem;
+		height: 1rem;
+		display: block;
+	}
+
+	.doc-chat__messages {
+		flex: 1;
+		overflow-y: auto;
+		display: flex;
+		flex-direction: column;
+		gap: 0.6rem;
+		padding-right: 0.25rem;
+		min-height: 8rem;
+	}
+
+	.doc-chat__message {
+		padding: 0.6rem 0.8rem;
+		border-radius: 0.6rem;
+		font-size: var(--sl-text-sm);
+		line-height: 1.6;
+		white-space: pre-wrap;
+	}
+
+	.doc-chat__message--user {
+		align-self: flex-end;
+		max-width: 85%;
+		background: var(--sl-color-accent-low);
+		color: var(--sl-color-white);
+	}
+
+	.doc-chat__message--assistant {
+		background: var(--sl-color-gray-6);
+	}
+
+	.doc-chat__message--system {
+		font-size: var(--sl-text-xs);
+		color: var(--sl-color-gray-2);
+		border: 1px dashed var(--sl-color-gray-5);
+	}
+
+	.doc-chat__message.is-pending {
+		opacity: 0.7;
+		font-style: italic;
+	}
+
+	.doc-chat__sources {
+		font-size: var(--sl-text-xs);
+		color: var(--sl-color-gray-2);
+	}
+
+	.doc-chat__sources p {
+		margin: 0 0 0.2rem;
+		text-transform: uppercase;
+		letter-spacing: 0.06em;
+	}
+
+	.doc-chat__sources ul {
+		margin: 0;
+		padding-left: 1.1rem;
+	}
+
+	.doc-chat__feedback {
+		display: flex;
+		gap: 0.3rem;
+		font-size: var(--sl-text-xs);
+		color: var(--sl-color-gray-3);
+	}
+
+	.doc-chat__vote {
+		border: 1px solid var(--sl-color-gray-5);
+		background: none;
+		border-radius: 0.4rem;
+		cursor: pointer;
+		padding: 0.1rem 0.4rem;
+	}
+
+	.doc-chat__form {
+		display: flex;
+		gap: 0.5rem;
+		align-items: flex-end;
+	}
+
+	.doc-chat__form textarea {
+		flex: 1;
+		resize: vertical;
+		padding: 0.5rem 0.6rem;
+		border-radius: 0.5rem;
+		border: 1px solid var(--sl-color-gray-5);
+		background: var(--sl-color-black);
+		color: var(--sl-color-white);
+		font: inherit;
+		font-size: var(--sl-text-sm);
+	}
+
+	.doc-chat__send {
+		padding: 0.5rem 0.9rem;
+		border: none;
+		border-radius: 0.5rem;
+		background: var(--sl-color-accent);
+		color: var(--sl-color-black);
+		font-weight: 600;
+		cursor: pointer;
+	}
+
+	.doc-chat__disclaimer {
+		margin: 0;
+		font-size: var(--sl-text-xs);
+		color: var(--sl-color-gray-3);
+	}
+
+	.doc-chat__login {
+		color: var(--sl-color-accent-high);
+	}
+
+	.sr-only {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip: rect(0 0 0 0);
+		white-space: nowrap;
+	}
+</style>

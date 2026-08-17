@@ -118,6 +118,14 @@ const RULES: readonly Rule[] = [
 			DELETE: ['docs.delete'],
 		},
 	},
+
+	{
+		// Chatbot: conversar é ler a documentação, mesmo usando POST. Nenhum
+		// papel ganha capacidade a mais aqui — o assistente é somente leitura
+		// (§34, §36), e um admin recebe dele exatamente o que um viewer recebe.
+		prefix: '/api/chat',
+		base: ['docs.read'],
+	},
 ];
 
 function matchesPrefix(pathname: string, prefix: string): boolean {

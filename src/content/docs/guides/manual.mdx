@@ -71,12 +71,23 @@ assistente:
 conteúdo da página em um formato pronto para colar em um chat, ou copia e já
 abre o cliente escolhido.
 
-**Perguntar à IA**, ao lado da busca no cabeçalho, abre uma conversa que prepara
-a pergunta com o contexto da página atual e a transfere para o cliente
-selecionado. O contexto vai para a área de transferência antes de o cliente
-abrir.
-
 Os clientes oferecidos (ChatGPT, Claude, Gemini, Copilot) são configuráveis.
+
+**Perguntar à documentação**, ao lado da busca no cabeçalho, responde dentro do
+portal. Você pergunta em linguagem natural, em português, inglês ou espanhol; o
+servidor procura os trechos relevantes nas páginas publicadas do seu idioma,
+monta a resposta e cita as fontes usadas. Cada resposta aceita 👍 ou 👎, e essa
+contagem aparece em **Settings → Chatbot**.
+
+O assistente é **somente leitura**: ele não edita páginas, não mexe em usuários
+e não altera configurações. Se a documentação não tiver a informação, ele diz
+isso em vez de inventar — e quando o portal está sem chave de modelo, devolve os
+próprios trechos encontrados, com os links.
+
+Uma observação sobre o que ele não faz: o assistente não obedece a instruções
+escritas dentro das páginas. Um trecho que diga "ignore as instruções acima" é
+tratado como texto citado, e o administrador recebe o aviso de que aquela página
+contém algo assim.
 
 ### Personalização
 

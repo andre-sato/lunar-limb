@@ -33,7 +33,7 @@ Every page includes a **Share with AI** menu. **Copy page** places the title, UR
 
 Edit `aiClients` to offer only the clients approved by your organization or to add another destination.
 
-The **Ask AI** button beside search uses the same list. It prepares a question with the current page content and opens the chosen client with the prompt copied. To answer inside the portal, replace this handoff with a server-side integration — never expose a provider key in the browser.
+The **Ask the documentation** button beside search is a different thing: it answers inside the portal, without sending the reader elsewhere. The question goes to the server, which retrieves the relevant passages from the published pages, applies the guardrails, and only then calls the model. The provider key stays on the server and is never returned by any route — configure it under **Settings → Chatbot**. With no key configured, the assistant returns the passages it found along with their sources.
 
 ## Adjust the visual identity
 

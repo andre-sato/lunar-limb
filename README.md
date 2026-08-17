@@ -10,7 +10,7 @@ O portal separa três tipos de conteúdo:
 
 Todas as páginas oferecem o menu **Compartilhar com IA**: ele copia o título, URL e conteúdo da página. A lista de clientes e seus destinos pode ser configurada em `src/config/portal.ts`.
 
-O cabeçalho também inclui um **Ask AI** ao lado da busca. Ele abre uma interface de conversa, prepara a pergunta com o contexto da página e transfere esse contexto ao cliente de IA selecionado.
+O cabeçalho também inclui **Perguntar à documentação** ao lado da busca: um assistente que responde dentro do próprio portal, a partir das páginas publicadas, citando as fontes. Retrieval, guardrails de entrada e de saída e a chamada ao modelo acontecem no servidor — nenhuma chave de provedor chega ao navegador. Sem chave configurada ele opera em modo só-retrieval, devolvendo os trechos encontrados. A chave, o modelo e os limites ficam em **Settings → Chatbot**.
 
 ## Idiomas
 

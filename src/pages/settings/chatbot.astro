@@ -1,0 +1,14 @@
+---
+import SettingsLayout from '../../layouts/SettingsLayout.astro';
+import ChatbotPanel from '../../components/settings/ChatbotPanel';
+
+export const prerender = false;
+---
+
+<SettingsLayout
+	title="Chatbot"
+	description="Assistente de documentação: provedor, retrieval, segurança e uso."
+	active="chatbot"
+>
+	<ChatbotPanel client:load />
+</SettingsLayout>

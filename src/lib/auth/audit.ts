@@ -28,7 +28,15 @@ export type AuditAction =
 	| 'SESSION_DENIED'
 	| 'DOCUMENT_CREATED'
 	| 'DOCUMENT_UPDATED'
-	| 'DOCUMENT_DELETED';
+	| 'DOCUMENT_DELETED'
+	// Chatbot (§64, §65). O metadata carrega só categoria de risco, confiança e
+	// contadores — nunca a pergunta nem a resposta.
+	| 'CHAT_BLOCKED'
+	| 'CHAT_PROMPT_INJECTION'
+	| 'CHAT_JAILBREAK'
+	| 'CHAT_INDIRECT_INJECTION'
+	| 'CHAT_OUTPUT_BLOCKED'
+	| 'CHAT_RATE_LIMITED';
 
 export interface AuditEvent {
 	id: string;

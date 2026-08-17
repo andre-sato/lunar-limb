@@ -33,7 +33,7 @@ Cada página inclui o menu **Compartilhar com IA**. A opção **Copiar página**
 
 Edite a lista `aiClients` para disponibilizar apenas os clientes aceitos pela sua empresa ou para adicionar outro destino.
 
-O botão **Ask AI**, ao lado da busca, reutiliza essa mesma lista. Ele abre um painel de pergunta, prepara a pergunta com o conteúdo da página atual e abre o cliente escolhido com o prompt copiado. Para respostas dentro do próprio portal, substitua esse handoff por uma integração de servidor — nunca exponha a chave do provedor no navegador.
+O botão **Perguntar à documentação**, ao lado da busca, é outra coisa: ele responde dentro do próprio portal, sem levar o leitor para fora. A pergunta vai ao servidor, que busca os trechos relevantes nas páginas publicadas, aplica os guardrails e só então chama o modelo. A chave do provedor fica no servidor e nunca é devolvida por rota alguma — configure-a em **Settings → Chatbot**. Sem chave, o assistente devolve os trechos encontrados com as fontes.
 
 ## Ajuste a identidade visual
 
