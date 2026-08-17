@@ -4,7 +4,10 @@
       "Bash(node dist/server/entry.mjs)",
       "Bash(curl -sI http://localhost:4321/)",
       "Bash(kill %1)",
-      "Bash(curl -s http://localhost:4321/guides/testando-mdx/)"
+      "Bash(curl -s http://localhost:4321/guides/testando-mdx/)",
+      "Bash(curl -s http://localhost:4321/)",
+      "Bash(curl -s -o /dev/null -w \"getting-started: %{http_code}\\\\n\" http://localhost:4321/guides/getting-started/)",
+      "Bash(curl -s http://localhost:4321/guides/getting-started/)"
     ]
   }
 }
