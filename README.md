@@ -146,6 +146,16 @@ Em produção, defina também `AUTH_SECRET` (≥ 32 caracteres). Sem ela, uma ch
 
 Arquitetura detalhada, incluindo as proteções contra escalação de privilégio e remoção do último admin, em [docs/controle-de-acesso.md](docs/controle-de-acesso.md).
 
+## Feedback de página
+
+No fim de cada página de documentação há um widget **"Esta página foi útil?"** com sim/não e um campo opcional de comentário. A Starlight não traz um componente de feedback nem plugin oficial — o caminho que ela indica é sobrescrever `Footer`, que é o que o projeto faz. As alternativas de mercado são SaaS de terceiros; aqui o retorno dos seus leitores fica no próprio projeto.
+
+O envio é **anônimo**: sem login, sem cookie, sem identificador de visitante. Grava-se caminho, voto, idioma e o comentário; o IP serve só ao limite de envio e não é armazenado.
+
+As respostas ficam em **Settings → Feedback**: proporção de "útil", comentários recentes e **onde mexer primeiro** — páginas com maioria negativa e pelo menos 3 votos, para uma reclamação isolada não mandar o time reescrever conteúdo.
+
+Com a integração do Do11y ligada, o mesmo clique também vira um evento `feedback` no Supabase. Detalhes em [docs/feedback-de-pagina.md](docs/feedback-de-pagina.md).
+
 ## Analytics da documentação (Do11y)
 
 Em **Settings → Analytics** o portal integra o [Do11y](https://docservable.com/), que captura eventos de engajamento nas páginas e os grava numa tabela do Supabase. Ele detecta referrers de plataformas de IA, então o dashboard mostra quanto da leitura vem de agentes (ChatGPT, Claude, Perplexity…) e quanto vem de pessoas.

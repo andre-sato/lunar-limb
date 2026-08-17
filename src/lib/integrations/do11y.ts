@@ -187,6 +187,10 @@ export function toClientConfig(config: Do11yConfig): Do11yClientConfig {
 			trackInternalLinks: config.trackInternalLinks,
 			trackTocClicks: config.trackTocClicks,
 			trackFeedback: config.trackFeedback,
+			// Aponta o Do11y para o widget do portal: com a integração ligada, o
+			// mesmo clique vira também um evento `feedback` no Supabase, ao lado
+			// da contagem própria em `data/feedback.json`.
+			feedbackSelector: '[data-do11y-feedback]',
 			respectDNT: config.respectDNT,
 			debug: config.debug,
 		},

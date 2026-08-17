@@ -71,6 +71,12 @@ const RULES: readonly Rule[] = [
 		base: ['settings.access', 'analytics.read'],
 	},
 	{
+		// A leitura do feedback é analytics: reaproveita a capacidade em vez de
+		// criar uma permissão quase idêntica.
+		prefix: '/api/admin/feedback',
+		base: ['settings.access', 'analytics.read'],
+	},
+	{
 		prefix: '/api/admin/integrations',
 		base: ['settings.access'],
 		byMethod: {

@@ -1,0 +1,22 @@
+---
+/**
+ * Rodapé da Starlight + widget de feedback.
+ *
+ * Sobrescrever `Footer` é o caminho que a Starlight indica para acrescentar
+ * algo ao fim de toda página de documentação — não há componente de feedback
+ * nativo nem plugin oficial.
+ *
+ * O widget fica **acima** do rodapé padrão (paginação, "editar esta página",
+ * data de atualização): a pergunta pertence ao fim do conteúdo, não ao fim da
+ * navegação.
+ */
+import Default from '@astrojs/starlight/components/Footer.astro';
+import FeedbackWidget from './FeedbackWidget.astro';
+
+// A página inicial usa hero e não é um documento que se "leia até o fim";
+// perguntar ali rende ruído em vez de sinal.
+const isSplash = Astro.locals.starlightRoute.entry.data.template === 'splash';
+---
+
+{!isSplash && <FeedbackWidget />}
+<Default {...Astro.props}><slot /></Default>

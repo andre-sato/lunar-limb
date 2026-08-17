@@ -567,3 +567,71 @@
 	overflow-x: auto;
 	white-space: pre;
 }
+
+/* ------------------------------------------------------------- feedback */
+
+.score-cell {
+	display: grid;
+	grid-template-columns: 1fr 42px;
+	align-items: center;
+	gap: 8px;
+}
+
+.feedback-comments {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.feedback-comment {
+	display: flex;
+	gap: 11px;
+	padding: 11px 0;
+	border-bottom: 1px solid var(--sl-color-gray-5);
+}
+
+.feedback-comment:last-child {
+	border-bottom: 0;
+}
+
+.feedback-mark {
+	flex-shrink: 0;
+	width: 22px;
+	height: 22px;
+	border-radius: 999px;
+	display: grid;
+	place-items: center;
+	font-weight: 700;
+	font-size: 0.8rem;
+}
+
+.feedback-mark--up {
+	background: color-mix(in srgb, var(--sl-color-green) 18%, transparent);
+	color: var(--sl-color-green);
+}
+
+.feedback-mark--down {
+	background: color-mix(in srgb, var(--sl-color-red) 15%, transparent);
+	color: var(--sl-color-red);
+}
+
+.feedback-comment-body {
+	min-width: 0;
+}
+
+.feedback-comment-text {
+	margin: 0 0 4px;
+	font-size: 0.88rem;
+	line-height: 1.55;
+	overflow-wrap: anywhere;
+}
+
+.feedback-comment-meta {
+	margin: 0;
+	font-size: 0.78rem;
+	color: var(--sl-color-gray-2);
+	overflow-wrap: anywhere;
+}

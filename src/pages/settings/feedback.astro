@@ -1,0 +1,14 @@
+---
+import SettingsLayout from '../../layouts/SettingsLayout.astro';
+import FeedbackPanel from '../../components/settings/FeedbackPanel';
+
+export const prerender = false;
+---
+
+<SettingsLayout
+	title="Feedback"
+	description="O que os leitores responderam em “Esta página foi útil?”."
+	active="feedback"
+>
+	<FeedbackPanel client:load />
+</SettingsLayout>

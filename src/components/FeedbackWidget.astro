@@ -1,0 +1,284 @@
+---
+/**
+ * "Esta página foi útil?" — no rodapé de cada página de documentação.
+ *
+ * A Starlight não traz um componente de feedback; o caminho que ela recomenda
+ * é sobrescrever `Footer`, que renderiza no fim de toda página de doc. É o que
+ * `src/components/Footer.astro` faz.
+ *
+ * O envio é anônimo e não exige login: pedir cadastro para dizer "isto não
+ * ajudou" elimina justamente o retorno que interessa.
+ *
+ * Depois do voto, o campo de comentário aparece — opcional, e com o rótulo
+ * mudando conforme o voto, porque "o que faltou?" só faz sentido depois de um
+ * polegar para baixo.
+ *
+ * O `data-do11y-feedback` no contêiner é o gancho para o `feedbackSelector` do
+ * Do11y: com a integração ligada, o mesmo clique também vira evento lá.
+ */
+const { t } = Astro.locals;
+---
+
+<aside
+	class="page-feedback"
+	data-do11y-feedback
+	data-label-comment-up={t('feedback.commentUp')}
+	data-label-comment-down={t('feedback.commentDown')}
+	data-label-error={t('feedback.error')}
+>
+	<div class="page-feedback__ask" data-feedback-step="ask">
+		<p class="page-feedback__question">{t('feedback.question')}</p>
+		<div class="page-feedback__buttons">
+			<button type="button" class="page-feedback__btn" data-feedback-vote="up">
+				<svg viewBox="0 0 24 24" aria-hidden="true">
+					<path d="M7 10v12" />
+					<path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z" />
+				</svg>
+				<span>{t('feedback.yes')}</span>
+			</button>
+			<button type="button" class="page-feedback__btn" data-feedback-vote="down">
+				<svg viewBox="0 0 24 24" aria-hidden="true" class="page-feedback__icon--down">
+					<path d="M17 14V2" />
+					<path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z" />
+				</svg>
+				<span>{t('feedback.no')}</span>
+			</button>
+		</div>
+	</div>
+
+	<div class="page-feedback__followup" data-feedback-step="comment" hidden>
+		<label class="page-feedback__label" for="page-feedback-comment" data-feedback-comment-label></label>
+		<textarea
+			id="page-feedback-comment"
+			class="page-feedback__textarea"
+			rows="3"
+			maxlength="500"
+			placeholder={t('feedback.placeholder')}></textarea>
+		<div class="page-feedback__actions">
+			<button type="button" class="page-feedback__send" data-feedback-send>{t('feedback.send')}</button>
+			<button type="button" class="page-feedback__skip" data-feedback-skip>{t('feedback.skip')}</button>
+		</div>
+	</div>
+
+	<p class="page-feedback__thanks" data-feedback-step="thanks" hidden>{t('feedback.thanks')}</p>
+</aside>
+
+<script>
+	(() => {
+		const widget = document.querySelector<HTMLElement>('[data-do11y-feedback]');
+		if (!widget) return;
+
+		const steps = {
+			ask: widget.querySelector<HTMLElement>('[data-feedback-step="ask"]'),
+			comment: widget.querySelector<HTMLElement>('[data-feedback-step="comment"]'),
+			thanks: widget.querySelector<HTMLElement>('[data-feedback-step="thanks"]'),
+		};
+		const commentLabel = widget.querySelector<HTMLElement>('[data-feedback-comment-label]');
+		const textarea = widget.querySelector<HTMLTextAreaElement>('#page-feedback-comment');
+
+		const path = window.location.pathname;
+		const storageKey = `page-feedback:${path}`;
+
+		function show(step: 'ask' | 'comment' | 'thanks') {
+			for (const [name, element] of Object.entries(steps)) {
+				if (element) element.hidden = name !== step;
+			}
+		}
+
+		// Quem já votou nesta página vê o agradecimento em vez do formulário.
+		// É só conveniência no navegador — o servidor não é enganado por isso,
+		// e por isso ele tem o próprio limite por IP.
+		try {
+			if (localStorage.getItem(storageKey)) show('thanks');
+		} catch {
+			/* localStorage bloqueado: o widget segue funcionando */
+		}
+
+		let rating: 'up' | 'down' | null = null;
+		/** Id do voto gravado, para o comentário ser anexado a ele. */
+		let entryId: string | null = null;
+
+		async function sendVote() {
+			if (!rating) return;
+			try {
+				const response = await fetch('/api/feedback', {
+					method: 'POST',
+					headers: { 'content-type': 'application/json' },
+					body: JSON.stringify({
+						path,
+						locale: document.documentElement.lang || 'pt-BR',
+						rating,
+					}),
+				});
+				const body = await response.json().catch(() => null);
+				if (body && typeof body.id === 'string') entryId = body.id;
+				try {
+					localStorage.setItem(storageKey, rating);
+				} catch {
+					/* idem */
+				}
+			} catch {
+				// Falha de rede não deve prender o leitor: o voto se perde, mas
+				// a interface conclui.
+			}
+		}
+
+		async function sendComment(comment: string) {
+			// Anexa ao voto já gravado. Enviar outro registro contaria o mesmo
+			// voto duas vezes.
+			if (!entryId) return;
+			try {
+				await fetch('/api/feedback', {
+					method: 'POST',
+					headers: { 'content-type': 'application/json' },
+					body: JSON.stringify({ id: entryId, comment }),
+				});
+			} catch {
+				/* idem */
+			}
+		}
+
+		widget.querySelectorAll<HTMLButtonElement>('[data-feedback-vote]').forEach((button) => {
+			button.addEventListener('click', () => {
+				rating = button.dataset.feedbackVote === 'down' ? 'down' : 'up';
+
+				if (commentLabel) {
+					commentLabel.textContent =
+						rating === 'down'
+							? (widget.dataset.labelCommentDown ?? '')
+							: (widget.dataset.labelCommentUp ?? '');
+				}
+
+				show('comment');
+				textarea?.focus();
+
+				// O voto vai já: o comentário é opcional, e quem fechar a página
+				// agora não pode sumir da contagem.
+				void sendVote();
+			});
+		});
+
+		widget.querySelector<HTMLButtonElement>('[data-feedback-send]')?.addEventListener('click', async () => {
+			const comment = textarea?.value.trim();
+			if (comment) await sendComment(comment);
+			show('thanks');
+		});
+
+		widget.querySelector<HTMLButtonElement>('[data-feedback-skip]')?.addEventListener('click', () => show('thanks'));
+	})();
+</script>
+
+<style>
+	.page-feedback {
+		margin-top: 2.5rem;
+		padding: 1.1rem 1.25rem;
+		border: 1px solid var(--sl-color-gray-5);
+		border-radius: 12px;
+		background: var(--sl-color-gray-6);
+	}
+
+	.page-feedback__ask {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+		flex-wrap: wrap;
+	}
+
+	.page-feedback__question {
+		margin: 0;
+		font-size: var(--sl-text-sm);
+		font-weight: 600;
+		color: var(--sl-color-white);
+	}
+
+	.page-feedback__buttons {
+		display: flex;
+		gap: 0.5rem;
+	}
+
+	.page-feedback__btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		padding: 0.35rem 0.8rem;
+		border: 1px solid var(--sl-color-gray-4);
+		border-radius: 999px;
+		background: var(--sl-color-black);
+		color: var(--sl-color-gray-1);
+		font: inherit;
+		font-size: var(--sl-text-sm);
+		cursor: pointer;
+		transition: border-color 0.15s, color 0.15s;
+	}
+
+	.page-feedback__btn:hover {
+		border-color: var(--sl-color-accent);
+		color: var(--sl-color-white);
+	}
+
+	.page-feedback__btn svg {
+		width: 15px;
+		height: 15px;
+		fill: none;
+		stroke: currentColor;
+		stroke-width: 2;
+		stroke-linecap: round;
+		stroke-linejoin: round;
+	}
+
+	.page-feedback__label {
+		display: block;
+		margin-bottom: 0.5rem;
+		font-size: var(--sl-text-sm);
+		font-weight: 600;
+		color: var(--sl-color-white);
+	}
+
+	.page-feedback__textarea {
+		width: 100%;
+		padding: 0.55rem 0.7rem;
+		border: 1px solid var(--sl-color-gray-4);
+		border-radius: 8px;
+		background: var(--sl-color-black);
+		color: var(--sl-color-white);
+		font: inherit;
+		font-size: var(--sl-text-sm);
+		resize: vertical;
+	}
+
+	.page-feedback__textarea:focus {
+		outline: 2px solid var(--sl-color-accent);
+		outline-offset: -1px;
+	}
+
+	.page-feedback__actions {
+		display: flex;
+		gap: 0.5rem;
+		margin-top: 0.6rem;
+	}
+
+	.page-feedback__send,
+	.page-feedback__skip {
+		padding: 0.35rem 0.9rem;
+		border-radius: 8px;
+		font: inherit;
+		font-size: var(--sl-text-sm);
+		cursor: pointer;
+		border: 1px solid var(--sl-color-gray-4);
+		background: var(--sl-color-black);
+		color: var(--sl-color-gray-1);
+	}
+
+	.page-feedback__send {
+		background: var(--sl-color-accent);
+		border-color: var(--sl-color-accent);
+		color: var(--sl-color-black);
+		font-weight: 600;
+	}
+
+	.page-feedback__thanks {
+		margin: 0;
+		font-size: var(--sl-text-sm);
+		color: var(--sl-color-gray-2);
+	}
+</style>
