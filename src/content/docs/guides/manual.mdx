@@ -501,7 +501,7 @@ como no VS Code.
 
 | Atalho | Ação |
 | --- | --- |
-| `Ctrl/Cmd + S` | Salvar agora |
+| `Ctrl/Cmd + S` | Salvar agora, sem sair do editor |
 | `Ctrl/Cmd + B` | Negrito |
 | `Ctrl/Cmd + I` | Itálico |
 | `Ctrl/Cmd + K` | Inserir link |
@@ -509,6 +509,15 @@ como no VS Code.
 | `Ctrl/Cmd + Shift + Z` | Refazer (dentro do editor) |
 | `Ctrl/Cmd + F` | Localizar no arquivo |
 | `Ctrl/Cmd + H` | Substituir no arquivo |
+
+O botão de disquete na barra superior faz outra coisa: **salva e abre a página
+editada**, fechando o editor. É o fim natural de uma edição — você confere o
+resultado publicado. O `Ctrl/Cmd + S` continua salvando no lugar, porque quem
+escreve aperta esse atalho por reflexo no meio do texto e sair da tela nesse
+momento interromperia a escrita.
+
+Blocos reutilizáveis não têm página própria: ao salvá-los pelo disquete, o
+editor avisa e permanece aberto, já que não há uma página para abrir.
 
 Negrito, itálico e link envolvem a seleção; sem seleção, inserem um placeholder
 com o cursor já posicionado.

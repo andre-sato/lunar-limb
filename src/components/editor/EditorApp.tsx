@@ -34,6 +34,8 @@ import { useDebouncedCallback } from './useDebouncedCallback';
 import { useReferences } from './useReferences';
 import { conditionalBlock, detachReferenceAt, ensureMdxImport, referenceTag } from './insert-helpers';
 import { extractReferences, nodeKey, refOf, typeForRoot } from '../../lib/editor/graph-model';
+import { hasPublicPage, pageUrlFor } from '../../lib/editor/page-url';
+import { splitContent } from './frontmatter';
 import type {
 	ContentRoot,
 	CursorPosition,
@@ -117,6 +119,7 @@ export default function EditorApp() {
 	const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
 	const [fileLoading, setFileLoading] = useState(false);
 	const [fileError, setFileError] = useState<string | null>(null);
+	const [notice, setNotice] = useState<string | null>(null);
 	/** Resultado do espelhamento nos outros idiomas, após criar uma página. */
 	const [mirrorNotice, setMirrorNotice] = useState<string | null>(null);
 	const [referenceRefreshToken, setReferenceRefreshToken] = useState(0);
@@ -247,7 +250,7 @@ export default function EditorApp() {
 
 	// ---- Save -------------------------------------------------------------
 
-	const performSave = useCallback(async (value: string, path: string, root: ContentRoot) => {
+	const performSave = useCallback(async (value: string, path: string, root: ContentRoot): Promise<boolean> => {
 		setSaveStatus('saving');
 		try {
 			await saveFile(path, value, root);
@@ -255,8 +258,10 @@ export default function EditorApp() {
 			setSaveStatus('saved');
 			setReferenceRefreshToken((t) => t + 1);
 			void refreshGitStatus();
+			return true;
 		} catch {
 			setSaveStatus('error');
+			return false;
 		}
 	}, [refreshGitStatus]);
 
@@ -269,6 +274,35 @@ export default function EditorApp() {
 		if (!activePath) return;
 		debouncedSave.flush(content);
 	}, [activePath, content, debouncedSave]);
+
+	/**
+	 * Salvar e sair, o comportamento do botão de disquete.
+	 *
+	 * O atalho Ctrl+S e o comando da paleta continuam salvando sem sair: quem
+	 * escreve aperta Ctrl+S por reflexo no meio do texto, e navegar para fora
+	 * nesse momento interromperia a edição.
+	 *
+	 * A navegação só acontece depois da confirmação do servidor. Sair com o
+	 * salvamento em voo poderia perder a escrita, e o `dirty` já foi zerado —
+	 * o aviso de alterações não salvas não protegeria.
+	 */
+	const handleSaveAndOpen = useCallback(async () => {
+		if (!activePath) return;
+
+		debouncedSave.cancel();
+		const saved = await performSave(content, activePath, activeRoot);
+		if (!saved) return;
+
+		if (!hasPublicPage(activeRoot)) {
+			// Bloco reutilizável não tem página própria: salva e fica onde está,
+			// em vez de adivinhar qual das páginas que o consomem abrir.
+			setNotice('Bloco salvo. Blocos reutilizáveis não têm página própria — abra uma das páginas que o usam.');
+			return;
+		}
+
+		const { frontmatter } = splitContent(content);
+		window.location.href = pageUrlFor(activePath, frontmatter);
+	}, [activePath, activeRoot, content, debouncedSave, performSave]);
 
 	// ---- Open / create / delete --------------------------------------------
 
@@ -817,7 +851,7 @@ export default function EditorApp() {
 				theme={theme}
 				onToggleTheme={toggleTheme}
 				saveStatus={saveStatus}
-				onSave={handleManualSave}
+				onSave={() => void handleSaveAndOpen()}
 				activeTitle={docTitle ?? activePath}
 				hasActiveFile={Boolean(activePath)}
 				onInsertReusable={handleOpenInsertModal}
@@ -862,6 +896,7 @@ export default function EditorApp() {
 				<main className={`workspace workspace--${viewMode}`}>
 					{treeError && <div className="banner banner--error">{treeError}</div>}
 					{fileError && <div className="banner banner--error">{fileError}</div>}
+					{notice && <div className="banner banner--info">{notice}</div>}
 					{mirrorNotice && <div className="banner banner--info">{mirrorNotice}</div>}
 
 					{!activePath ? (

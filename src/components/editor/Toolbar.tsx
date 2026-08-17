@@ -164,7 +164,7 @@ export default function Toolbar({
 					className="icon-btn"
 					disabled={!hasActiveFile || saveStatus === 'saving'}
 					onClick={onSave}
-					title="Salvar (Cmd/Ctrl+S)"
+					title="Salvar e abrir a página (Cmd/Ctrl+S salva sem sair)"
 				>
 					<Save size={16} />
 				</button>
