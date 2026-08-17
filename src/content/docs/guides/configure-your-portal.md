@@ -5,7 +5,7 @@ sidebar:
   order: 2
 ---
 
-O portal foi estruturado para ser reutilizado. As configurações que normalmente mudam de uma implementação para outra ficam reunidas em `src/config/portal.ts`.
+O portal foi estruturado para ser reutilizado. As configurações que costumam mudar de uma implementação para outra ficam reunidas em `src/config/portal.ts`.
 
 ## Configure a identidade básica
 
