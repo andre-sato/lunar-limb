@@ -26,6 +26,8 @@ export const PERMISSIONS = [
 	'permissions.manage',
 	'settings.access',
 	'audit.read',
+	'analytics.read',
+	'integrations.manage',
 ] as const;
 export type Permission = (typeof PERMISSIONS)[number];
 
@@ -48,6 +50,8 @@ const ADMIN_PERMISSIONS: readonly Permission[] = [
 	'permissions.manage',
 	'settings.access',
 	'audit.read',
+	'analytics.read',
+	'integrations.manage',
 ];
 
 /**
@@ -139,6 +143,13 @@ export const PERMISSION_GROUPS: ReadonlyArray<{
 		permissions: [
 			{ permission: 'settings.access', label: 'Acessar' },
 			{ permission: 'audit.read', label: 'Ver auditoria' },
+		],
+	},
+	{
+		label: 'Analytics',
+		permissions: [
+			{ permission: 'analytics.read', label: 'Ver métricas' },
+			{ permission: 'integrations.manage', label: 'Configurar integrações' },
 		],
 	},
 ];

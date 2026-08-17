@@ -1,0 +1,58 @@
+---
+/**
+ * `<head>` da Starlight + carregador do coletor Do11y.
+ *
+ * A instalação oficial do Do11y para Starlight põe as credenciais direto no
+ * array `head` do `astro.config.mjs`. Aqui isso não serve: seria build time, e
+ * o requisito é administrar a integração pela tela de Settings — trocar uma
+ * chave não pode exigir rebuild e redeploy do portal.
+ *
+ * Então o que vai embutido é só este carregador, que:
+ *   1. busca a configuração pública em `/api/integrations/do11y/client-config`;
+ *   2. define `window.Do11yConfig`;
+ *   3. injeta o script do CDN.
+ *
+ * A injeção usa `createElement`/`appendChild` porque script inserido via
+ * `innerHTML` não é executado pelo navegador.
+ *
+ * Só páginas da Starlight passam por aqui, então o editor e o dashboard
+ * administrativo ficam fora da medição — o que se quer medir é a
+ * documentação, não o trabalho de quem a escreve.
+ */
+import Default from '@astrojs/starlight/components/Head.astro';
+---
+
+<Default {...Astro.props}><slot /></Default>
+
+<script is:inline>
+	(() => {
+		// Respeita Do Not Track antes mesmo de pedir a configuração: sem sinal
+		// de tracking, nenhuma requisição precisa sair.
+		if (navigator.doNotTrack === '1' || window.doNotTrack === '1') return;
+
+		const start = () => {
+			fetch('/api/integrations/do11y/client-config', { credentials: 'omit' })
+				.then((response) => (response.ok ? response.json() : null))
+				.then((data) => {
+					if (!data || !data.enabled || !data.scriptUrl) return;
+					if (document.querySelector('script[data-do11y]')) return;
+
+					// Precisa estar definido antes de o script carregar.
+					window.Do11yConfig = data.config;
+
+					const element = document.createElement('script');
+					element.src = data.scriptUrl;
+					element.async = true;
+					element.dataset.do11y = 'true';
+					document.head.appendChild(element);
+				})
+				.catch(() => {
+					// Analytics indisponível nunca pode quebrar a documentação.
+				});
+		};
+
+		// Depois do load: a medição não deve competir por banda com o conteúdo.
+		if (document.readyState === 'complete') start();
+		else window.addEventListener('load', start, { once: true });
+	})();
+</script>

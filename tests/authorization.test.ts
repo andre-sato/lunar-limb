@@ -36,6 +36,8 @@ describe('matriz de permissões', () => {
 		['permissions.manage', false, false, true],
 		['settings.access', false, false, true],
 		['audit.read', false, false, true],
+		['analytics.read', false, false, true],
+		['integrations.manage', false, false, true],
 	];
 
 	it.each(matrix)('%s → viewer=%s editor=%s admin=%s', (permission, v, e, a) => {

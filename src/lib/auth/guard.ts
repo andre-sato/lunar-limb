@@ -66,6 +66,20 @@ const RULES: readonly Rule[] = [
 		prefix: '/api/admin/audit',
 		base: ['settings.access', 'audit.read'],
 	},
+	{
+		prefix: '/api/admin/analytics',
+		base: ['settings.access', 'analytics.read'],
+	},
+	{
+		prefix: '/api/admin/integrations',
+		base: ['settings.access'],
+		byMethod: {
+			GET: ['integrations.manage'],
+			// Escrever a configuração e testar a conexão manipulam credenciais.
+			PUT: ['integrations.manage'],
+			POST: ['integrations.manage'],
+		},
+	},
 	// Qualquer outra rota administrativa futura.
 	{
 		prefix: '/api/admin',

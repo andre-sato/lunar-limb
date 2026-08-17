@@ -146,6 +146,21 @@ Em produção, defina também `AUTH_SECRET` (≥ 32 caracteres). Sem ela, uma ch
 
 Arquitetura detalhada, incluindo as proteções contra escalação de privilégio e remoção do último admin, em [docs/controle-de-acesso.md](docs/controle-de-acesso.md).
 
+## Analytics da documentação (Do11y)
+
+Em **Settings → Analytics** o portal integra o [Do11y](https://docservable.com/), que captura eventos de engajamento nas páginas e os grava numa tabela do Supabase. Ele detecta referrers de plataformas de IA, então o dashboard mostra quanto da leitura vem de agentes (ChatGPT, Claude, Perplexity…) e quanto vem de pessoas.
+
+A tela reúne visualizações por página, origem das sessões, tipos de evento, dispositivos e eventos por dia, com recorte de 24 h a 90 dias.
+
+**Configuração:** crie a tabela no Supabase (o SQL está na própria tela) e cole as credenciais do projeto. Duas chaves, com papéis distintos:
+
+- a **publishable** vai no HTML do portal — é pública por design, e a política de RLS só permite `insert`;
+- a **service_role** é usada só pelo servidor, para ler os eventos. Ela **nunca** é enviada ao navegador nem devolvida por nenhuma rota; a tela mostra apenas os últimos quatro caracteres para confirmar qual chave está gravada.
+
+Alternativamente, por ambiente: `DO11Y_ENABLED`, `DO11Y_SUPABASE_URL`, `DO11Y_SUPABASE_KEY`, `DO11Y_SERVICE_ROLE_KEY`, `DO11Y_TABLE` (têm precedência sobre a tela).
+
+Só as páginas de documentação são medidas — o editor e o dashboard ficam de fora. Arquitetura em [docs/integracao-do11y.md](docs/integracao-do11y.md).
+
 ### Build e preview de produção
 
 O projeto usa `@astrojs/node` com `output: 'server'`, porque as rotas do editor precisam de execução sob demanda para ler e gravar arquivos no filesystem.

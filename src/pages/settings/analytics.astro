@@ -1,0 +1,14 @@
+---
+import SettingsLayout from '../../layouts/SettingsLayout.astro';
+import Do11yPanel from '../../components/settings/Do11yPanel';
+
+export const prerender = false;
+---
+
+<SettingsLayout
+	title="Analytics"
+	description="Como a documentação está sendo usada, por pessoas e por agentes de IA."
+	active="analytics"
+>
+	<Do11yPanel client:load />
+</SettingsLayout>

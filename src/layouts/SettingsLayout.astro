@@ -11,7 +11,7 @@ import '../styles/settings.css';
 interface Props {
 	title: string;
 	description?: string;
-	active: 'overview' | 'users' | 'roles' | 'audit';
+	active: 'overview' | 'users' | 'roles' | 'analytics' | 'audit';
 }
 
 const { title, description, active } = Astro.props;
@@ -20,6 +20,7 @@ const items = [
 	{ key: 'overview', label: 'Overview', href: '/settings' },
 	{ key: 'users', label: 'Users', href: '/settings/users' },
 	{ key: 'roles', label: 'Roles & Permissions', href: '/settings/roles' },
+	{ key: 'analytics', label: 'Analytics', href: '/settings/analytics' },
 	{ key: 'audit', label: 'Audit Log', href: '/settings/audit' },
 ] as const;
 ---

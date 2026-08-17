@@ -317,7 +317,29 @@ Disponível apenas para admin:
   desativar e excluir. Criar um usuário gera uma senha exibida **uma única vez**.
 - **Roles & Permissions** — a matriz de capacidades de cada grupo, gerada a
   partir da mesma tabela que o servidor aplica.
+- **Analytics** — como a documentação está sendo usada (veja abaixo).
 - **Audit Log** — quem fez o quê e quando, incluindo alterações de conteúdo.
+
+### Analytics: leitura por pessoas e por IA
+
+Integrado ao [Do11y](https://docservable.com/), que registra eventos de
+engajamento nas páginas e os grava no seu Supabase. O que ele acrescenta a um
+analytics comum é distinguir **de onde vem a leitura**: acesso direto, buscador
+ou plataforma de IA — e, nesse caso, qual delas.
+
+A tela mostra, de 24 horas a 90 dias: páginas mais vistas, origem das sessões,
+percentual vindo de IA, tipos de evento e dispositivos.
+
+Para ligar, crie a tabela no Supabase com o SQL exibido na própria tela e cole
+as credenciais do projeto. Só as páginas de documentação são medidas — o editor
+e a área administrativa ficam de fora.
+
+:::caution[As duas chaves têm papéis diferentes]
+A chave **publishable** vai no HTML do portal: é pública por design, e a
+política do Supabase só a deixa inserir eventos. A chave **service_role** lê
+tudo e por isso fica só no servidor — ela nunca é enviada ao navegador, e a tela
+mostra apenas os últimos caracteres para você confirmar qual está gravada.
+:::
 
 Duas regras que o sistema aplica sozinho:
 
