@@ -190,6 +190,18 @@ As respostas ficam em **Settings → Feedback**: proporção de "útil", coment�
 
 Com a integração do Do11y ligada, o mesmo clique também vira um evento `feedback` no Supabase. Detalhes em [docs/feedback-de-pagina.md](docs/feedback-de-pagina.md).
 
+## Consulta pelo terminal (MCP Server + CLI)
+
+O diretório [mcp-docs/](mcp-docs/) traz um **Documentation MCP Server** e uma CLI que consultam esta mesma documentação a partir do terminal:
+
+```bash
+doc ask "Como funciona o rate limit?"
+```
+
+A separação importa: o servidor MCP expõe as ferramentas (`search_docs`, `get_document`, `list_documents`, `find_references`) pelo Model Context Protocol, e a CLI é apenas **um** cliente entre outros — uma IDE ou um agente de IA consomem o mesmo servidor, com o mesmo comportamento e as mesmas validações. O Markdown continua sendo a fonte de verdade: o indexador lê `src/content/docs` e `src/content/snippets`, entende os blocos reutilizáveis e sabe quais páginas consomem cada bloco, então a citação aponta uma página que o leitor pode abrir.
+
+É somente leitura, e funciona sem chave de API (busca lexical e resposta composta dos trechos encontrados). Instalação, configuração e arquitetura em [mcp-docs/README.md](mcp-docs/README.md).
+
 ## Analytics da documentação (Do11y)
 
 Em **Settings → Analytics** o portal integra o [Do11y](https://docservable.com/), que captura eventos de engajamento nas páginas e os grava numa tabela do Supabase. Ele detecta referrers de plataformas de IA, então o dashboard mostra quanto da leitura vem de agentes (ChatGPT, Claude, Perplexity…) e quanto vem de pessoas.

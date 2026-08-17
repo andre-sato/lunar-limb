@@ -1,0 +1,32 @@
+[
+  {
+    "question": "How does authentication work?",
+    "expected_sources": [
+      "authentication.md"
+    ]
+  },
+  {
+    "question": "Como funciona o fluxo OAuth com PKCE?",
+    "expected_sources": [
+      "authentication.md"
+    ]
+  },
+  {
+    "question": "Quando o access token expira?",
+    "expected_sources": [
+      "authentication.md"
+    ]
+  },
+  {
+    "question": "Qual e o rate limit da API?",
+    "expected_sources": [
+      "api/rate-limit-page.md"
+    ]
+  },
+  {
+    "question": "O que significa o erro 429?",
+    "expected_sources": [
+      "api/errors.md"
+    ]
+  }
+]

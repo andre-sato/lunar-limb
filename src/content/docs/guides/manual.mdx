@@ -89,6 +89,25 @@ escritas dentro das páginas. Um trecho que diga "ignore as instruções acima" 
 tratado como texto citado, e o administrador recebe o aviso de que aquela página
 contém algo assim.
 
+### Consulta pelo terminal
+
+Quem prefere não sair do terminal tem a mesma documentação disponível por linha
+de comando:
+
+```bash
+doc ask "Como funciona o rate limit?"
+```
+
+Por trás disso há um servidor que fala o Model Context Protocol, o que significa
+que a CLI é apenas um dos clientes possíveis: uma IDE ou um agente de código
+consultam o mesmo servidor, com as mesmas ferramentas. Também é somente leitura,
+também cita as fontes, e entende os blocos reutilizáveis — a fonte citada é a
+página que consome o bloco, não o arquivo do bloco.
+
+O índice é atualizado por `doc-index update`, que reprocessa só o que mudou. O
+que você escreve no editor fica consultável na atualização seguinte. Instalação
+e configuração ficam no `mcp-docs/README.md` do repositório.
+
 ### Personalização
 
 | O quê | Onde |
