@@ -190,6 +190,10 @@ export async function createUser(
 			createdAt: now,
 			updatedAt: now,
 			passwordHash,
+			// Senha gerada por nós é senha de entrega: quem recebe precisa
+			// trocá-la, porque ela passou por um canal que não é da pessoa.
+			// Senha escolhida por quem cria não tem esse problema.
+			mustChangePassword: generated !== undefined,
 		};
 		users.push(user);
 		await writeJson(FILE, users);

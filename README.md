@@ -42,6 +42,8 @@ Arquivos Markdown e MDX dentro de `src/content/docs/` são publicados automatica
 | `npm run preview` | Visualiza localmente a versão de produção. |
 | `npm run check` | Typecheck de `.astro`, `.ts` e `.tsx` (`astro check`). |
 | `npm test` | Roda os testes (Vitest). |
+| `npm run docs:lint` | Analisa a documentação e calcula o Quality Score. |
+| `npm run user:create` | Cria um usuário do portal (ver *Usuários e controle de acesso*). |
 
 > **Comece pelo [Manual completo](src/content/docs/guides/manual.mdx)** (publicado em `/guides/manual/`): recursos do portal e do editor, atalhos de teclado, fluxos de trabalho e casos de uso, com diagramas.
 
@@ -138,7 +140,19 @@ O portal tem três grupos. A leitura da documentação é pública; editar e adm
 PORTAL_ADMIN_EMAIL=voce@empresa.com PORTAL_ADMIN_PASSWORD=uma-senha-longa npm run dev
 ```
 
-Em produção, defina também `AUTH_SECRET` (≥ 32 caracteres). Sem ela, uma chave é gerada em `data/secret`, o que funciona localmente mas não sobrevive a várias réplicas.
+**Usuário mestre.** Esta instalação já tem um admin chamado **Mestre**, com o e-mail `mestre@lunar-limb.local`, criado para abrir o `/settings`. A senha foi gerada e exibida uma única vez no console: no disco existe só o hash, e não há como o portal mostrá-la novamente. Perdida a senha, ou outro admin a redefine em Settings → Users, ou se cria um novo usuário.
+
+Para criar usuários pela linha de comando:
+
+```bash
+npm run user:create -- --email pessoa@empresa.com --name "Nome" --role editor
+```
+
+`--role` aceita `viewer`, `editor` ou `admin` (padrão `admin`). Sem `--password`, a senha é gerada e mostrada uma vez — preferível a passá-la como argumento, que fica no histórico do shell. Toda senha gerada por nós entra marcada como provisória, e o login devolve `mustChangePassword`; a troca é feita em Settings → Users. O portal **não** bloqueia a navegação até que ela aconteça: o aviso é informativo.
+
+O comando existe porque criar o primeiro admin pela tela exigiria já ser admin. Ele não amplia privilégio nenhum — quem tem o sistema de arquivos do servidor já tem controle total.
+
+Em produção, defina também `AUTH_SECRET` (≥ 32 caracteres). Sem ela, uma chave é gerada em `data/secret`, o que funciona localmente mas não sobrevive a várias réplicas. `PORTAL_DATA_DIR` move o diretório de dados — útil para subir uma instância de verificação sem tocar nos usuários reais.
 
 **Onde ficam os dados.** Usuários, sessões e auditoria vivem em `data/*.json`, que é **ignorado pelo Git** — hash de senha, token de sessão e chave HMAC não vão para o repositório. O conteúdo continua sendo Markdown/MDX versionado: usuários não são conteúdo.
 
@@ -220,7 +234,9 @@ node ./dist/server/entry.mjs
 - A busca global varre o conteúdo a cada consulta, sem índice — adequado ao volume de um portal, não a dezenas de milhares de arquivos.
 - Git awareness é somente leitura: nenhum commit, stage ou checkout parte do editor.
 - A leitura da documentação é pública por decisão de produto: gatear as páginas exigiria desligar o prerender da Starlight, o que desativa a busca Pagefind. Conteúdo que não pode ser lido por qualquer um não deve estar no portal.
-- Não há "esqueci minha senha" nem tela de perfil: a redefinição é feita por um admin em Settings → Users.
+- Não há "esqueci minha senha" nem tela de perfil: a redefinição é feita por um admin em Settings → Users. `mustChangePassword` é devolvido no login, mas não há tela que force a troca antes de continuar.
+- O chatbot não tem streaming: a resposta chega inteira. A classificação de segurança é determinística (padrões), com a interface `SafetyClassifier` pronta para uma camada semântica por modelo. As conversas ficam em memória, com TTL — reiniciar o servidor as descarta, e várias réplicas não as compartilham.
+- O resumo de conversa é extrativo (lista as perguntas que saíram da janela), não gerado por modelo.
 - Usuários e sessões ficam em JSON local, adequado a uma instalação; várias réplicas precisariam de um store compartilhado. O limitador de tentativas de login também é por processo.
 
 ### Dependências

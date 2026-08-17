@@ -318,6 +318,46 @@ Para um viewer o botão não é escondido por CSS: o servidor simplesmente não 
 gera. E digitar a URL do editor à mão não adianta — quem barra é o servidor, não
 o botão ausente.
 
+### O usuário mestre
+
+O portal já vem com um usuário administrativo chamado **Mestre**, criado para
+abrir o `/settings` da instalação:
+
+| Campo | Valor |
+| --- | --- |
+| Nome | Mestre |
+| E-mail | `mestre@lunar-limb.local` |
+| Grupo | admin |
+| Senha | gerada na criação e exibida **uma única vez** no console |
+
+A senha não está escrita aqui, nem em nenhum outro arquivo do repositório, e não
+há como pedir para o portal mostrá-la de novo — no disco existe só o hash. Se
+ela foi perdida, o caminho é outro admin redefini-la em **Settings → Users**, ou
+criar um novo usuário pelo comando abaixo.
+
+No primeiro login o portal marca a senha como provisória (`mustChangePassword`),
+porque uma senha que nós geramos passou por um canal que não é seu. A troca é
+feita em **Settings → Users**, editando o próprio usuário. Vale registrar o que
+o portal **não** faz: ele não bloqueia a navegação até a troca acontecer — o
+aviso é informativo.
+
+### Criar outros usuários
+
+Pela interface, em **Settings → Users**. Pela linha de comando:
+
+```bash
+npm run user:create -- --email pessoa@empresa.com --name "Nome" --role editor
+```
+
+`--role` aceita `viewer`, `editor` ou `admin`; sem ele, o padrão é `admin`. Sem
+`--password`, uma senha forte é gerada e mostrada uma vez — o que é preferível a
+passá-la na linha de comando, onde ela fica no histórico do shell.
+
+O comando existe para resolver um impasse: criar o primeiro usuário com acesso
+administrativo pela tela exigiria já ter acesso administrativo. Ele não abre uma
+brecha, porque quem alcança o sistema de arquivos do servidor já tem controle
+total — apenas evita o bloqueio inicial.
+
 ### Administração (`/settings`)
 
 Disponível apenas para admin:
@@ -330,6 +370,9 @@ Disponível apenas para admin:
   partir da mesma tabela que o servidor aplica.
 - **Analytics** — como a documentação está sendo usada (veja abaixo).
 - **Feedback** — o que os leitores responderam em "Esta página foi útil?".
+- **Quality** — a nota editorial de cada página, segundo as regras do linter.
+- **Chatbot** — o assistente de documentação: chave do provedor, modelo,
+  parâmetros de busca, limite de uso, incidentes de segurança e satisfação.
 - **Audit Log** — quem fez o quê e quando, incluindo alterações de conteúdo.
 
 ### Feedback dos leitores
