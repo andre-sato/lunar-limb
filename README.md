@@ -146,6 +146,26 @@ Em produção, defina também `AUTH_SECRET` (≥ 32 caracteres). Sem ela, uma ch
 
 Arquitetura detalhada, incluindo as proteções contra escalação de privilégio e remoção do último admin, em [docs/controle-de-acesso.md](docs/controle-de-acesso.md).
 
+## Documentation Linter e Quality Score
+
+O editor traz um revisor editorial automatizado: analisa cada página, aponta problemas com id estável (`STRUCTURE-001`, `TECH-MKT-001`, …) e calcula uma **nota de 0 a 10** com detalhamento por dimensão — gramática, clareza, concisão, estrutura, technical writing, consistência, acionabilidade, terminologia e legibilidade.
+
+Os problemas aparecem no painel abaixo do editor e sublinhados no Monaco. Correção rápida existe só quando é mecânica; sugestões subjetivas não alteram o texto sozinhas.
+
+A nota **não** é `10 − nº de erros`: cada dimensão é pontuada isoladamente, e o dano é normalizado por tamanho, para uma página longa não ser punida por ser longa. Calibração contra o conteúdo real: 8,9–10,0. Contra um documento escrito de propósito com TODO, linguagem promocional e link sem destino: 4,8.
+
+O style guide fica em `styles/default.yaml`, versionado em Git — limiares, termos proibidos, terminologia canônica, acrônimos conhecidos, severidade e peso por regra. Profiles adicionais herdam com `extends`, e uma página escolhe o seu pelo frontmatter. Regras podem ser silenciadas por linha, por bloco ou por página, e todo silenciamento é registrado.
+
+Na linha de comando e em CI:
+
+```bash
+npm run docs:lint
+```
+
+`--changed` analisa só o que mudou **mais as páginas consumidoras** dos blocos alterados, usando o Content Graph. Saída `0` aprovado, `1` gate reprovado, `2` configuração, `3` execução.
+
+**Settings → Quality** traz a visão do workspace: nota média, média por dimensão e problemas mais frequentes. Regras e arquitetura em [docs/linter.md](docs/linter.md).
+
 ## Feedback de página
 
 No fim de cada página de documentação há um widget **"Esta página foi útil?"** com sim/não e um campo opcional de comentário. A Starlight não traz um componente de feedback nem plugin oficial — o caminho que ela indica é sobrescrever `Footer`, que é o que o projeto faz. As alternativas de mercado são SaaS de terceiros; aqui o retorno dos seus leitores fica no próprio projeto.

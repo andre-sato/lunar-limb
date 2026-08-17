@@ -1,0 +1,46 @@
+import type { APIRoute } from 'astro';
+import { lintDocument } from '../../../lib/linter/lint';
+import { listProfiles } from '../../../lib/linter/config';
+
+export const prerender = false;
+
+function json(data: unknown, status = 200): Response {
+	return new Response(JSON.stringify(data), {
+		status,
+		headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' },
+	});
+}
+
+/**
+ * Analisa o conteúdo enviado pelo editor.
+ *
+ * Recebe o texto do buffer, e não o arquivo em disco: o autor precisa ver o
+ * resultado do que está escrevendo agora, inclusive antes de salvar.
+ */
+export const POST: APIRoute = async ({ request }) => {
+	let body: { path?: unknown; content?: unknown; profile?: unknown };
+	try {
+		body = await request.json();
+	} catch {
+		return json({ error: 'Corpo inválido.' }, 400);
+	}
+
+	if (typeof body.content !== 'string') {
+		return json({ error: 'Corpo inválido: esperado { content }.' }, 400);
+	}
+
+	try {
+		const result = await lintDocument(body.content, {
+			path: typeof body.path === 'string' ? body.path : undefined,
+			profile: typeof body.profile === 'string' && body.profile ? body.profile : undefined,
+		});
+		return json(result);
+	} catch (error) {
+		return json({ error: error instanceof Error ? error.message : 'Falha ao analisar.' }, 500);
+	}
+};
+
+/** Profiles disponíveis, para o seletor da interface. */
+export const GET: APIRoute = async () => {
+	return json({ profiles: await listProfiles() });
+};

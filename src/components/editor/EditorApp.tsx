@@ -11,6 +11,9 @@ import ExtractReusableModal from './ExtractReusableModal';
 import DeleteWarningModal from './DeleteWarningModal';
 import ReferencePanel from './ReferencePanel';
 import ProblemsPanel from './ProblemsPanel';
+import LintPanel from './LintPanel';
+import { useLint } from './useLint';
+import type { LintFinding } from '../../lib/linter/types';
 import ContentGraphModal from './ContentGraphModal';
 import CommandPalette, { type PaletteMode } from './CommandPalette';
 import SearchModal from './SearchModal';
@@ -130,10 +133,12 @@ export default function EditorApp() {
 	// ---- Fase 4: grafo bidirecional do arquivo aberto ---------------------
 
 	const references = useReferences(activePath, activeRoot, referenceRefreshToken);
+	const lint = useLint(activePath, content);
 
 	const revealLine = useCallback((line: number) => {
 		editorHandleRef.current?.revealLine(line);
 	}, []);
+
 
 	/**
 	 * As decorações do Monaco vêm do *buffer atual*, não da resposta da API:
@@ -363,6 +368,46 @@ export default function EditorApp() {
 			debouncedPreview.run(value);
 		},
 		[debouncedSave, debouncedPreview]
+	);
+
+	/**
+	 * Aplica uma correção do linter no buffer (§43).
+	 *
+	 * Só chega aqui quem tem `fix`, e `fix` só existe em regras cuja correção é
+	 * mecânica — trocar "allow" por "allows", remover um espaço duplicado. As
+	 * sugestões subjetivas ("prefira a voz ativa") não têm botão: a §43 é
+	 * explícita em não alterar o texto automaticamente nesses casos.
+	 *
+	 * A substituição usa o buffer atual, não o texto que o servidor analisou:
+	 * se o autor editou desde então, o intervalo pode ter deixado de casar, e
+	 * nesse caso a correção é abandonada em vez de corromper a linha.
+	 */
+	const applyLintFix = useCallback(
+		(finding: LintFinding) => {
+			if (!finding.fix) return;
+
+			const lines = content.split('\n');
+			const index = finding.location.startLine - 1;
+			const line = lines[index];
+			if (line === undefined) return;
+
+			const start = finding.location.startColumn - 1;
+			const end = (finding.location.endColumn ?? finding.location.startColumn) - 1;
+			if (start < 0 || end > line.length || end < start) return;
+
+			let replacement = finding.fix.replacement;
+			// Remoção total deixaria espaço duplo onde havia " palavra ".
+			if (replacement === '') {
+				const before = line.slice(0, start);
+				const after = line.slice(end);
+				lines[index] = (before + after).replace(/ {2,}/g, ' ').replace(/\s+([,.;:!?])/g, '$1');
+			} else {
+				lines[index] = line.slice(0, start) + replacement + line.slice(end);
+			}
+
+			handleContentChange(lines.join('\n'));
+		},
+		[content, handleContentChange]
 	);
 
 	// ---- Content reuse: insert / extract -----------------------------------
@@ -826,12 +871,20 @@ export default function EditorApp() {
 											errorLine={previewErrorLine}
 											errorMessage={previewWarning}
 											referenceMarkers={referenceMarkers}
+											lintFindings={lint.result?.findings}
 											vimMode={vimMode}
 											vimStatusRef={vimStatusRef}
 										/>
 									</div>
 									{vimMode && <div className="vim-status" ref={vimStatusRef} />}
 									<ProblemsPanel problems={references.problems} onRevealLine={revealLine} />
+								<LintPanel
+									result={lint.result}
+									running={lint.running}
+									error={lint.error}
+									onRevealLine={revealLine}
+									onApplyFix={applyLintFix}
+								/>
 								</div>
 							)}
 							{(viewMode === 'preview' || viewMode === 'split') && (

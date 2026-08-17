@@ -10,6 +10,7 @@ import {
 } from 'react';
 import Editor, { type Monaco, type OnMount } from '@monaco-editor/react';
 import type { CursorPosition, ThemeMode } from './types';
+import type { LintFinding, Severity } from '../../lib/linter/types';
 
 type MonacoEditorInstance = Parameters<OnMount>[0];
 
@@ -49,6 +50,8 @@ interface MarkdownEditorPaneProps {
 	errorMessage?: string;
 	/** Fase 4: linhas com <ContentBlock>/<IncludePage>, decoradas para distinguir conteúdo reutilizado do local. */
 	referenceMarkers?: ReferenceMarker[];
+	/** Findings do linter, desenhados como marcadores sublinhados (§42). */
+	lintFindings?: LintFinding[];
 	/** Fase 5: liga as keybindings do Vim. */
 	vimMode?: boolean;
 	/** Fase 5: onde a barra de status do Vim é desenhada. */
@@ -88,6 +91,7 @@ function MarkdownEditorPaneInner(
 		errorLine,
 		errorMessage,
 		referenceMarkers,
+		lintFindings,
 		vimMode = false,
 		vimStatusRef,
 	}: MarkdownEditorPaneProps,
@@ -216,6 +220,57 @@ function MarkdownEditorPaneInner(
 			monacoInstance.editor.setModelMarkers(model, 'editor-preview', []);
 		}
 	}, [errorLine, errorMessage, mounted]);
+
+	/**
+	 * Marcadores do linter (§42).
+	 *
+	 * Vão num "owner" próprio (`linter`), separado do `editor-preview`: assim
+	 * um erro de renderização e um aviso editorial coexistem sem que a
+	 * atualização de um apague o outro.
+	 */
+	useEffect(() => {
+		const ed = editorRef.current;
+		const monacoInstance = monacoRef.current;
+		if (!ed || !monacoInstance) return;
+		const model = ed.getModel();
+		if (!model) return;
+
+		const severityMap: Record<Severity, number> = {
+			error: monacoInstance.MarkerSeverity.Error,
+			warning: monacoInstance.MarkerSeverity.Warning,
+			suggestion: monacoInstance.MarkerSeverity.Info,
+			info: monacoInstance.MarkerSeverity.Hint,
+		};
+
+		const markers = (lintFindings ?? [])
+			.filter((finding) => finding.severity !== 'info')
+			.filter((finding) => finding.location.startLine <= model.getLineCount())
+			.map((finding) => {
+				const line = finding.location.startLine;
+				const maxColumn = model.getLineMaxColumn(line);
+				return {
+					startLineNumber: line,
+					startColumn: Math.min(finding.location.startColumn, maxColumn),
+					endLineNumber: Math.min(finding.location.endLine ?? line, model.getLineCount()),
+					endColumn: Math.min(finding.location.endColumn ?? maxColumn, maxColumn),
+					// O id da regra vai no marcador para o autor conseguir
+					// silenciá-la sem precisar procurar qual era.
+					message: finding.suggestion
+						? `${finding.message}
+
+${finding.suggestion}
+
+${finding.ruleId}`
+						: `${finding.message}
+
+${finding.ruleId}`,
+					severity: severityMap[finding.severity],
+					source: 'linter',
+				};
+			});
+
+		monacoInstance.editor.setModelMarkers(model, 'linter', markers);
+	}, [lintFindings, mounted]);
 
 	// Fase 5 — Vim keybindings. `monaco-vim` é carregado sob demanda: quem não
 	// usa Vim não paga o download, e ele só existe no browser (usa o DOM direto).

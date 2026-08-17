@@ -1,0 +1,144 @@
+# Style guide padrão do portal.
+#
+# Este arquivo é a fonte do que o linter cobra. Ele é versionado em Git como
+# qualquer outro conteúdo do projeto — mudar uma regra é um commit revisável,
+# não uma configuração escondida.
+#
+# Profiles adicionais ficam neste mesmo diretório e podem herdar deste com
+# `extends: default`. Uma página escolhe o profile pelo frontmatter:
+#
+#   ---
+#   lint:
+#     profile: api-docs
+#   ---
+
+linter:
+  enabled: true
+
+  thresholds:
+    maxSentenceWords: 35
+    maxParagraphWords: 120
+    maxHeadingWords: 12
+    # Fração de frases longas a partir da qual o documento inteiro é sinalizado.
+    longSentenceRatio: 0.25
+
+  qualityGate:
+    enabled: true
+    minimumScore: 8.0
+    failOnErrors: true
+
+  # Nomes das faixas (§51). Editáveis: são vocabulário do time, não do linter.
+  bands:
+    - min: 9.0
+      label: Excelente
+    - min: 8.0
+      label: Bom
+    - min: 7.0
+      label: Precisa melhorar
+    - min: 5.0
+      label: Fraco
+    - min: 0.0
+      label: Crítico
+
+  # Termos a evitar, por idioma. Palavras que dizem ao leitor que algo é fácil
+  # não acrescentam informação — e frustram quem travou naquele passo.
+  forbiddenTerms:
+    pt-BR:
+      - simplesmente
+      - obviamente
+      - claramente
+      - facilmente
+      - basta
+    en:
+      - simply
+      - just
+      - obviously
+      - easily
+      - clearly
+    es:
+      - simplemente
+      - obviamente
+      - fácilmente
+
+  # Grafia canônica e variantes que devem ser corrigidas para ela.
+  terminology:
+    preferred:
+      - term: API
+        alternatives:
+          - api
+          - Api
+      - term: chave de API
+        alternatives:
+          - API key
+          - chave da API
+          - API Key
+      - term: Markdown
+        alternatives:
+          - markdown
+          - MarkDown
+      - term: JavaScript
+        alternatives:
+          - Javascript
+          - javascript
+          - JS
+      - term: TypeScript
+        alternatives:
+          - Typescript
+          - typescript
+      - term: frontmatter
+        alternatives:
+          - front matter
+          - front-matter
+      - term: Starlight
+        alternatives:
+          - starlight
+      - term: webhook
+        alternatives:
+          - Webhook
+          - web hook
+
+  # Acrônimos já conhecidos do público deste portal: não precisam de definição
+  # na primeira ocorrência.
+  acronyms:
+    API: Application Programming Interface
+    CLI: Command-Line Interface
+    CI: Continuous Integration
+    CSS: Cascading Style Sheets
+    HTML: HyperText Markup Language
+    HTTP: Hypertext Transfer Protocol
+    HTTPS: Hypertext Transfer Protocol Secure
+    JSON: JavaScript Object Notation
+    JWT: JSON Web Token
+    MDX: Markdown com JSX
+    REST: Representational State Transfer
+    SDK: Software Development Kit
+    SLA: Service Level Agreement
+    SSO: Single Sign-On
+    URL: Uniform Resource Locator
+    UUID: Universally Unique Identifier
+    YAML: YAML Ain't Markup Language
+    RLS: Row Level Security
+    MCP: Model Context Protocol
+    UTF: Unicode Transformation Format
+    ISO: International Organization for Standardization
+    RFC: Request for Comments
+    SQL: Structured Query Language
+    JSX: JavaScript XML
+    TSX: TypeScript XML
+    ID: Identificador
+    IP: Internet Protocol
+    UI: User Interface
+    UX: User Experience
+    SVG: Scalable Vector Graphics
+    PDF: Portable Document Format
+    CSV: Comma-Separated Values
+    GET: método HTTP GET
+    PUT: método HTTP PUT
+    POST: método HTTP POST
+
+  # Severidade e peso por regra. Só o que difere do padrão precisa aparecer.
+  rules:
+    # Voz passiva gera falso positivo com frequência; nasce como sugestão leve.
+    CLARITY-003:
+      severity: suggestion
+      weight: 0.3

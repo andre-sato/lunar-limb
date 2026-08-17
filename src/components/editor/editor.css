@@ -1928,3 +1928,269 @@ body {
 	font-size: 13px !important;
 	color: var(--text) !important;
 }
+
+/* ---------------------------------------------------- Documentation Linter */
+
+.lint-panel {
+	border-top: 1px solid var(--ed-border);
+	background: var(--ed-surface);
+	font-size: 0.8rem;
+	flex-shrink: 0;
+	max-height: 44vh;
+	overflow-y: auto;
+}
+
+.lint-panel--warn {
+	border-top-color: var(--ed-warning, #b8860b);
+}
+
+.lint-panel--fail {
+	border-top-color: var(--ed-danger, #b3261e);
+}
+
+.lint-panel--error {
+	padding: 8px 12px;
+	color: var(--ed-danger, #b3261e);
+}
+
+.lint-header {
+	display: flex;
+	align-items: stretch;
+	gap: 8px;
+	padding: 0 10px;
+}
+
+.lint-score,
+.lint-toggle {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	background: transparent;
+	border: 0;
+	padding: 7px 4px;
+	color: var(--ed-text);
+	font: inherit;
+	cursor: pointer;
+}
+
+.lint-score strong {
+	font-size: 0.95rem;
+	font-variant-numeric: tabular-nums;
+}
+
+.lint-score span {
+	color: var(--ed-text-dim);
+}
+
+.lint-band {
+	padding: 1px 7px;
+	border-radius: 999px;
+	background: var(--ed-surface-alt, rgba(127, 127, 127, 0.15));
+	font-size: 0.72rem;
+}
+
+.lint-toggle {
+	margin-left: auto;
+}
+
+.lint-chip {
+	min-width: 18px;
+	padding: 0 5px;
+	border-radius: 999px;
+	background: var(--ed-surface-alt, rgba(127, 127, 127, 0.15));
+	font-size: 0.7rem;
+	font-variant-numeric: tabular-nums;
+	text-align: center;
+}
+
+.lint-chip--error {
+	background: color-mix(in srgb, var(--ed-danger, #b3261e) 22%, transparent);
+	color: var(--ed-danger, #b3261e);
+}
+
+.lint-chip--warning {
+	background: color-mix(in srgb, var(--ed-warning, #b8860b) 22%, transparent);
+	color: var(--ed-warning, #b8860b);
+}
+
+.lint-running {
+	color: var(--ed-text-dim);
+	font-size: 0.72rem;
+}
+
+/* ------------------------------------------------------------- breakdown */
+
+.lint-breakdown {
+	padding: 8px 12px 12px;
+	border-top: 1px solid var(--ed-border);
+	display: flex;
+	flex-direction: column;
+	gap: 5px;
+}
+
+.lint-breakdown-row {
+	display: grid;
+	grid-template-columns: 120px 1fr 34px;
+	align-items: center;
+	gap: 8px;
+	font-size: 0.76rem;
+}
+
+.lint-breakdown-row--aside {
+	margin-top: 5px;
+	padding-top: 6px;
+	border-top: 1px dashed var(--ed-border);
+	color: var(--ed-text-dim);
+}
+
+.lint-breakdown-bar {
+	height: 5px;
+	border-radius: 999px;
+	background: var(--ed-surface-alt, rgba(127, 127, 127, 0.18));
+	overflow: hidden;
+}
+
+.lint-breakdown-bar span {
+	display: block;
+	height: 100%;
+	background: var(--ed-accent);
+	border-radius: 999px;
+}
+
+.lint-breakdown-value {
+	text-align: right;
+	font-variant-numeric: tabular-nums;
+}
+
+.lint-disclaimer {
+	margin: 8px 0 0;
+	font-size: 0.7rem;
+	line-height: 1.5;
+	color: var(--ed-text-dim);
+}
+
+/* ----------------------------------------------------------------- lista */
+
+.lint-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	border-top: 1px solid var(--ed-border);
+}
+
+.lint-item {
+	display: flex;
+	align-items: flex-start;
+	gap: 4px;
+	border-bottom: 1px solid var(--ed-border);
+}
+
+.lint-item:last-child {
+	border-bottom: 0;
+}
+
+.lint-item-main {
+	flex: 1;
+	display: flex;
+	align-items: flex-start;
+	gap: 7px;
+	padding: 6px 10px;
+	background: transparent;
+	border: 0;
+	color: var(--ed-text);
+	font: inherit;
+	font-size: 0.78rem;
+	text-align: left;
+	cursor: pointer;
+	min-width: 0;
+}
+
+.lint-item-main:hover {
+	background: var(--ed-surface-alt, rgba(127, 127, 127, 0.08));
+}
+
+.lint-item--error .lint-item-main svg {
+	color: var(--ed-danger, #b3261e);
+	flex-shrink: 0;
+	margin-top: 1px;
+}
+
+.lint-item--warning .lint-item-main svg {
+	color: var(--ed-warning, #b8860b);
+	flex-shrink: 0;
+	margin-top: 1px;
+}
+
+.lint-item--suggestion .lint-item-main svg {
+	color: var(--ed-text-dim);
+	flex-shrink: 0;
+	margin-top: 1px;
+}
+
+.lint-item-text {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.lint-message {
+	line-height: 1.4;
+}
+
+.lint-suggestion,
+.lint-explanation {
+	font-size: 0.72rem;
+	color: var(--ed-text-dim);
+	line-height: 1.45;
+	overflow-wrap: anywhere;
+}
+
+.lint-meta {
+	margin-left: auto;
+	display: flex;
+	align-items: center;
+	gap: 7px;
+	flex-shrink: 0;
+	font-size: 0.68rem;
+	color: var(--ed-text-dim);
+	font-family: var(--ed-font-mono, monospace);
+}
+
+.lint-fix {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	margin: 6px 10px 6px 0;
+	padding: 3px 8px;
+	border: 1px solid var(--ed-border);
+	border-radius: 6px;
+	background: var(--ed-bg);
+	color: var(--ed-text);
+	font: inherit;
+	font-size: 0.72rem;
+	cursor: pointer;
+	flex-shrink: 0;
+}
+
+.lint-fix:hover {
+	border-color: var(--ed-accent);
+	color: var(--ed-accent);
+}
+
+.lint-suppressed {
+	margin: 0;
+	padding: 6px 12px;
+	border-top: 1px solid var(--ed-border);
+	font-size: 0.72rem;
+	color: var(--ed-text-dim);
+}
+
+.sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	white-space: nowrap;
+}

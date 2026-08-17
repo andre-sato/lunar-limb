@@ -1,0 +1,14 @@
+---
+import SettingsLayout from '../../layouts/SettingsLayout.astro';
+import QualityPanel from '../../components/settings/QualityPanel';
+
+export const prerender = false;
+---
+
+<SettingsLayout
+	title="Quality"
+	description="Qualidade editorial da documentação, segundo as regras configuradas."
+	active="quality"
+>
+	<QualityPanel client:load />
+</SettingsLayout>

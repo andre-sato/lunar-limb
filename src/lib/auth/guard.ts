@@ -71,6 +71,10 @@ const RULES: readonly Rule[] = [
 		base: ['settings.access', 'analytics.read'],
 	},
 	{
+		prefix: '/api/admin/quality',
+		base: ['settings.access', 'analytics.read'],
+	},
+	{
 		// A leitura do feedback é analytics: reaproveita a capacidade em vez de
 		// criar uma permissão quase idêntica.
 		prefix: '/api/admin/feedback',
@@ -95,6 +99,13 @@ const RULES: readonly Rule[] = [
 	// Editor: a interface e as APIs que leem/escrevem conteúdo.
 	{
 		prefix: '/editor',
+		base: ['editor.access'],
+	},
+	{
+		// Analisar um documento é leitura, ainda que use POST por causa do
+		// corpo. Sem esta regra, cairia no caso geral de `/api/editor` e
+		// exigiria `docs.create` para rodar o linter.
+		prefix: '/api/editor/lint',
 		base: ['editor.access'],
 	},
 	{
