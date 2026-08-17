@@ -97,7 +97,7 @@ export const collections = {
 				'chat.error': z.string().optional(),
 				'chat.loginRequired': z.string().optional(),
 				'chat.login': z.string().optional(),
-				'chat.retrievalOnly': z.string().optional(),
+				'chat.openPage': z.string().optional(),
 				'chat.clear': z.string().optional(),
 				'chat.helpful': z.string().optional(),
 				'chat.notHelpful': z.string().optional(),

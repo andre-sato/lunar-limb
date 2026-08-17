@@ -16,7 +16,6 @@
 		"user:create": "tsx scripts/create-user.ts"
 	},
 	"dependencies": {
-		"@anthropic-ai/sdk": "^0.117.1",
 		"@astrojs/node": "^11.1.0",
 		"@astrojs/react": "^6.0.2",
 		"@astrojs/starlight": "^0.41.3",

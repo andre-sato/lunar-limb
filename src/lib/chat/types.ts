@@ -1,96 +1,31 @@
 /**
- * Contratos do chatbot de documentação.
+ * Tipos da busca conversacional na documentação.
  *
- * A regra que organiza o desenho (§81):
+ * Não há modelo de linguagem envolvido: a pergunta vira consulta, a consulta
+ * traz trechos, e os trechos vêm com o link da página. Isso tem duas
+ * consequências que valem estar no topo do arquivo, porque explicam o desenho
+ * inteiro:
  *
- *   Never trust the user input, never trust retrieved content,
- *   and never trust model output without validation.
- *
- * As três desconfianças aparecem como camadas separadas e independentes do
- * modelo. O system prompt é **uma** delas, não a barreira (§63).
+ *  - **não há como alucinar.** Tudo que aparece na tela está literalmente numa
+ *    página publicada, e o link prova onde;
+ *  - **não há prompt para atacar.** Injeção de prompt, jailbreak e vazamento de
+ *    instruções deixam de ser categorias de risco porque não existe instrução
+ *    nem modelo para manipular.
  */
 
-// ---------------------------------------------------------------- segurança
+export type ChatRole = 'user' | 'assistant';
 
-export type InputRisk = 'safe' | 'suspicious' | 'prompt_injection' | 'jailbreak' | 'unsafe_content';
-
-export type SafetyCategory =
-	| 'prompt-injection'
-	| 'jailbreak'
-	| 'system-prompt-probe'
-	| 'hate'
-	| 'harassment'
-	| 'threat'
-	| 'violence-incitement'
-	| 'dehumanization'
-	| 'data-exfiltration'
-	| 'secret-exposure'
-	| 'pii-exposure'
-	| 'ungrounded'
-	| 'off-topic';
-
-export interface SafetyClassification {
-	risk: InputRisk;
-	/** 0–1. Abaixo de 0,70 não deve gerar bloqueio duro (§64 do linter, mesma lógica). */
-	confidence: number;
-	categories: SafetyCategory[];
-	/**
-	 * Trechos que dispararam a classificação, para auditoria. Nunca vão para o
-	 * usuário nem para o modelo — o §19 proíbe revelar o funcionamento interno,
-	 * e o §25 proíbe repetir o conteúdo ofensivo de volta.
-	 */
-	evidence?: string[];
+export interface SourceReference {
+	/** Caminho relativo em `content/docs`. */
+	documentId: string;
+	title: string;
+	/** URL da página, com âncora da seção quando houver. */
+	url: string;
+	/** Maior relevância entre os trechos que apontam para esta página. */
+	relevance: number;
 }
 
-/**
- * Abstração de moderação (§59).
- *
- * A implementação determinística cobre ataques estruturais com boa precisão.
- * Sutileza semântica é o que um provedor de moderação de verdade resolve — e é
- * por isso que isto é uma interface, e não uma função.
- */
-export interface SafetyClassifier {
-	classifyInput(input: string, context?: string): Promise<SafetyClassification>;
-	classifyOutput(output: string, groundingContext?: string): Promise<SafetyClassification>;
-}
-
-// ------------------------------------------------------------------- modelo
-
-export interface ChatMessage {
-	role: 'user' | 'assistant';
-	content: string;
-	/** Presente em respostas do assistente. */
-	sources?: SourceReference[];
-	timestamp: string;
-	/** Marca respostas que foram substituídas por uma recusa. */
-	refused?: boolean;
-}
-
-export interface ChatModelRequest {
-	systemPrompt: string;
-	/** Histórico já recortado pelo orçamento de contexto. */
-	messages: ChatMessage[];
-	maxOutputTokens: number;
-	temperature: number;
-}
-
-export interface ChatModelResponse {
-	text: string;
-	usage?: { inputTokens: number; outputTokens: number };
-	/** Identificação do modelo que respondeu, para observabilidade. */
-	model: string;
-}
-
-/** Abstração de provedor (§58): trocar o modelo não deve tocar o chatbot. */
-export interface ChatModel {
-	readonly name: string;
-	/** `false` quando falta credencial — o serviço cai no modo só-retrieval. */
-	isConfigured(): boolean;
-	generate(request: ChatModelRequest): Promise<ChatModelResponse>;
-}
-
-// ---------------------------------------------------------------- retrieval
-
+/** Fragmento indexado, antes de receber uma pontuação. */
 export interface DocumentChunk {
 	id: string;
 	documentId: string;
@@ -99,25 +34,36 @@ export interface DocumentChunk {
 	heading?: string;
 	content: string;
 	url: string;
-	/** `snippet` marca conteúdo reutilizável, para a citação apontar a página consumidora. */
 	kind: 'page' | 'snippet';
-}
-
-export interface RetrievedChunk extends DocumentChunk {
-	/** 0–1. Comparado ao threshold configurado (§40). */
-	score: number;
-	/** Páginas que consomem este bloco reutilizável, via Content Graph (§9). */
+	/** Páginas que consomem este bloco reutilizável. */
 	usedBy?: string[];
 }
 
-export interface SourceReference {
-	documentId: string;
-	url: string;
-	title: string;
-	relevance: number;
+/** Trecho recuperado, já pontuado pela consulta. */
+export interface RetrievedChunk extends DocumentChunk {
+	score: number;
 }
 
-// ------------------------------------------------------------------- chat
+/** Um trecho como ele chega à interface. */
+export interface Excerpt {
+	title: string;
+	section?: string;
+	/** Texto do trecho, já recortado e com credenciais redigidas. */
+	text: string;
+	/** Link da página onde o trecho está. */
+	url: string;
+	path: string;
+	/** Relevância 0–1, normalizada pela melhor da consulta. */
+	score: number;
+}
+
+export interface ChatMessage {
+	role: ChatRole;
+	content: string;
+	timestamp: string;
+	excerpts?: Excerpt[];
+	sources?: SourceReference[];
+}
 
 export interface Conversation {
 	id: string;
@@ -125,23 +71,22 @@ export interface Conversation {
 	createdAt: string;
 	updatedAt: string;
 	messages: ChatMessage[];
-	/** Resumo das mensagens antigas, para não reenviar a conversa inteira (§5). */
-	summary?: string;
-	/** Idioma do leitor: restringe o retrieval à tradução correspondente. */
+	/** Idioma do leitor: restringe a busca à tradução correspondente. */
 	locale?: string;
+	/**
+	 * Resumo extrativo das buscas que saíram da janela. Serve só para resolver
+	 * pergunta de acompanhamento depois de uma conversa longa.
+	 */
+	summary?: string;
 }
 
-export interface ChatResponse {
+export interface SearchAnswer {
+	/** Frase curta de enquadramento — não é resposta gerada. */
 	message: string;
+	excerpts: Excerpt[];
 	sources: SourceReference[];
-	safety: {
-		filtered: boolean;
-		/** Motivo legível para a interface; nunca expõe regra interna. */
-		reason?: string;
-	};
-	usage?: { inputTokens: number; outputTokens: number };
-	/** `true` quando não havia modelo configurado e a resposta é só retrieval. */
-	retrievalOnly?: boolean;
+	/** `true` quando nada passou do limiar de relevância. */
+	empty: boolean;
 	conversationId: string;
 	messageId: string;
 }
@@ -150,37 +95,4 @@ export interface ChatUser {
 	id: string;
 	role: 'viewer' | 'editor' | 'admin';
 	status: 'active' | 'inactive';
-}
-
-// ------------------------------------------------------------ observabilidade
-
-export type ChatEventName =
-	| 'CHAT_REQUEST'
-	| 'CHAT_COMPLETED'
-	| 'CHAT_BLOCKED'
-	| 'PROMPT_INJECTION_DETECTED'
-	| 'JAILBREAK_DETECTED'
-	| 'INDIRECT_INJECTION_DETECTED'
-	| 'OUTPUT_BLOCKED'
-	| 'RATE_LIMITED'
-	| 'CHAT_FEEDBACK'
-	| 'CHAT_REPORTED';
-
-/**
- * Evento de segurança (§65).
- *
- * Sem conteúdo de conversa: registra-se o que aconteceu, não o que foi dito.
- * Guardar a mensagem que disparou um bloqueio de ódio significaria manter um
- * arquivo de conteúdo ofensivo, e guardar as bem-sucedidas significaria manter
- * um histórico que ninguém pediu.
- */
-export interface ChatSecurityEvent {
-	event: ChatEventName;
-	userId?: string;
-	conversationId?: string;
-	timestamp: string;
-	riskCategory?: string;
-	confidence?: number;
-	/** Metadados numéricos apenas (contagens, durações). */
-	metrics?: Record<string, number>;
 }

@@ -29,13 +29,10 @@ export type AuditAction =
 	| 'DOCUMENT_CREATED'
 	| 'DOCUMENT_UPDATED'
 	| 'DOCUMENT_DELETED'
-	// Chatbot (§64, §65). O metadata carrega só categoria de risco, confiança e
-	// contadores — nunca a pergunta nem a resposta.
-	| 'CHAT_BLOCKED'
-	| 'CHAT_PROMPT_INJECTION'
-	| 'CHAT_JAILBREAK'
-	| 'CHAT_INDIRECT_INJECTION'
-	| 'CHAT_OUTPUT_BLOCKED'
+	// Busca na documentação. Só o limite de uso é registrado: sem modelo de
+	// linguagem não há injeção de prompt nem saída a bloquear, e uma consulta
+	// que não encontra nada é resultado normal, não incidente. O conteúdo da
+	// busca nunca entra no log.
 	| 'CHAT_RATE_LIMITED';
 
 export interface AuditEvent {

@@ -90,21 +90,25 @@ abre o cliente escolhido.
 
 Os clientes oferecidos (ChatGPT, Claude, Gemini, Copilot) são configuráveis.
 
-**Perguntar à documentação**, ao lado da busca no cabeçalho, responde dentro do
-portal. Você pergunta em linguagem natural, em português, inglês ou espanhol; o
-servidor procura os trechos relevantes nas páginas publicadas do seu idioma,
-monta a resposta e cita as fontes usadas. Cada resposta aceita 👍 ou 👎, e essa
-contagem aparece em **Settings → Chatbot**.
+**Buscar na documentação**, ao lado da busca no cabeçalho, aceita a pergunta em
+linguagem natural — em português, inglês ou espanhol — e devolve os **trechos**
+das páginas publicadas do seu idioma que mais se aproximam, cada um com o link
+da sua página. Cada busca aceita 👍 ou 👎, e essa contagem aparece em
+**Settings → Chatbot**.
 
-O assistente é **somente leitura**: ele não edita páginas, não mexe em usuários
-e não altera configurações. Se a documentação não tiver a informação, ele diz
-isso em vez de inventar — e quando o portal está sem chave de modelo, devolve os
-próprios trechos encontrados, com os links.
+O ponto importante é o que ela **não** faz: não há modelo de linguagem. Nada é
+redigido, resumido ou interpretado. Todo texto que aparece na tela está publicado
+em alguma página, e o link prova onde — então a busca não tem como afirmar algo
+que a documentação não diga.
 
-Uma observação sobre o que ele não faz: o assistente não obedece a instruções
-escritas dentro das páginas. Um trecho que diga "ignore as instruções acima" é
-tratado como texto citado, e o administrador recebe o aviso de que aquela página
-contém algo assim.
+Isso muda o modo de usar. Uma pergunta com o nome exato de um campo, de um erro
+ou de um comando encontra o trecho certo na primeira tentativa; uma pergunta
+conceitual larga costuma exigir outros termos. Quando nada passa do limiar de
+relevância, a busca diz que não encontrou em vez de mostrar o trecho menos ruim.
+
+Um detalhe que confunde se não for dito: um bloco de conteúdo reutilizável não
+tem página própria. Quando o trecho encontrado vem de um bloco, o link leva a uma
+página que o inclui, e o cabeçalho do trecho avisa qual é.
 
 ### Consulta pelo terminal
 

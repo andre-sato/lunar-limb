@@ -1,11 +1,14 @@
 ---
 /**
- * Chatbot de documentação (§41–§53).
+ * Busca conversacional na documentação.
  *
  * Substitui o antigo `AskAi`, que montava um prompt para o leitor colar em
- * outra ferramenta. Aqui a conversa acontece no portal: o cliente só desenha a
- * interface e chama `/api/chat/message`; retrieval, guardrails e modelo ficam
- * no servidor, onde o leitor não alcança.
+ * outra ferramenta. Aqui a busca acontece no portal: o cliente desenha a
+ * interface e chama `/api/chat/message`; a busca fica no servidor.
+ *
+ * Cada resposta é um conjunto de **trechos da própria documentação**, com o
+ * link da página. Não há modelo de linguagem: nada é redigido nem resumido, e
+ * por isso não há como a interface afirmar algo que a documentação não diga.
  *
  * As páginas de documentação são pré-renderizadas, então este componente não
  * pode saber no build quem está lendo. A autenticação é resolvida na primeira
@@ -24,7 +27,7 @@ const { t } = Astro.locals;
 	data-login-required={t('chat.loginRequired')}
 	data-login={t('chat.login')}
 	data-sources={t('chat.sources')}
-	data-retrieval-only={t('chat.retrievalOnly')}
+	data-open-page={t('chat.openPage')}
 	data-feedback-thanks={t('chat.feedbackThanks')}
 	data-helpful={t('chat.helpful')}
 	data-not-helpful={t('chat.notHelpful')}
@@ -64,7 +67,7 @@ const { t } = Astro.locals;
 					name="message"
 					rows="2"
 					placeholder={t('chat.placeholder')}
-					maxlength="8000"
+					maxlength="500"
 					required></textarea>
 				<button class="doc-chat__send" type="submit">{t('chat.send')}</button>
 			</form>
@@ -101,37 +104,53 @@ const { t } = Astro.locals;
 		function append(role: 'user' | 'assistant' | 'system', text: string): HTMLElement {
 			const element = document.createElement('div');
 			element.className = `doc-chat__message doc-chat__message--${role}`;
-			// `textContent`, nunca `innerHTML`: a resposta passa pelos guardrails
-			// do servidor, mas renderizá-la como HTML seria dar ao conteúdo da
-			// documentação um caminho para executar script no navegador do leitor.
+			// `textContent`, nunca `innerHTML`: a frase é do servidor, mas manter
+			// a regra em todo lugar é o que impede alguém introduzir HTML aqui
+			// depois sem perceber a consequência.
 			element.textContent = text;
 			messages.append(element);
 			messages.scrollTop = messages.scrollHeight;
 			return element;
 		}
 
-		function appendSources(sources: Array<{ title: string; url: string }>): void {
-			if (sources.length === 0) return;
-			const wrapper = document.createElement('div');
-			wrapper.className = 'doc-chat__sources';
+		interface Excerpt {
+			title: string;
+			section?: string;
+			text: string;
+			url: string;
+			score: number;
+		}
 
-			const heading = document.createElement('p');
-			heading.textContent = label('sources');
-			wrapper.append(heading);
+		function appendExcerpts(excerpts: Excerpt[]): void {
+			for (const excerpt of excerpts) {
+				const card = document.createElement('article');
+				card.className = 'doc-chat__excerpt';
 
-			const list = document.createElement('ul');
-			for (const source of sources) {
-				const item = document.createElement('li');
+				const heading = document.createElement('p');
+				heading.className = 'doc-chat__excerpt-title';
+				heading.textContent = excerpt.section
+					? `${excerpt.title} — ${excerpt.section}`
+					: excerpt.title;
+				card.append(heading);
+
+				const body = document.createElement('div');
+				body.className = 'doc-chat__excerpt-text';
+				// `textContent`, não `innerHTML`: o trecho vem de um arquivo do
+				// repositório, e renderizá-lo como HTML daria a qualquer página a
+				// chance de executar script no navegador do leitor.
+				body.textContent = excerpt.text;
+				card.append(body);
+
 				const link = document.createElement('a');
-				// Só caminho interno é aceito: uma "fonte" apontando para fora
-				// seria um vetor de exfiltração disfarçado de citação.
-				link.href = source.url.startsWith('/') ? source.url : '#';
-				link.textContent = source.title;
-				item.append(link);
-				list.append(item);
+				link.className = 'doc-chat__excerpt-link';
+				// Só caminho interno: um link para fora, vindo de conteúdo, seria
+				// um destino que ninguém revisou.
+				link.href = excerpt.url.startsWith('/') ? excerpt.url : '#';
+				link.textContent = label('openPage');
+				card.append(link);
+
+				messages.append(card);
 			}
-			wrapper.append(list);
-			messages.append(wrapper);
 			messages.scrollTop = messages.scrollHeight;
 		}
 
@@ -219,9 +238,9 @@ const { t } = Astro.locals;
 
 				conversationId = data.conversationId;
 				append('assistant', data.message);
-				if (data.retrievalOnly) append('system', label('retrievalOnly'));
-				appendSources(Array.isArray(data.sources) ? data.sources : []);
-				if (data.messageId) appendFeedback(data.messageId);
+				appendExcerpts(Array.isArray(data.excerpts) ? data.excerpts : []);
+				// Sem trecho não há o que avaliar.
+				if (data.messageId && !data.empty) appendFeedback(data.messageId);
 			} catch {
 				pending.remove();
 				append('system', label('error'));
@@ -370,20 +389,33 @@ const { t } = Astro.locals;
 		font-style: italic;
 	}
 
-	.doc-chat__sources {
+	.doc-chat__excerpt {
+		border: 1px solid var(--sl-color-gray-5);
+		border-left: 3px solid var(--sl-color-accent);
+		border-radius: 0.5rem;
+		padding: 0.6rem 0.8rem;
+		background: var(--sl-color-gray-7, var(--sl-color-gray-6));
+	}
+
+	.doc-chat__excerpt-title {
+		margin: 0 0 0.35rem;
 		font-size: var(--sl-text-xs);
-		color: var(--sl-color-gray-2);
+		font-weight: 600;
+		color: var(--sl-color-white);
 	}
 
-	.doc-chat__sources p {
-		margin: 0 0 0.2rem;
-		text-transform: uppercase;
-		letter-spacing: 0.06em;
+	.doc-chat__excerpt-text {
+		font-size: var(--sl-text-sm);
+		line-height: 1.6;
+		white-space: pre-wrap;
+		color: var(--sl-color-gray-1);
 	}
 
-	.doc-chat__sources ul {
-		margin: 0;
-		padding-left: 1.1rem;
+	.doc-chat__excerpt-link {
+		display: inline-block;
+		margin-top: 0.45rem;
+		font-size: var(--sl-text-xs);
+		color: var(--sl-color-accent-high);
 	}
 
 	.doc-chat__feedback {

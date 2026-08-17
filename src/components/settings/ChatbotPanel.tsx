@@ -1,59 +1,30 @@
 /**
- * Settings → Chatbot (§67–§71).
+ * Settings → Busca na documentação.
  *
- * Três blocos: Configuração (provedor, modelo, retrieval), Segurança
- * (incidentes registrados) e Uso (satisfação e conversas ativas).
- *
- * O campo da chave começa sempre vazio e a resposta do servidor nunca a traz —
- * só `hasApiKey` e a dica mascarada. Quem salva sem digitar nada preserva a
- * chave existente.
+ * Uma tela curta, porque a funcionalidade é curta: quantos trechos devolver,
+ * qual a relevância mínima, quanto texto por trecho e qual o limite de uso. Não
+ * há chave, modelo nem provedor para configurar.
  */
 
 import { useEffect, useState } from 'react';
 
-interface ConfigView {
+interface ChatConfig {
 	enabled: boolean;
-	provider: string;
-	model: string;
-	maxOutputTokens: number;
-	effort: 'low' | 'medium' | 'high';
-	retrievalThreshold: number;
-	maxChunks: number;
+	maxExcerpts: number;
+	minScore: number;
+	excerptChars: number;
 	rateLimitPerHour: number;
-	generationEnabled: boolean;
-	hasApiKey: boolean;
-	apiKeyHint: string;
-	samplingUnavailable: boolean;
-	retrievalOnly: boolean;
-}
-
-interface Quality {
-	total: number;
-	up: number;
-	down: number;
-	satisfaction: number | null;
 }
 
 interface Payload {
-	config: ConfigView;
-	models: ReadonlyArray<{ id: string; label: string }>;
-	quality: Quality;
-	incidents: Record<string, number>;
+	config: ChatConfig;
+	quality: { total: number; up: number; down: number; satisfaction: number | null };
 	activeConversations: number;
+	rateLimitHits: number;
 }
-
-const INCIDENT_LABELS: Record<string, string> = {
-	CHAT_PROMPT_INJECTION: 'Tentativas de injeção de prompt',
-	CHAT_JAILBREAK: 'Tentativas de jailbreak',
-	CHAT_INDIRECT_INJECTION: 'Instrução encontrada dentro da documentação',
-	CHAT_BLOCKED: 'Mensagens recusadas',
-	CHAT_OUTPUT_BLOCKED: 'Respostas bloqueadas na saída',
-	CHAT_RATE_LIMITED: 'Limites de uso atingidos',
-};
 
 export default function ChatbotPanel() {
 	const [data, setData] = useState<Payload | null>(null);
-	const [apiKey, setApiKey] = useState('');
 	const [status, setStatus] = useState<string | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	const [saving, setSaving] = useState(false);
@@ -72,11 +43,11 @@ export default function ChatbotPanel() {
 		void load();
 	}, []);
 
-	function patch(changes: Partial<ConfigView>) {
+	function patch(changes: Partial<ChatConfig>) {
 		setData((current) => (current ? { ...current, config: { ...current.config, ...changes } } : current));
 	}
 
-	async function save(extra: Record<string, unknown> = {}) {
+	async function save() {
 		if (!data) return;
 		setSaving(true);
 		setError(null);
@@ -86,25 +57,11 @@ export default function ChatbotPanel() {
 			const response = await fetch('/api/admin/integrations/chat', {
 				method: 'PUT',
 				headers: { 'content-type': 'application/json' },
-				body: JSON.stringify({
-					enabled: data.config.enabled,
-					generationEnabled: data.config.generationEnabled,
-					model: data.config.model,
-					effort: data.config.effort,
-					maxOutputTokens: data.config.maxOutputTokens,
-					retrievalThreshold: data.config.retrievalThreshold,
-					maxChunks: data.config.maxChunks,
-					rateLimitPerHour: data.config.rateLimitPerHour,
-					// Só vai quando o admin digitou algo.
-					...(apiKey.trim() !== '' ? { apiKey: apiKey.trim() } : {}),
-					...extra,
-				}),
+				body: JSON.stringify(data.config),
 			});
-
 			const body = await response.json().catch(() => null);
 			if (!response.ok) throw new Error(body?.message ?? 'Não foi possível salvar.');
 
-			setApiKey('');
 			setStatus('Configuração salva.');
 			await load();
 		} catch (cause) {
@@ -117,18 +74,15 @@ export default function ChatbotPanel() {
 	if (error && !data) return <p className="panel-error">{error}</p>;
 	if (!data) return <p>Carregando…</p>;
 
-	const { config, models, quality, incidents } = data;
-	const totalIncidents = Object.values(incidents).reduce((sum, value) => sum + value, 0);
+	const { config, quality } = data;
 
 	return (
 		<div className="chatbot-panel">
-			{config.retrievalOnly && (
-				<p className="panel-notice">
-					O assistente está em <strong>modo só-retrieval</strong>: ele devolve os trechos encontrados
-					na documentação, com as fontes, sem redigir a resposta. Configure a chave da API para
-					habilitar respostas em linguagem natural.
-				</p>
-			)}
+			<p className="panel-notice">
+				A busca responde <strong>somente com trechos da própria documentação</strong>, cada um com o
+				link da página. Não há modelo de linguagem envolvido: nada é redigido, resumido ou inferido —
+				o que aparece na tela está publicado em alguma página.
+			</p>
 
 			<section>
 				<h2>Configuração</h2>
@@ -139,80 +93,18 @@ export default function ChatbotPanel() {
 						checked={config.enabled}
 						onChange={(event) => patch({ enabled: event.target.checked })}
 					/>
-					Assistente disponível para os leitores
-				</label>
-
-				<label className="chatbot-panel__check">
-					<input
-						type="checkbox"
-						checked={config.generationEnabled}
-						onChange={(event) => patch({ generationEnabled: event.target.checked })}
-					/>
-					Gerar respostas com o modelo (desmarcado: só trechos da documentação)
-				</label>
-
-				<label>
-					Chave da API {config.hasApiKey && <span className="chatbot-panel__hint">({config.apiKeyHint})</span>}
-					<input
-						type="password"
-						value={apiKey}
-						autoComplete="off"
-						placeholder={config.hasApiKey ? 'Deixe vazio para manter a chave atual' : 'sk-…'}
-						onChange={(event) => setApiKey(event.target.value)}
-					/>
-				</label>
-				<p className="chatbot-panel__help">
-					A chave fica no servidor, em <code>data/integrations.json</code>, e nunca é devolvida por
-					nenhuma rota — nem para você. Também pode vir de <code>ANTHROPIC_API_KEY</code>.
-				</p>
-				{config.hasApiKey && (
-					<button type="button" className="chatbot-panel__danger" onClick={() => void save({ removeApiKey: true })}>
-						Remover a chave
-					</button>
-				)}
-
-				<label>
-					Modelo
-					<select value={config.model} onChange={(event) => patch({ model: event.target.value })}>
-						{models.map((model) => (
-							<option key={model.id} value={model.id}>
-								{model.label}
-							</option>
-						))}
-					</select>
-				</label>
-
-				<label>
-					Profundidade de raciocínio
-					<select
-						value={config.effort}
-						onChange={(event) => patch({ effort: event.target.value as ConfigView['effort'] })}
-					>
-						<option value="low">Baixa — mais rápida, suficiente para documentação</option>
-						<option value="medium">Média</option>
-						<option value="high">Alta — mais lenta e mais caro</option>
-					</select>
+					Busca disponível para os leitores
 				</label>
 
 				<div className="chatbot-panel__grid">
 					<label>
-						Tokens máximos por resposta
-						<input
-							type="number"
-							min={256}
-							max={8192}
-							value={config.maxOutputTokens}
-							onChange={(event) => patch({ maxOutputTokens: Number(event.target.value) })}
-						/>
-					</label>
-					<label>
-						Fragmentos por consulta
+						Trechos por busca
 						<input
 							type="number"
 							min={1}
 							max={20}
-							value={config.maxChunks}
-							onChange={(event) => patch({ maxChunks: Number(event.target.value) })}
+							value={config.maxExcerpts}
+							onChange={(event) => patch({ maxExcerpts: Number(event.target.value) })}
 						/>
 					</label>
 					<label>
@@ -222,16 +114,27 @@ export default function ChatbotPanel() {
 							min={0}
 							max={1}
 							step={0.05}
-							value={config.retrievalThreshold}
-							onChange={(event) => patch({ retrievalThreshold: Number(event.target.value) })}
+							value={config.minScore}
+							onChange={(event) => patch({ minScore: Number(event.target.value) })}
 						/>
 					</label>
 					<label>
-						Mensagens por usuário/hora
+						Caracteres por trecho
+						<input
+							type="number"
+							min={200}
+							max={4000}
+							step={50}
+							value={config.excerptChars}
+							onChange={(event) => patch({ excerptChars: Number(event.target.value) })}
+						/>
+					</label>
+					<label>
+						Buscas por usuário/hora
 						<input
 							type="number"
 							min={1}
-							max={1000}
+							max={5000}
 							value={config.rateLimitPerHour}
 							onChange={(event) => patch({ rateLimitPerHour: Number(event.target.value) })}
 						/>
@@ -239,9 +142,8 @@ export default function ChatbotPanel() {
 				</div>
 
 				<p className="chatbot-panel__help">
-					Abaixo da relevância mínima nada entra no contexto e o assistente responde que não
-					encontrou — é o que impede resposta inventada quando a pergunta não tem base na
-					documentação.
+					Relevância mínima alta devolve menos e melhor; baixa devolve mais e com ruído. Abaixo do
+					limiar a busca diz que não encontrou, em vez de mostrar um trecho qualquer.
 				</p>
 
 				<div className="chatbot-panel__actions">
@@ -254,27 +156,6 @@ export default function ChatbotPanel() {
 			</section>
 
 			<section>
-				<h2>Segurança</h2>
-				{totalIncidents === 0 ? (
-					<p>Nenhum incidente registrado nos últimos eventos de auditoria.</p>
-				) : (
-					<ul className="chatbot-panel__incidents">
-						{Object.entries(incidents)
-							.filter(([, count]) => count > 0)
-							.map(([action, count]) => (
-								<li key={action}>
-									<strong>{count}</strong> {INCIDENT_LABELS[action] ?? action}
-								</li>
-							))}
-					</ul>
-				)}
-				<p className="chatbot-panel__help">
-					Os registros guardam categoria de risco e contadores — nunca a pergunta nem a resposta.
-					“Instrução encontrada dentro da documentação” aponta uma página que vale revisar.
-				</p>
-			</section>
-
-			<section>
 				<h2>Uso</h2>
 				<dl className="chatbot-panel__stats">
 					<div>
@@ -282,18 +163,26 @@ export default function ChatbotPanel() {
 						<dd>{data.activeConversations}</dd>
 					</div>
 					<div>
-						<dt>Votos em respostas</dt>
+						<dt>Votos em resultados</dt>
 						<dd>{quality.total}</dd>
 					</div>
 					<div>
-						<dt>Satisfação</dt>
+						<dt>Úteis</dt>
 						<dd>
 							{quality.satisfaction === null
 								? '—'
 								: `${Math.round(quality.satisfaction * 100)}% (${quality.up}/${quality.total})`}
 						</dd>
 					</div>
+					<div>
+						<dt>Limites atingidos</dt>
+						<dd>{data.rateLimitHits}</dd>
+					</div>
 				</dl>
+				<p className="chatbot-panel__help">
+					Os votos indicam se os trechos estão respondendo. Muitos “não útil” na mesma busca
+					costumam significar que falta uma página, não que a busca esteja errada.
+				</p>
 			</section>
 		</div>
 	);

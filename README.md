@@ -10,7 +10,7 @@ O portal separa três tipos de conteúdo:
 
 Todas as páginas oferecem o menu **Compartilhar com IA**: ele copia o título, URL e conteúdo da página. A lista de clientes e seus destinos pode ser configurada em `src/config/portal.ts`.
 
-O cabeçalho também inclui **Perguntar à documentação** ao lado da busca: um assistente que responde dentro do próprio portal, a partir das páginas publicadas, citando as fontes. Retrieval, guardrails de entrada e de saída e a chamada ao modelo acontecem no servidor — nenhuma chave de provedor chega ao navegador. Sem chave configurada ele opera em modo só-retrieval, devolvendo os trechos encontrados. A chave, o modelo e os limites ficam em **Settings → Chatbot**.
+O cabeçalho também inclui **Buscar na documentação** ao lado da busca padrão: você escreve a dúvida em linguagem natural e recebe os trechos mais próximos das páginas publicadas, cada um com o link da sua página. **Não há modelo de linguagem envolvido** — nada é redigido, resumido ou inferido, e por isso não há como a interface afirmar algo que a documentação não diga. Um bloco de conteúdo reutilizável aparece com o link da página que o inclui, porque bloco não tem página própria. Trechos por busca, relevância mínima e limite de uso ficam em **Settings → Chatbot**.
 
 ## Idiomas
 
@@ -295,8 +295,7 @@ node ./dist/server/entry.mjs
 - Git awareness é somente leitura: nenhum commit, stage ou checkout parte do editor.
 - A leitura da documentação é pública por decisão de produto: gatear as páginas exigiria desligar o prerender da Starlight, o que desativa a busca Pagefind. Conteúdo que não pode ser lido por qualquer um não deve estar no portal.
 - Não há "esqueci minha senha" nem tela de perfil: a redefinição é feita por um admin em Settings → Users. `mustChangePassword` é devolvido no login, mas não há tela que force a troca antes de continuar.
-- O chatbot não tem streaming: a resposta chega inteira. A classificação de segurança é determinística (padrões), com a interface `SafetyClassifier` pronta para uma camada semântica por modelo. As conversas ficam em memória, com TTL — reiniciar o servidor as descarta, e várias réplicas não as compartilham.
-- O resumo de conversa é extrativo (lista as perguntas que saíram da janela), não gerado por modelo.
+- A busca conversacional devolve trechos, não respostas redigidas: quem sintetiza é o leitor. A relevância vem de BM25 sobre o mesmo índice do MCP Server, então ela acerta nome de campo, erro e comando melhor do que pergunta conceitual. As conversas ficam em memória, com TTL — reiniciar o servidor as descarta, e várias réplicas não as compartilham.
 - Usuários e sessões ficam em JSON local, adequado a uma instalação; várias réplicas precisariam de um store compartilhado. O limitador de tentativas de login também é por processo.
 
 ### Dependências
