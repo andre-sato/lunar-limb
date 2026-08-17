@@ -55,5 +55,10 @@
 	"chat.clear": "Nova conversa",
 	"chat.helpful": "Resposta útil",
 	"chat.notHelpful": "Resposta não útil",
-	"chat.feedbackThanks": "Obrigado pelo retorno."
+	"chat.feedbackThanks": "Obrigado pelo retorno.",
+	"starlightViewModes.switchesHeading": "Modos de leitura",
+	"starlightViewModes.defaultMode.title": "Modo normal",
+	"starlightViewModes.zenMode.title": "Modo zen",
+	"starlightViewModes.switchToDefaultMode": "Voltar ao modo normal",
+	"starlightViewModes.switchToZenMode": "Abrir o modo zen"
 }

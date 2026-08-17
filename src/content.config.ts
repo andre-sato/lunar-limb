@@ -102,6 +102,14 @@ export const collections = {
 				'chat.helpful': z.string().optional(),
 				'chat.notHelpful': z.string().optional(),
 				'chat.feedbackThanks': z.string().optional(),
+				// O plugin `starlight-view-modes` traz en, de, fr e es, mas não
+				// pt-BR: sem estas chaves a interface mostrava o identificador
+				// cru em vez do rótulo.
+				'starlightViewModes.switchesHeading': z.string().optional(),
+				'starlightViewModes.defaultMode.title': z.string().optional(),
+				'starlightViewModes.zenMode.title': z.string().optional(),
+				'starlightViewModes.switchToDefaultMode': z.string().optional(),
+				'starlightViewModes.switchToZenMode': z.string().optional(),
 			}),
 		}),
 	}),

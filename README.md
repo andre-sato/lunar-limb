@@ -43,6 +43,7 @@ Arquivos Markdown e MDX dentro de `src/content/docs/` são publicados automatica
 | `npm run check` | Typecheck de `.astro`, `.ts` e `.tsx` (`astro check`). |
 | `npm test` | Roda os testes (Vitest). |
 | `npm run docs:lint` | Analisa a documentação e calcula o Quality Score. |
+| `npm run docs:asyncapi` | Gera páginas de referência a partir de especificações AsyncAPI. |
 | `npm run user:create` | Cria um usuário do portal (ver *Usuários e controle de acesso*). |
 
 > **Comece pelo [Manual completo](src/content/docs/guides/manual.mdx)** (publicado em `/guides/manual/`): recursos do portal e do editor, atalhos de teclado, fluxos de trabalho e casos de uso, com diagramas.
@@ -189,6 +190,23 @@ O envio é **anônimo**: sem login, sem cookie, sem identificador de visitante. 
 As respostas ficam em **Settings → Feedback**: proporção de "útil", comentários recentes e **onde mexer primeiro** — páginas com maioria negativa e pelo menos 3 votos, para uma reclamação isolada não mandar o time reescrever conteúdo.
 
 Com a integração do Do11y ligada, o mesmo clique também vira um evento `feedback` no Supabase. Detalhes em [docs/feedback-de-pagina.md](docs/feedback-de-pagina.md).
+
+## Referência de API a partir de especificação
+
+O portal aceita dois formatos de especificação, e cada um tem um caminho próprio porque descrevem coisas diferentes:
+
+| Formato | Como publicar | O que descreve |
+| --- | --- | --- |
+| **OpenAPI** | `src/schemas/<nome>.yaml` — o `starlight-openapi` gera as páginas no build | Rotas HTTP, verbos, códigos de status |
+| **AsyncAPI** | `src/schemas/<nome>.asyncapi.yaml` + `npm run docs:asyncapi` | Canais, mensagens e payloads de sistema orientado a eventos |
+
+Não há conversão entre os dois: um canal Kafka não é um endpoint REST. Misturá-los produziria documentação falsa.
+
+O `astro.config.mjs` só registra o `starlight-openapi` para arquivos que **declaram** `openapi:` ou `swagger:` — filtrar pela extensão não basta. Um AsyncAPI passado ao plugin gera uma página com o título certo e nenhuma operação: falha silenciosa, pior que um erro.
+
+`npm run docs:asyncapi -- --check` falha se a página gerada estiver desatualizada em relação à especificação — serve para CI e para pegar quem editou a página gerada à mão. O mesmo é verificado por teste.
+
+Um exemplo real está no repositório: [`src/schemas/streetlights-kafka.asyncapi.yaml`](src/schemas/streetlights-kafka.asyncapi.yaml) gera [`api-reference/streetlights-kafka.md`](src/content/docs/api-reference/streetlights-kafka.md).
 
 ## Plugins da comunidade Starlight
 

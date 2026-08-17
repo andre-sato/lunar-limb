@@ -38,7 +38,16 @@ function openApiPlugins() {
 	const dir = fileURLToPath(new URL('./src/schemas', import.meta.url));
 	if (!existsSync(dir)) return [];
 
-	const schemas = readdirSync(dir).filter((file) => /\.(ya?ml|json)$/i.test(file));
+	// Só documentos que **são** OpenAPI. Não basta a extensão: o plugin entende
+	// apenas `paths`, e um AsyncAPI (que descreve canais, não rotas HTTP) gera
+	// uma página com o título certo e nenhuma operação — falha silenciosa, pior
+	// que um erro. Ver `scripts/asyncapi-to-docs.ts` para o caminho do AsyncAPI.
+	const schemas = readdirSync(dir)
+		.filter((file) => /\.(ya?ml|json)$/i.test(file))
+		.filter((file) => {
+			const raw = readFileSync(`${dir}/${file}`, 'utf-8');
+			return /^\s*["']?(openapi|swagger)["']?\s*:/m.test(raw);
+		});
 	if (schemas.length === 0) return [];
 
 	return [

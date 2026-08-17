@@ -12,6 +12,7 @@
 		"test": "vitest run",
 		"test:watch": "vitest",
 		"docs:lint": "tsx scripts/docs-lint.ts",
+		"docs:asyncapi": "tsx scripts/asyncapi-to-docs.ts",
 		"user:create": "tsx scripts/create-user.ts"
 	},
 	"dependencies": {
