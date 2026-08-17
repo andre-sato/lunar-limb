@@ -19,6 +19,13 @@ export const collections = {
 				 * fica visível quando ela estiver ligada; prefixe com `!` para inverter.
 				 */
 				showIf: z.string().optional(),
+				/**
+				 * `true` marca uma página criada por espelhamento de idioma: ela
+				 * existe para aparecer na navegação daquele idioma, mas o texto
+				 * ainda é o original. Declarado aqui para ser um campo do
+				 * projeto, e não um extra tolerado pelo schema.
+				 */
+				translationPending: z.boolean().optional(),
 			}),
 		}),
 	}),

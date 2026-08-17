@@ -53,11 +53,17 @@ export async function saveFile(
 	return handle(res);
 }
 
+export interface MirrorReport {
+	created: string[];
+	skipped: string[];
+	failed: Array<{ path: string; reason: string }>;
+}
+
 export async function createFile(
 	path: string,
 	content: string,
 	root: ContentRoot = 'docs'
-): Promise<{ ok: true }> {
+): Promise<{ ok: true; mirrors?: MirrorReport | null }> {
 	const res = await fetch('/api/editor/file', {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },

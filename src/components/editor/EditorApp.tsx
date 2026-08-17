@@ -28,6 +28,7 @@ import {
 	fetchReferences,
 	fetchTree,
 	saveFile,
+	type MirrorReport,
 } from './api';
 import { useDebouncedCallback } from './useDebouncedCallback';
 import { useReferences } from './useReferences';
@@ -75,6 +76,26 @@ function pathToId(relPath: string): string {
 	return relPath.replace(/\.(md|mdx)$/i, '');
 }
 
+/** Resume o espelhamento de idiomas em uma frase, ou `null` se não houve. */
+function describeMirrors(mirrors: MirrorReport | null | undefined): string | null {
+	if (!mirrors) return null;
+
+	const parts: string[] = [];
+	if (mirrors.created.length > 0) {
+		parts.push(`Criadas as entradas em ${mirrors.created.join(' e ')} (tradução pendente).`);
+	}
+	if (mirrors.skipped.length > 0) {
+		parts.push(`Já existia: ${mirrors.skipped.join(', ')}.`);
+	}
+	// Falha é o caso que mais precisa aparecer: a página existe em português e
+	// não nos outros idiomas, e ninguém descobriria isso sem o aviso.
+	for (const failure of mirrors.failed) {
+		parts.push(`Não foi possível criar ${failure.path}: ${failure.reason}`);
+	}
+
+	return parts.length > 0 ? parts.join(' ') : null;
+}
+
 interface DeleteWarningState {
 	path: string;
 	root: ContentRoot;
@@ -96,6 +117,8 @@ export default function EditorApp() {
 	const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
 	const [fileLoading, setFileLoading] = useState(false);
 	const [fileError, setFileError] = useState<string | null>(null);
+	/** Resultado do espelhamento nos outros idiomas, após criar uma página. */
+	const [mirrorNotice, setMirrorNotice] = useState<string | null>(null);
 	const [referenceRefreshToken, setReferenceRefreshToken] = useState(0);
 
 	const [previewHtml, setPreviewHtml] = useState('');
@@ -305,10 +328,14 @@ export default function EditorApp() {
 
 	const handleCreate = useCallback(
 		async (path: string, initialContent: string) => {
-			await createFile(path, initialContent, 'docs');
+			const result = await createFile(path, initialContent, 'docs');
 			await refreshTree();
 			setShowNewFileModal(false);
 			await openFile(path, 'docs');
+
+			// O espelhamento é silencioso demais para ficar sem aviso: quem cria
+			// a página precisa saber que outras duas apareceram na árvore.
+			setMirrorNotice(describeMirrors(result.mirrors));
 		},
 		[refreshTree, openFile]
 	);
@@ -835,6 +862,7 @@ export default function EditorApp() {
 				<main className={`workspace workspace--${viewMode}`}>
 					{treeError && <div className="banner banner--error">{treeError}</div>}
 					{fileError && <div className="banner banner--error">{fileError}</div>}
+					{mirrorNotice && <div className="banner banner--info">{mirrorNotice}</div>}
 
 					{!activePath ? (
 						<div className="empty-state">

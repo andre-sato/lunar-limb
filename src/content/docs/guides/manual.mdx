@@ -41,6 +41,18 @@ src/content/docs/
 A navegação lateral é gerada a partir dessas pastas. Criar um arquivo já o
 publica — não há passo de registro em lugar nenhum.
 
+### Recursos de leitura
+
+Além do conteúdo, o portal traz alguns recursos que valem conhecer:
+
+| Recurso | Como usar |
+| --- | --- |
+| **Modo zen** | O alternador no topo da página abre a leitura sem barra lateral nem cabeçalho. Também dá para ir direto: `/zen-mode/<caminho-da-página>`. |
+| **Voltar ao topo** | Aparece depois de rolar a página, com um anel que mostra o progresso da leitura. |
+| **Tags** | Páginas podem declarar `tags: [api, seguranca]` no frontmatter. O índice fica em [`/tags`](/tags), e a taxonomia — rótulos por idioma, descrições, cores — no `tags.yml` do repositório. |
+| **Busca warp** | `/warp?q=termo` pula a lista e abre direto o melhor resultado. O portal também se registra como buscador do navegador, então dá para pesquisar a documentação pela barra de endereços. |
+| **Links validados** | Todo link interno é verificado no build. Um link para uma página que não existe reprova o build em vez de virar 404 para o leitor. |
+
 ### Idiomas
 
 Português (Brasil) é o idioma nativo e fica na raiz, sem prefixo de URL. As
@@ -56,7 +68,12 @@ src/content/docs/es/guides/webhooks.md    → /es/guides/webhooks/
 ```
 
 Uma página que existe só em português continua funcionando; ela apenas não terá
-equivalente no seletor.
+equivalente no seletor. Por isso o editor cria os três arquivos de uma vez —
+veja [Criando uma página](#criando-uma-página).
+
+Um arquivo criado por espelhamento traz `translationPending: true` no
+frontmatter. É o que permite achar o que falta traduzir com uma busca, em vez de
+comparar pastas à mão.
 
 ## Teste escrita bi-direcional
 
@@ -171,6 +188,20 @@ importam:
   nada começar em `.mdx` mesmo sem usar esses recursos.
 - **Visível para o leitor**, desmarcado, publica a página fora da navegação e
   da busca (veja [Visibilidade](#visibilidade-de-página)).
+
+Criar uma página no idioma raiz (português) cria também a entrada
+correspondente em **inglês e espanhol**. O texto não é traduzido: o que se cria
+é o lugar da tradução, com o mesmo título, um aviso de tradução pendente e o
+conteúdo original. O editor avisa quais arquivos apareceram.
+
+Isso existe porque a navegação da Starlight é por idioma: sem o arquivo
+correspondente, quem lê em inglês simplesmente não vê que a página existe — e
+ninguém descobre que falta traduzir. Com o espelho, a ausência invisível vira
+uma fila de trabalho visível.
+
+Se a tradução já existir, o espelho não é criado: o trabalho de quem traduziu
+vale mais que a consistência automática. E criar um arquivo já dentro de `en/`
+ou `es/` não gera espelho nenhum.
 
 #### Metadados
 

@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { ContentFsError, getContentFs, isContentRootKey } from '../../../lib/editor/content-fs';
 import { invalidateGraphCache } from '../../../lib/editor/content-graph';
+import { createMirrors, type MirrorResult } from '../../../lib/editor/locale-mirror';
 import { recordAudit, type AuditAction } from '../../../lib/auth/audit';
 
 export const prerender = false;
@@ -81,10 +82,24 @@ export const POST: APIRoute = async ({ request, locals }) => {
 		if (!filePath || typeof content !== 'string') {
 			return json({ error: 'Corpo inválido: esperado { path, content }.' }, 400);
 		}
-		await pickRoot(typeof root === 'string' ? root : null).createDocument(filePath, content);
+		const rootKey = typeof root === 'string' ? root : null;
+		const fs = pickRoot(rootKey);
+		await fs.createDocument(filePath, content);
 		invalidateGraphCache();
-		await auditContent(locals, 'DOCUMENT_CREATED', filePath, typeof root === 'string' ? root : null);
-		return json({ ok: true }, 201);
+		await auditContent(locals, 'DOCUMENT_CREATED', filePath, rootKey);
+
+		// Espelho nos outros idiomas. Só para páginas: um bloco reutilizável não
+		// tem versão por idioma — quem tem idioma é a página que o inclui.
+		let mirrors: MirrorResult | null = null;
+		if (rootKey === null || rootKey === 'docs') {
+			mirrors = await createMirrors(filePath, content, fs.createDocument);
+			for (const created of mirrors.created) {
+				await auditContent(locals, 'DOCUMENT_CREATED', created, rootKey);
+			}
+			if (mirrors.created.length > 0) invalidateGraphCache();
+		}
+
+		return json({ ok: true, mirrors }, 201);
 	} catch (err) {
 		return errorResponse(err);
 	}

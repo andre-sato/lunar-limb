@@ -1,0 +1,72 @@
+# Taxonomia de tags do portal (plugin `starlight-tags`).
+#
+# Uma tag usada no frontmatter sem estar declarada aqui é criada automaticamente
+# (`onInlineTagsNotFound: 'create'` no astro.config.mjs), então este arquivo
+# serve para dar rótulo, descrição e cor às tags que importam — não para
+# autorizar o uso.
+#
+# O rótulo aceita string ou um mapa de idiomas, o que mantém a taxonomia
+# coerente nas três localidades do portal.
+#
+# Use em qualquer página:
+#
+#     ---
+#     title: Autenticação
+#     tags: [api, seguranca]
+#     ---
+
+tags:
+  api:
+    label:
+      pt-BR: API
+      en: API
+      es: API
+    description:
+      pt-BR: Referência e comportamento da API.
+      en: API reference and behavior.
+      es: Referencia y comportamiento de la API.
+    color: '#3b82f6'
+
+  seguranca:
+    label:
+      pt-BR: Segurança
+      en: Security
+      es: Seguridad
+    description:
+      pt-BR: Autenticação, autorização e proteção de credenciais.
+      en: Authentication, authorization, and credential protection.
+      es: Autenticación, autorización y protección de credenciales.
+    color: '#ef4444'
+
+  editor:
+    label:
+      pt-BR: Editor
+      en: Editor
+      es: Editor
+    description:
+      pt-BR: O editor de documentação do portal.
+      en: The portal documentation editor.
+      es: El editor de documentación del portal.
+    color: '#8b5cf6'
+
+  guia:
+    label:
+      pt-BR: Guia
+      en: Guide
+      es: Guía
+    description:
+      pt-BR: Passo a passo e material introdutório.
+      en: Step-by-step and introductory material.
+      es: Paso a paso y material introductorio.
+    color: '#22c55e'
+
+  ia:
+    label:
+      pt-BR: IA
+      en: AI
+      es: IA
+    description:
+      pt-BR: Recursos voltados a agentes e assistentes.
+      en: Features aimed at agents and assistants.
+      es: Funciones orientadas a agentes y asistentes.
+    color: '#f59e0b'

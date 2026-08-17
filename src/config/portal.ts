@@ -9,6 +9,12 @@ export const portal = {
 	description:
 		'Documentação para integrar produtos, plataformas e APIs com segurança.',
 	apiBaseUrl: 'https://api.suaempresa.com/v1',
+	/**
+	 * URL pública do portal. Usada pelo sitemap e pelo registro OpenSearch (a
+	 * busca "warp"), que precisam de URL absoluta. Em desenvolvimento vale o
+	 * localhost; em produção defina `SITE_URL` no ambiente do build.
+	 */
+	siteUrl: 'https://docs.suaempresa.com',
 	supportEmail: 'developers@suaempresa.com',
 	aiClients: [
 		{ name: 'ChatGPT', url: 'https://chatgpt.com/' },

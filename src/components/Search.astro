@@ -1,9 +1,12 @@
 ---
-import DefaultSearch from '@astrojs/starlight/components/Search.astro';
 import ChatAssistant from './ChatAssistant.astro';
+// `starlight-view-modes` embrulha a busca para poder escondê-la no modo zen.
+// Usar o componente dele aqui, em vez do `Search` padrão, é o que faz os dois
+// conviverem: ele renderiza o padrão por dentro.
+import ViewModesSearch from 'starlight-view-modes/components/Search.astro';
 ---
 
 <div class="header-search-actions">
-	<DefaultSearch {...Astro.props} />
+	<ViewModesSearch {...Astro.props} />
 	<ChatAssistant />
 </div>

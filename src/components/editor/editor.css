@@ -208,6 +208,14 @@ body {
 	color: #991b1b;
 }
 
+/* Aviso informativo (ex.: espelhos de idioma criados). Fica logo abaixo de um
+   possível banner de erro, para os dois não se sobreporem. */
+.banner--info {
+	background: #dbeafe;
+	color: #1e3a8a;
+	top: 44px;
+}
+
 /* ---------- File explorer ---------- */
 
 .file-explorer-stack {

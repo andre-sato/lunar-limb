@@ -1,6 +1,11 @@
 ---
 import AiShareDropdown from './AiShareDropdown.astro';
 import EditThisPage from './auth/EditThisPage.astro';
+// Os plugins `starlight-view-modes` e `starlight-videos` também querem este
+// ponto de override. Como o projeto já o usa, os dois são compostos aqui em vez
+// de disputados — é o que os próprios plugins pedem no aviso de build.
+import ViewModesPageTitle from 'starlight-view-modes/components/PageTitle.astro';
+import VideosPageTitle from 'starlight-videos/components/PageTitle.astro';
 
 const { title, description } = Astro.locals.starlightRoute.entry.data;
 const entryFilePath = Astro.locals.starlightRoute.entry.filePath;
@@ -35,3 +40,7 @@ const editLabel =
 		<AiShareDropdown />
 	</div>
 </div>
+
+{/* Alternador de modos de leitura (zen / tela cheia) e metadados de vídeo. */}
+<ViewModesPageTitle />
+<VideosPageTitle />
