@@ -97,8 +97,6 @@ function versionPlugins() {
  * O efeito prático do flag está em `src/config/deploy.ts`: os componentes que
  * dependem de servidor não são renderizados.
  */
-const isPagesTarget = process.env.PORTAL_TARGET === 'pages';
-
 /**
  * `base` para site de projeto no Pages (`usuario.github.io/repositorio`).
  *
@@ -144,7 +142,14 @@ export default defineConfig({
 				// `docs:lint`: o linter olha referências de conteúdo
 				// reutilizável e qualidade editorial; este verifica se cada link
 				// e cada âncora apontam para algo que existe.
-				starlightLinksValidator({
+				// Só entra quando o site é servido na raiz. Com um `base` de
+				// subcaminho, o validador e o `rehypeBasePath` trabalham em
+				// quadros diferentes: o validador confere os caminhos como
+				// escritos na fonte, e o prefixo é acrescentado na renderização.
+				// O resultado é acusar como quebrados links que o HTML final
+				// traz corretos — conferido no HTML gerado. A validação continua
+				// valendo no build de raiz, que é o do desenvolvimento e do PR.
+				...(normalizedBase === '/' ? [starlightLinksValidator({
 					errorOnRelativeLinks: false,
 					errorOnInvalidHashes: true,
 					// Rotas que não são entradas de conteúdo da Starlight: o
@@ -165,7 +170,7 @@ export default defineConfig({
 						'/warp',
 						'/warp.xml',
 					],
-				}),
+				})] : []),
 				// Modos de leitura: zen (só o conteúdo) e tela cheia.
 				starlightViewModes(),
 				// Componentes de vídeo com frontmatter próprio.

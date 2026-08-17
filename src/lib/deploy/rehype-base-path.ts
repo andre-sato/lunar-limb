@@ -56,25 +56,20 @@ export function rehypeBasePath(options: { base: string }) {
 				node.properties[attribute] = prefixUrl(value, base);
 			}
 
-			// `srcset` é uma lista de "url descritor". No hast a propriedade se
-			// chama `srcSet` — o nome do DOM, não o do atributo — e pode vir como
-			// string ou como array, dependendo de como a árvore foi construída.
+			// No hast a propriedade se chama `srcSet` — o nome do DOM, não o do
+			// atributo — e traz a string original: uma lista de "url descritor"
+			// separada por vírgulas.
 			const srcSet = node.properties?.srcSet;
-			const candidates =
-				typeof srcSet === 'string'
-					? srcSet.split(',')
-					: Array.isArray(srcSet)
-						? srcSet.map(String)
-						: null;
-
-			if (candidates) {
-				const rewritten = candidates.map((candidate) => {
-					const parts = candidate.trim().split(/\s+/);
-					if (parts[0] === undefined || parts[0] === '') return candidate;
-					parts[0] = prefixUrl(parts[0], base);
-					return parts.join(' ');
-				});
-				node.properties.srcSet = Array.isArray(srcSet) ? rewritten : rewritten.join(', ');
+			if (typeof srcSet === 'string') {
+				node.properties.srcSet = srcSet
+					.split(',')
+					.map((candidate) => {
+						const parts = candidate.trim().split(/\s+/);
+						if (parts[0] === undefined || parts[0] === '') return candidate;
+						parts[0] = prefixUrl(parts[0], base);
+						return parts.join(' ');
+					})
+					.join(', ');
 			}
 		});
 	};

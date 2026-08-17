@@ -55,7 +55,10 @@ async function countFiles(dir: string): Promise<number> {
 /** Roda `astro build` com o alvo estático marcado. */
 function runBuild(): boolean {
 	console.log('\n  astro build  (PORTAL_TARGET=pages)\n');
-	const result = spawnSync('npx', ['astro', 'build'], {
+	// Comando numa única string: com `shell: true` e lista de argumentos, o Node
+	// avisa que os argumentos não são escapados. Aqui eles são literais nossos,
+	// mas a forma sem lista é a que não carrega a ressalva.
+	const result = spawnSync('npx astro build', {
 		stdio: 'inherit',
 		shell: true,
 		env: { ...process.env, PORTAL_TARGET: 'pages' },

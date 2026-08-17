@@ -1,6 +1,31 @@
 ---
+/**
+ * Hero da Starlight + botão de compartilhar com IA.
+ *
+ * Aqui também se corrige o `base`. Os botões do hero vêm de `hero.actions` no
+ * frontmatter, escritos como caminho absoluto (`/guides/getting-started/`), e a
+ * Starlight os usa como estão. Num site de projeto do GitHub Pages, servido em
+ * `usuario.github.io/repositorio/`, esses links apontariam para fora do site.
+ *
+ * O `rehypeBasePath` não alcança este caso: ele opera no HTML do corpo do
+ * Markdown, e estes links nunca passam por lá — vêm do frontmatter. Foi a
+ * validação de links do build que apontou a diferença.
+ */
 import DefaultHero from '@astrojs/starlight/components/Hero.astro';
 import AiShareDropdown from './AiShareDropdown.astro';
+import { prefixUrl } from '../lib/deploy/rehype-base-path';
+
+const base = import.meta.env.BASE_URL ?? '/';
+
+const route = Astro.locals.starlightRoute;
+const hero = route.entry.data.hero;
+
+if (hero?.actions && base !== '/') {
+	route.entry.data.hero = {
+		...hero,
+		actions: hero.actions.map((action) => ({ ...action, link: prefixUrl(action.link, base) })),
+	};
+}
 ---
 
 <div class="hero-with-ai-share">
