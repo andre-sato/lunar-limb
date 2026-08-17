@@ -14,6 +14,7 @@ import starlightViewModes from 'starlight-view-modes';
 import starlightOpenAPI from 'starlight-openapi';
 import starlightVersions from 'starlight-versions';
 import { portal } from './src/config/portal';
+import { rehypeBasePath } from './src/lib/deploy/rehype-base-path';
 
 // `monaco-vim` (Fase 5) importa caminhos internos como
 // `monaco-editor/esm/vs/editor/editor.api`. O campo `exports` do monaco-editor
@@ -84,8 +85,31 @@ function versionPlugins() {
 	}
 }
 
+/**
+ * Publicação estática (GitHub Pages).
+ *
+ * `PORTAL_TARGET=pages` marca o build cujo destino é um servidor de arquivos.
+ * O output continua sendo `server`: as páginas da Starlight já são pré-
+ * renderizadas mesmo nesse modo, e o deploy publica `dist/client`. Trocar para
+ * `output: 'static'` faria as rotas de API — que existem e são necessárias no
+ * deploy com Node — quebrarem o build.
+ *
+ * O efeito prático do flag está em `src/config/deploy.ts`: os componentes que
+ * dependem de servidor não são renderizados.
+ */
+const isPagesTarget = process.env.PORTAL_TARGET === 'pages';
+
+/**
+ * `base` para site de projeto no Pages (`usuario.github.io/repositorio`).
+ *
+ * Vazio para site de usuário/organização ou domínio próprio, onde a raiz é `/`.
+ */
+const basePath = (process.env.PAGES_BASE || '/').trim();
+const normalizedBase = basePath === '' || basePath === '/' ? '/' : `/${basePath.replace(/^\/+|\/+$/g, '')}/`;
+
 // https://astro.build/config
 export default defineConfig({
+	base: normalizedBase,
 	// URL pública do portal. Sitemap e registro OpenSearch (busca "warp")
 	// precisam de URL absoluta — sem ela o primeiro é ignorado e o segundo
 	// derruba o build. `SITE_URL` permite trocá-la por ambiente sem editar
@@ -205,6 +229,11 @@ export default defineConfig({
 			},
 		}),
 	],
+	markdown: {
+		// Só entra em cena quando o site é servido sob um subcaminho: a Astro
+		// reescreve os links que ela gera, mas não os escritos à mão no Markdown.
+		rehypePlugins: normalizedBase === '/' ? [] : [[rehypeBasePath, { base: normalizedBase }]],
+	},
 	vite: {
 		resolve: { alias: [monacoEsmAlias] },
 	},

@@ -12,11 +12,12 @@
  */
 import Default from '@astrojs/starlight/components/Footer.astro';
 import FeedbackWidget from './FeedbackWidget.astro';
+import { serverFeatures } from '../config/deploy';
 
 // A página inicial usa hero e não é um documento que se "leia até o fim";
 // perguntar ali rende ruído em vez de sinal.
 const isSplash = Astro.locals.starlightRoute.entry.data.template === 'splash';
 ---
 
-{!isSplash && <FeedbackWidget />}
+{!isSplash && serverFeatures.feedback && <FeedbackWidget />}
 <Default {...Astro.props}><slot /></Default>

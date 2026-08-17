@@ -20,10 +20,12 @@
  * documentação, não o trabalho de quem a escreve.
  */
 import Default from '@astrojs/starlight/components/Head.astro';
+import { serverFeatures } from '../config/deploy';
 ---
 
 <Default {...Astro.props}><slot /></Default>
 
+{serverFeatures.analytics && (
 <script is:inline>
 	(() => {
 		// Respeita Do Not Track antes mesmo de pedir a configuração: sem sinal
@@ -56,3 +58,4 @@ import Default from '@astrojs/starlight/components/Head.astro';
 		else window.addEventListener('load', start, { once: true });
 	})();
 </script>
+)}

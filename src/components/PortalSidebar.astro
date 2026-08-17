@@ -7,7 +7,8 @@
  */
 import Default from '@astrojs/starlight/components/Sidebar.astro';
 import SidebarAccount from './auth/SidebarAccount.astro';
+import { serverFeatures } from '../config/deploy';
 ---
 
 <Default {...Astro.props}><slot /></Default>
-<SidebarAccount server:defer />
+{serverFeatures.accountMenu && <SidebarAccount server:defer />}

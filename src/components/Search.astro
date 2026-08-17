@@ -4,9 +4,10 @@ import ChatAssistant from './ChatAssistant.astro';
 // Usar o componente dele aqui, em vez do `Search` padrão, é o que faz os dois
 // conviverem: ele renderiza o padrão por dentro.
 import ViewModesSearch from 'starlight-view-modes/components/Search.astro';
+import { serverFeatures } from '../config/deploy';
 ---
 
 <div class="header-search-actions">
 	<ViewModesSearch {...Astro.props} />
-	<ChatAssistant />
+	{serverFeatures.chat && <ChatAssistant />}
 </div>

@@ -1,0 +1,95 @@
+# Publica a documentação no GitHub Pages.
+#
+# O que sobe é o **site de documentação**: as páginas da Starlight, os assets e o
+# índice de busca do Pagefind. O que não sobe é a aplicação — editor, login,
+# Settings, chat e feedback precisam de um servidor Node, e o Pages serve
+# arquivos. O build usa `PORTAL_TARGET=pages`, que remove da página os botões
+# desses recursos em vez de publicá-los quebrados (ver src/config/deploy.ts).
+#
+# Antes do primeiro deploy, em Settings → Pages do repositório, defina
+# "Source" como "GitHub Actions".
+
+name: Publicar documentação
+
+on:
+  push:
+    branches: [master, main]
+    # Só o que entra no site. Mexer no editor ou no MCP Server não republica.
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - 'astro.config.mjs'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/deploy-docs.yml'
+  # Permite publicar à mão, inclusive de outro branch.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  # Os dois primeiros são o que o deploy-pages exige; nada além disso.
+  pages: write
+  id-token: write
+
+# Uma publicação por vez, sem cancelar a que está em andamento: interromper um
+# deploy no meio deixaria o site num estado indefinido.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      # A qualidade do conteúdo é verificada antes de publicar. O quality gate
+      # do linter e a validação de links do build são as duas travas que impedem
+      # a publicação de documentação quebrada.
+      - name: Verificar a documentação
+        run: |
+          npm run docs:lint
+          npm run docs:asyncapi -- --check
+
+      - name: Testes
+        run: npm test
+
+      - name: Construir o site
+        env:
+          # URL pública: o sitemap e o registro OpenSearch precisam dela
+          # absoluta. `github.repository_owner` e o nome do repositório montam a
+          # URL padrão do Pages; um domínio próprio entra como variável
+          # `SITE_URL` do repositório.
+          SITE_URL: ${{ vars.SITE_URL || format('https://{0}.github.io/{1}', github.repository_owner, github.event.repository.name) }}
+          # `base` para site de projeto. Num site de usuário/organização
+          # (`usuario.github.io`) ou com domínio próprio, defina a variável
+          # `PAGES_BASE` como `/`.
+          PAGES_BASE: ${{ vars.PAGES_BASE || github.event.repository.name }}
+          PORTAL_TARGET: pages
+        run: npx astro build
+
+      - name: Preparar o pacote
+        run: npm run build:pages -- --verify-only
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          # Só o cliente. `dist/server` é o servidor Node e não tem função num
+          # servidor de arquivos.
+          path: dist/client
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

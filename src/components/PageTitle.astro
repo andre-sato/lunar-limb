@@ -1,6 +1,7 @@
 ---
 import AiShareDropdown from './AiShareDropdown.astro';
 import EditThisPage from './auth/EditThisPage.astro';
+import { serverFeatures } from '../config/deploy';
 // Os plugins `starlight-view-modes` e `starlight-videos` também querem este
 // ponto de override. Como o projeto já o usa, os dois são compostos aqui em vez
 // de disputados — é o que os próprios plugins pedem no aviso de build.
@@ -36,7 +37,9 @@ const editLabel =
 	<div class="page-title-actions">
 		{/* server:defer — a página é estática, mas este fragmento é renderizado
 		    sob demanda com o cookie da sessão. Viewer e anônimo recebem vazio. */}
-		<EditThisPage server:defer editorPath={editorPath} label={editLabel} title={title} />
+		{serverFeatures.editThisPage && (
+			<EditThisPage server:defer editorPath={editorPath} label={editLabel} title={title} />
+		)}
 		<AiShareDropdown />
 	</div>
 </div>
