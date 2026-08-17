@@ -9,7 +9,7 @@ Este guia apresenta o fluxo mínimo de integração. Os exemplos usam valores de
 
 ## 1. Crie uma credencial
 
-No ambiente da sua empresa, crie uma chave de API ou um token de acesso com as permissões necessárias. Nunca exponha essa credencial em aplicações executadas no navegador.
+No ambiente da sua empresa, crie uma chave de API ou um token de acesso com as permissões necessárias. Não exponha essa credencial em aplicações executadas no navegador.
 
 ## 2. Defina a URL base
 
