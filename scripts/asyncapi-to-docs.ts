@@ -58,7 +58,9 @@ async function main(): Promise<number> {
 				sourcePath: `src/schemas/${file}`,
 				// Depois das páginas escritas à mão da referência.
 				sidebarOrder: 10,
-				tags: ['api'],
+				// `eventos` porque AsyncAPI descreve canais e mensagens, não rotas
+				// HTTP — é o que separa esta referência da de uma API REST.
+				tags: ['api', 'eventos'],
 			});
 		} catch (error) {
 			if (error instanceof AsyncApiError) {

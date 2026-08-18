@@ -225,6 +225,20 @@ O menu funciona sem JavaScript: cada submenu é um `<details>`. O script só
 acrescenta o que o HTML não dá — fechar ao clicar fora, fechar com `Esc`
 devolvendo o foco, e manter um submenu aberto por vez.
 
+## Atualizações recentes
+
+[`/atualizacoes`](src/pages/atualizacoes.astro) lista as páginas alteradas nos
+últimos 30 dias, da mais recente para a mais antiga, agrupadas por dia.
+
+A data vem do **Git**, não do `mtime`: o `mtime` muda a cada clone ou `npm ci`,
+e num servidor de CI todos os arquivos teriam a data de agora. Um clone raso
+(`fetch-depth: 1`) não tem histórico — nesse caso a página cai para o sistema de
+arquivos e **avisa na tela** que as datas não são as das alterações.
+
+A sugestão de montar a estrutura a partir de um `index` por pasta não se aplica
+aqui: só os diretórios de idioma têm um. O agrupamento usa a própria pasta, que
+é de onde a Starlight já deriva as seções.
+
 ## Busca
 
 Dois provedores, escolhidos por ambiente:

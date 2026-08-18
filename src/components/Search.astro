@@ -15,18 +15,25 @@
  * o botão do modo zen continua no seu lugar, mas o atalho de teclado dele, que
  * é registrado naquele componente, sai junto.
  *
- * Por que compor aqui em vez de deixar o plugin assumir o override: o
- * assistente fica ao lado da busca, e o `Search` é o único ponto onde ele cabe.
- * O plugin avisa no build que não vai substituir o override — é esperado.
+ * O assistente de documentação mora na barra lateral, aberto. Aqui ele só
+ * aparece nas páginas **sem** barra lateral — a capa —, que de outro modo
+ * ficariam sem busca conversacional. É o mesmo componente, na forma de modal.
+ *
+ * Por que este override existe mesmo assim: o `starlight-docsearch` e o
+ * `starlight-view-modes` disputam o mesmo ponto, e compor os dois aqui é o que
+ * os dois pedem no aviso de build.
  */
 import ChatAssistant from './ChatAssistant.astro';
 import ViewModesSearch from 'starlight-view-modes/components/Search.astro';
 import DocSearch from '@astrojs/starlight-docsearch/DocSearch.astro';
 import { searchProvider } from '../config/search';
 import { serverFeatures } from '../config/deploy';
+
+// Onde há barra lateral, o assistente já está lá — em painel, aberto.
+const hasSidebar = Astro.locals.starlightRoute?.hasSidebar ?? false;
 ---
 
 <div class="header-search-actions">
 	{searchProvider === 'algolia' ? <DocSearch {...Astro.props} /> : <ViewModesSearch {...Astro.props} />}
-	{serverFeatures.chat && <ChatAssistant />}
+	{serverFeatures.chat && !hasSidebar && <ChatAssistant />}
 </div>

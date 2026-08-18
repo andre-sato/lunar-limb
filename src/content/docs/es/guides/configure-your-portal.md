@@ -3,6 +3,7 @@ title: Personaliza tu portal
 description: Adapta la marca, los contactos y el endpoint principal para una nueva empresa.
 sidebar:
   order: 2
+tags: [guia, configuracao, portal]
 ---
 
 El portal está diseñado para reutilizarse. Las configuraciones que normalmente cambian entre implementaciones están reunidas en `src/config/portal.ts`.

@@ -35,6 +35,11 @@ export interface DocumentChunk {
 	content: string;
 	url: string;
 	kind: 'page' | 'snippet';
+	/**
+	 * Tags do frontmatter. São o assunto declarado pelo autor, iguais nos três
+	 * idiomas, e pesam na relevância junto com título e heading.
+	 */
+	tags?: string[];
 	/** Páginas que consomem este bloco reutilizável. */
 	usedBy?: string[];
 }

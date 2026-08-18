@@ -1,0 +1,175 @@
+---
+/**
+ * Índice de atualizações recentes.
+ *
+ * Lista as páginas alteradas nos últimos 30 dias, da mais recente para a mais
+ * antiga. É a pergunta "o que mudou desde a última vez que eu li?", que a
+ * navegação por seção não responde.
+ *
+ * Uma nota sobre a estrutura de pastas: a sugestão de montá-la a partir de um
+ * `index` em cada pasta não se aplica aqui — só os diretórios de idioma têm um.
+ * O agrupamento usa a própria pasta, que é de onde a Starlight já deriva as
+ * seções.
+ */
+import { getCollection } from 'astro:content';
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+import {
+	DEFAULT_WINDOW_DAYS,
+	buildRecentList,
+	filesystemDates,
+	gitDates,
+	type DateSource,
+} from '../lib/updates/recent';
+
+export const prerender = true;
+
+const DOCS_ROOT = 'src/content/docs';
+
+/** O `filePath` vem com separador do sistema; o Git sempre fala com `/`. */
+const toPosix = (value: string) => value.split(String.fromCharCode(92)).join('/');
+
+const collection = await getCollection('docs');
+
+const pages = collection
+	.filter((entry) => entry.filePath)
+	.map((entry) => ({
+		path: toPosix(entry.filePath!).replace(`${DOCS_ROOT}/`, ''),
+		title: entry.data.title,
+		url: `/${entry.id}/`.replace(/\/+/g, '/').replace(/\/index\/$/, '/'),
+		repoPath: toPosix(entry.filePath!),
+	}));
+
+// O Git é a fonte preferida; o sistema de arquivos é o plano B declarado.
+const fromGit = await gitDates(DEFAULT_WINDOW_DAYS);
+let source: DateSource = 'git';
+
+const byRepoPath = new Map(
+	pages.map((page) => [page.repoPath, page.path] as const)
+);
+
+let dates = new Map<string, Date>();
+for (const [repoPath, date] of fromGit) {
+	const relative = byRepoPath.get(repoPath);
+	if (relative) dates.set(relative, date);
+}
+
+if (dates.size === 0) {
+	source = 'filesystem';
+	dates = await filesystemDates(pages, DOCS_ROOT);
+}
+
+const entries = buildRecentList(pages, dates);
+
+const SECTION_LABELS: Record<string, string> = {
+	guides: 'Guias',
+	'api-reference': 'Referência da API',
+	changelog: 'Changelog',
+	reference: 'Referência',
+};
+
+const formatter = new Intl.DateTimeFormat('pt-BR', {
+	day: '2-digit',
+	month: 'long',
+	year: 'numeric',
+});
+
+/** Agrupa por dia: é a granularidade que responde "o que mudou ontem?". */
+const byDay = new Map<string, typeof entries>();
+for (const entry of entries) {
+	const key = entry.updatedAt.toISOString().slice(0, 10);
+	const list = byDay.get(key) ?? [];
+	list.push(entry);
+	byDay.set(key, list);
+}
+---
+
+<StarlightPage
+	frontmatter={{
+		title: 'Atualizações recentes',
+		description: `Páginas alteradas nos últimos ${DEFAULT_WINDOW_DAYS} dias, da mais recente para a mais antiga.`,
+		tableOfContents: false,
+	}}
+>
+	{entries.length === 0 ? (
+		<p>Nenhuma página foi alterada nos últimos {DEFAULT_WINDOW_DAYS} dias.</p>
+	) : (
+		<Fragment>
+			<p>
+				{entries.length === 1
+					? '1 página alterada'
+					: `${entries.length} páginas alteradas`} nos últimos {DEFAULT_WINDOW_DAYS} dias.
+			</p>
+
+			{source === 'filesystem' && (
+				<p class="updates__warning">
+					As datas abaixo vêm do sistema de arquivos, não do histórico do Git — o
+					repositório foi clonado sem histórico. Elas indicam quando o arquivo foi
+					escrito neste servidor, não quando o texto mudou.
+				</p>
+			)}
+
+			{[...byDay.entries()].map(([day, dayEntries]) => (
+				<section class="updates__day">
+					<h2>{formatter.format(new Date(`${day}T12:00:00Z`))}</h2>
+					<ul class="updates__list">
+						{dayEntries.map((entry) => (
+							<li>
+								<a href={entry.url}>{entry.title}</a>
+								{entry.section && (
+									<span class="updates__section">
+										{SECTION_LABELS[entry.section] ?? entry.section}
+									</span>
+								)}
+								<code class="updates__path">{entry.path}</code>
+							</li>
+						))}
+					</ul>
+				</section>
+			))}
+		</Fragment>
+	)}
+</StarlightPage>
+
+<style>
+	.updates__warning {
+		border-inline-start: 3px solid var(--sl-color-orange);
+		padding-inline-start: 0.8rem;
+		color: var(--sl-color-gray-2);
+	}
+
+	.updates__day h2 {
+		font-size: var(--sl-text-lg);
+		margin-block: 1.5rem 0.5rem;
+		padding-block-end: 0.3rem;
+		border-block-end: 1px solid var(--sl-color-gray-5);
+	}
+
+	.updates__list {
+		list-style: none;
+		padding: 0;
+		margin: 0;
+		display: grid;
+		gap: 0.5rem;
+	}
+
+	.updates__list li {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: baseline;
+		gap: 0.5rem;
+	}
+
+	.updates__section {
+		font-size: var(--sl-text-xs);
+		padding: 0.05rem 0.4rem;
+		border-radius: 999px;
+		background: var(--sl-color-gray-6);
+		color: var(--sl-color-gray-2);
+	}
+
+	.updates__path {
+		font-size: var(--sl-text-xs);
+		color: var(--sl-color-gray-3);
+		margin-inline-start: auto;
+	}
+</style>

@@ -3,6 +3,7 @@ title: Descripción general
 description: Convenciones comunes para consumir la API.
 sidebar:
   order: 1
+tags: [api]
 ---
 
 Esta sección describe el contrato técnico de la API. Las rutas y nombres presentados son ejemplos neutrales para orientar la documentación de cualquier producto.

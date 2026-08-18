@@ -3,6 +3,7 @@ title: Get started
 description: Make your first API call in a few minutes.
 sidebar:
   order: 1
+tags: [guia, api, autenticacao]
 ---
 
 This guide introduces the minimum integration flow. The examples use sample values so the portal can be adapted to any product.

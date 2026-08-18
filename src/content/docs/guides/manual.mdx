@@ -4,6 +4,7 @@ description: Guia completo do Developer Portal e do editor de documentação —
 sidebar:
   label: Manual completo
   order: 4
+tags: [guia, portal, editor, ia]
 ---
 
 import DiagramaArquitetura from '../../../components/docs/DiagramaArquitetura.astro';
@@ -55,7 +56,8 @@ Além do conteúdo, o portal traz alguns recursos que valem conhecer:
 | --- | --- |
 | **Modo zen** | O alternador no topo da página abre a leitura sem barra lateral nem cabeçalho. Também dá para ir direto: `/zen-mode/<caminho-da-página>`. |
 | **Voltar ao topo** | Aparece depois de rolar a página, com um anel que mostra o progresso da leitura. |
-| **Tags** | Páginas podem declarar `tags: [api, seguranca]` no frontmatter. O índice fica em [`/tags`](/tags), e a taxonomia — rótulos por idioma, descrições, cores — no `tags.yml` do repositório. |
+| **Tags** | Páginas declaram `tags: [api, seguranca]` no frontmatter. O índice fica em [`/tags`](/tags), e a taxonomia — rótulos por idioma, descrições, cores — no `tags.yml`. As tags também pesam na busca do assistente. |
+| **Atualizações recentes** | [`/atualizacoes`](/atualizacoes) lista o que mudou nos últimos 30 dias, da mudança mais recente para a mais antiga, agrupada por dia. As datas vêm do histórico do Git. |
 | **Busca warp** | `/warp?q=termo` pula a lista e abre direto o melhor resultado. O portal também se registra como buscador do navegador, então dá para pesquisar a documentação pela barra de endereços. |
 | **Links validados** | Todo link interno é verificado no build. Um link para uma página que não existe reprova o build em vez de virar 404 para o leitor. |
 
@@ -96,8 +98,11 @@ abre o cliente escolhido.
 
 Os clientes oferecidos (ChatGPT, Claude, Gemini, Copilot) são configuráveis.
 
-**Buscar na documentação**, ao lado da busca no cabeçalho, aceita a pergunta em
-linguagem natural — em português, inglês ou espanhol — e responde em três
+**Buscar na documentação** fica na barra lateral, aberto, e recolhe no título
+quando você quiser espaço — a escolha acompanha a navegação. Nas páginas sem
+barra lateral, como a capa, ele aparece como botão no cabeçalho.
+
+Aceita a pergunta em linguagem natural — em português, inglês ou espanhol — e responde em três
 partes, nesta ordem:
 
 1. **um resumo curto** do que foi encontrado;
@@ -116,6 +121,12 @@ foram encontrados. Dizer menos é melhor que dizer errado.
 O ponto importante é o que a busca **não** faz: nada é redigido ou interpretado.
 Todo texto que aparece na tela está publicado em alguma página, e o link prova
 onde — então a busca não tem como afirmar algo que a documentação não diga.
+
+As **tags** do frontmatter entram na busca com o mesmo peso do título: uma
+pergunta sobre autenticação encontra a página marcada com `autenticacao` mesmo
+que use outras palavras. Para isso funcionar, a busca dobra acentos e reduz as
+formas da palavra — `autenticar`, `autenticação` e `autenticacao` chegam ao
+mesmo radical, e sem isso a tag nunca casaria com o texto que ela descreve.
 
 Isso muda o modo de usar. Uma pergunta com o nome exato de um campo, de um erro
 ou de um comando encontra o trecho certo na primeira tentativa; uma pergunta

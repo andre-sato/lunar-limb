@@ -145,7 +145,7 @@ describe('página gerada', () => {
 	const page = generateReferencePage(loadSpec(), {
 		sourcePath: 'src/schemas/streetlights-kafka.asyncapi.yaml',
 		sidebarOrder: 10,
-		tags: ['api'],
+		tags: ['api', 'eventos'],
 	});
 
 	it('tem frontmatter válido com título e descrição', () => {
@@ -251,7 +251,7 @@ describe('página gerada', () => {
 		const again = generateReferencePage(loadSpec(), {
 			sourcePath: 'src/schemas/streetlights-kafka.asyncapi.yaml',
 			sidebarOrder: 10,
-			tags: ['api'],
+			tags: ['api', 'eventos'],
 		});
 		expect(again).toBe(page);
 	});

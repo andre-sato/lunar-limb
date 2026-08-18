@@ -3,6 +3,7 @@ title: Autenticação
 description: Envie credenciais de forma segura em todas as requisições.
 sidebar:
   order: 2
+tags: [api, seguranca, autenticacao]
 ---
 
 Use o cabeçalho `Authorization` para enviar um token de acesso em chamadas à API.

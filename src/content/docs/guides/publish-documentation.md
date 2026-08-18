@@ -3,6 +3,7 @@ title: Publique documentação
 description: Adicione páginas e mantenha as três áreas do portal atualizadas.
 sidebar:
   order: 3
+tags: [guia, publicacao, portal]
 ---
 
 Cada arquivo Markdown ou MDX em `src/content/docs/` vira uma página do portal. A organização por diretórios separa conteúdo orientado a tarefas, contratos técnicos e histórico de mudanças.

@@ -3,6 +3,7 @@ title: Errores
 description: Códigos de estado HTTP y estructuras de error devueltas por la API.
 sidebar:
   order: 3
+tags: [api, erros]
 ---
 
 Los errores deben usar códigos HTTP estandarizados y un cuerpo JSON que permita identificar y corregir el problema.

@@ -160,6 +160,32 @@ function docSearchStub() {
 const basePath = (process.env.PAGES_BASE || '/').trim();
 const normalizedBase = basePath === '' || basePath === '/' ? '/' : `/${basePath.replace(/^\/+|\/+$/g, '')}/`;
 
+/**
+ * Prerender das páginas de tag.
+ *
+ * O `starlight-tags` injeta uma rota dinâmica com `getStaticPaths`. Num projeto
+ * de output `server`, a Astro ignora `getStaticPaths` e chama a página sob
+ * demanda — sem os dados que ela espera, o que dá 500 em cada `/tags/<tag>`.
+ * O aviso aparece no build ("getStaticPaths() ignored in dynamic page"), mas o
+ * arquivo é do pacote e não dá para acrescentar `export const prerender = true`
+ * nele.
+ *
+ * Este hook marca a rota como pré-renderizada de fora, que é para isso que ele
+ * existe. O índice `/tags` já funcionava; o que estava quebrado era a página de
+ * cada tag.
+ */
+function prerenderTagPages() {
+	return {
+		name: 'prerender-tag-pages',
+		hooks: {
+			/** @param {{ route: { component: string, prerender: boolean } }} options */
+			'astro:route:setup': ({ route }) => {
+				if (route.component.includes('starlight-tags')) route.prerender = true;
+			},
+		},
+	};
+}
+
 // https://astro.build/config
 export default defineConfig({
 	base: normalizedBase,
@@ -221,6 +247,7 @@ export default defineConfig({
 						'/403',
 						'/tags',
 						'/tags/**',
+						'/atualizacoes',
 						'/zen-mode/**',
 						'/warp',
 						'/warp.xml',
@@ -260,6 +287,7 @@ export default defineConfig({
 				Hero: './src/components/Hero.astro',
 				Search: './src/components/Search.astro',
 				Header: './src/components/PortalHeader.astro',
+				Sidebar: './src/components/PortalSidebar.astro',
 				Head: './src/components/Head.astro',
 				Footer: './src/components/Footer.astro',
 			},
@@ -285,6 +313,7 @@ export default defineConfig({
 		// Busca "warp drive": `/warp?q=termo` cai direto no melhor resultado do
 		// Pagefind, e o OpenSearch registra o portal como buscador no navegador.
 		// É integração do Astro, não plugin da Starlight.
+		prerenderTagPages(),
 		starWarp({
 			openSearch: {
 				enabled: true,

@@ -15,11 +15,23 @@
  * mensagem: um 401 vira o convite para entrar, com `next` de volta para a
  * página atual.
  */
+interface Props {
+	/**
+	 * `panel` — aberto na barra lateral, recolhível. É o lugar dele hoje: fica
+	 * à vista enquanto se lê, que é quando as dúvidas aparecem.
+	 * `dialog` — modal disparado por um botão. Sobrevive para as páginas sem
+	 * barra lateral, como a capa, que de outro modo ficariam sem o assistente.
+	 */
+	variant?: 'panel' | 'dialog';
+}
+
+const { variant = 'dialog' } = Astro.props;
+const isPanel = variant === 'panel';
 const { t } = Astro.locals;
 ---
 
 <div
-	class="doc-chat"
+	class:list={['doc-chat', isPanel && 'doc-chat--panel']}
 	data-doc-chat
 	data-intro={t('chat.intro')}
 	data-thinking={t('chat.thinking')}
@@ -32,55 +44,95 @@ const { t } = Astro.locals;
 	data-helpful={t('chat.helpful')}
 	data-not-helpful={t('chat.notHelpful')}
 >
-	<button class="doc-chat__trigger" type="button" data-chat-open aria-haspopup="dialog">
-		<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-			<path d="M21 12a8 8 0 0 1-8 8H7l-4 3v-7a8 8 0 0 1 8-8h2a8 8 0 0 1 8 4Z" />
-		</svg>
-		<span>{t('chat.trigger')}</span>
-	</button>
+	{isPanel ? (
+		<details class="doc-chat__collapsible" data-chat-collapsible open>
+			<summary class="doc-chat__summary">
+				<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+					<path d="M21 12a8 8 0 0 1-8 8H7l-4 3v-7a8 8 0 0 1 8-8h2a8 8 0 0 1 8 4Z" />
+				</svg>
+				<span>{t('chat.title')}</span>
+				<svg class="doc-chat__chevron" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+					<path d="m6 9 6 6 6-6" />
+				</svg>
+			</summary>
 
-	<dialog class="doc-chat__dialog" data-chat-dialog aria-labelledby="doc-chat-title">
-		<div class="doc-chat__panel">
-			<header class="doc-chat__header">
-				<div>
-					<p class="doc-chat__eyebrow">{t('chat.eyebrow')}</p>
-					<h2 id="doc-chat-title">{t('chat.title')}</h2>
+			<div class="doc-chat__panel">
+				<div class="doc-chat__messages" data-chat-messages aria-live="polite">
+					<div class="doc-chat__message doc-chat__message--assistant">{t('chat.intro')}</div>
 				</div>
-				<div class="doc-chat__header-actions">
+
+				<form class="doc-chat__form" data-chat-form>
+					<label class="sr-only" for="doc-chat-input">{t('chat.title')}</label>
+					<textarea
+						id="doc-chat-input"
+						name="message"
+						rows="2"
+						placeholder={t('chat.placeholder')}
+						maxlength="500"
+						required></textarea>
+					<button class="doc-chat__send" type="submit">{t('chat.send')}</button>
+				</form>
+
+				<div class="doc-chat__footer">
 					<button class="doc-chat__ghost" type="button" data-chat-clear>{t('chat.clear')}</button>
-					<button class="doc-chat__close" type="button" data-chat-close aria-label={t('chat.close')}>
-						<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-							<path d="m6 6 12 12M18 6 6 18" />
-						</svg>
-					</button>
+					<p class="doc-chat__disclaimer">{t('chat.disclaimer')}</p>
 				</div>
-			</header>
-
-			<div class="doc-chat__messages" data-chat-messages aria-live="polite">
-				<div class="doc-chat__message doc-chat__message--assistant">{t('chat.intro')}</div>
 			</div>
+		</details>
+	) : (
+		<Fragment>
+		<button class="doc-chat__trigger" type="button" data-chat-open aria-haspopup="dialog">
+			<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+				<path d="M21 12a8 8 0 0 1-8 8H7l-4 3v-7a8 8 0 0 1 8-8h2a8 8 0 0 1 8 4Z" />
+			</svg>
+			<span>{t('chat.trigger')}</span>
+		</button>
 
-			<form class="doc-chat__form" data-chat-form>
-				<label class="sr-only" for="doc-chat-input">{t('chat.title')}</label>
-				<textarea
-					id="doc-chat-input"
-					name="message"
-					rows="2"
-					placeholder={t('chat.placeholder')}
-					maxlength="500"
-					required></textarea>
-				<button class="doc-chat__send" type="submit">{t('chat.send')}</button>
-			</form>
+		<dialog class="doc-chat__dialog" data-chat-dialog aria-labelledby="doc-chat-title">
+			<div class="doc-chat__panel">
+				<header class="doc-chat__header">
+					<div>
+						<p class="doc-chat__eyebrow">{t('chat.eyebrow')}</p>
+						<h2 id="doc-chat-title">{t('chat.title')}</h2>
+					</div>
+					<div class="doc-chat__header-actions">
+						<button class="doc-chat__ghost" type="button" data-chat-clear>{t('chat.clear')}</button>
+						<button class="doc-chat__close" type="button" data-chat-close aria-label={t('chat.close')}>
+							<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+								<path d="m6 6 12 12M18 6 6 18" />
+							</svg>
+						</button>
+					</div>
+				</header>
 
-			<p class="doc-chat__disclaimer">{t('chat.disclaimer')}</p>
-		</div>
-	</dialog>
+				<div class="doc-chat__messages" data-chat-messages aria-live="polite">
+					<div class="doc-chat__message doc-chat__message--assistant">{t('chat.intro')}</div>
+				</div>
+
+				<form class="doc-chat__form" data-chat-form>
+					<label class="sr-only" for="doc-chat-input">{t('chat.title')}</label>
+					<textarea
+						id="doc-chat-input"
+						name="message"
+						rows="2"
+						placeholder={t('chat.placeholder')}
+						maxlength="500"
+						required></textarea>
+					<button class="doc-chat__send" type="submit">{t('chat.send')}</button>
+				</form>
+
+				<p class="doc-chat__disclaimer">{t('chat.disclaimer')}</p>
+			</div>
+		</dialog>
+		</Fragment>
+	)}
 </div>
 
 <script>
 	const root = document.querySelector<HTMLElement>('[data-doc-chat]');
 	if (root) {
-		const dialog = root.querySelector<HTMLDialogElement>('[data-chat-dialog]')!;
+		// No painel da barra lateral não existe modal; o resto da lógica é o mesmo.
+		const dialog = root.querySelector<HTMLDialogElement>('[data-chat-dialog]');
 		const messages = root.querySelector<HTMLElement>('[data-chat-messages]')!;
 		const form = root.querySelector<HTMLFormElement>('[data-chat-form]')!;
 		const input = form.querySelector<HTMLTextAreaElement>('textarea')!;
@@ -90,10 +142,29 @@ const { t } = Astro.locals;
 		let busy = false;
 
 		root.querySelector('[data-chat-open]')?.addEventListener('click', () => {
-			dialog.showModal();
+			dialog?.showModal();
 			input.focus();
 		});
-		root.querySelector('[data-chat-close]')?.addEventListener('click', () => dialog.close());
+		root.querySelector('[data-chat-close]')?.addEventListener('click', () => dialog?.close());
+
+		// Recolhido ou aberto, a escolha acompanha a navegação. O padrão é
+		// aberto: o assistente está na lateral justamente para ficar à vista.
+		const collapsible = root.querySelector<HTMLDetailsElement>('[data-chat-collapsible]');
+		if (collapsible) {
+			const KEY = 'lunar-limb:chat-open';
+			try {
+				if (window.localStorage.getItem(KEY) === '0') collapsible.open = false;
+			} catch {
+				// Armazenamento bloqueado: fica no padrão.
+			}
+			collapsible.addEventListener('toggle', () => {
+				try {
+					window.localStorage.setItem(KEY, collapsible.open ? '1' : '0');
+				} catch {
+					// Sem persistir; a sessão atual continua respeitando a escolha.
+				}
+			});
+		}
 		root.querySelector('[data-chat-clear]')?.addEventListener('click', () => {
 			conversationId = undefined;
 			messages.replaceChildren();
@@ -408,6 +479,75 @@ const { t } = Astro.locals;
 		.doc-chat__trigger {
 			padding-inline: 0.6rem;
 		}
+	}
+
+	/* --- Variante de painel, na barra lateral ---------------------------- */
+
+	.doc-chat--panel {
+		display: block;
+		margin-block: 1rem 0.5rem;
+		border: 1px solid var(--sl-color-gray-5);
+		border-radius: 0.6rem;
+		background: var(--sl-color-black);
+		overflow: hidden;
+	}
+
+	.doc-chat__summary {
+		display: flex;
+		align-items: center;
+		gap: 0.45rem;
+		padding: 0.55rem 0.7rem;
+		font-size: var(--sl-text-sm);
+		font-weight: 600;
+		color: var(--sl-color-white);
+		cursor: pointer;
+		list-style: none;
+	}
+
+	.doc-chat__summary::-webkit-details-marker {
+		display: none;
+	}
+
+	.doc-chat__summary svg {
+		width: 1em;
+		height: 1em;
+		flex: none;
+	}
+
+	.doc-chat__chevron {
+		margin-inline-start: auto;
+		transition: transform 0.15s ease;
+	}
+
+	.doc-chat__collapsible[open] .doc-chat__chevron {
+		transform: rotate(180deg);
+	}
+
+	.doc-chat--panel .doc-chat__panel {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		padding: 0 0.6rem 0.6rem;
+	}
+
+	.doc-chat--panel .doc-chat__messages {
+		/* Alto o bastante para uma resposta com trechos, baixo o bastante para
+		   a navegação da seção continuar visível acima. */
+		max-height: 22rem;
+		min-height: 4rem;
+		overflow-y: auto;
+	}
+
+	.doc-chat--panel .doc-chat__footer {
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: 0.5rem;
+	}
+
+	.doc-chat--panel .doc-chat__disclaimer {
+		margin: 0;
+		text-align: end;
 	}
 
 	.doc-chat__messages {

@@ -31,10 +31,59 @@ const STOPWORDS = new Set([
 	'that','from','by','as','about','into','get','use','using',
 ]);
 
-function tokenize(text: string): string[] {
-	return (text.toLowerCase().match(/[\p{L}\p{N}][\p{L}\p{N}_-]*/gu) ?? []).filter(
-		(token) => token.length > 1 && !STOPWORDS.has(token)
-	);
+/**
+ * Divide o texto em tokens, dobrando os acentos.
+ *
+ * Sem dobrar, `autenticação` no texto e `autenticacao` na tag são tokens
+ * diferentes, e a tag nunca casa com a página que ela descreve. Dobrar também
+ * resolve o leitor que digita sem acento, que é a maioria.
+ */
+/**
+ * Sufixos que separam formas da mesma palavra.
+ *
+ * Sem isto, `autenticar` (como o leitor pergunta), `autenticação` (como a
+ * página escreve) e `autenticacao` (como a tag é escrita) são três tokens sem
+ * relação, e a tag não serve para nada. Reduzidos, viram `autentic`.
+ *
+ * A lista é curta e conservadora, e só se aplica a palavras longas: cortar
+ * sufixo de palavra curta junta coisas que não têm parentesco. Não é um
+ * stemmer completo — é o mínimo que faz as tags casarem com o texto.
+ */
+// Do mais longo para o mais curto: `autenticacao` precisa perder `acao`
+// inteiro para chegar em `autentic`, que é onde `autenticar` também chega.
+// Cortando só `cao`, sobraria `autentica` e as duas formas não se encontrariam.
+const SUFFIXES = [
+	'acoes', 'acao', 'coes', 'cao',
+	'mentos', 'mento', 'ndo', 'veis', 'vel',
+	'ares', 'ar', 'er', 'ir',
+	'adas', 'ada', 'ados', 'ado', 'idas', 'ida', 'idos', 'ido',
+	'es', 's',
+];
+
+/** Menor tamanho que sobra depois de cortar: abaixo disso o corte não vale. */
+const MIN_STEM = 4;
+
+export function stem(token: string): string {
+	if (token.length < 6) return token;
+
+	for (const suffix of SUFFIXES) {
+		if (token.endsWith(suffix) && token.length - suffix.length >= MIN_STEM) {
+			return token.slice(0, -suffix.length);
+		}
+	}
+
+	return token;
+}
+
+export function tokenize(text: string): string[] {
+	const folded = text
+		.toLowerCase()
+		.normalize('NFD')
+		.replace(/[̀-ͯ]/g, '');
+
+	return (folded.match(/[\p{L}\p{N}][\p{L}\p{N}_-]*/gu) ?? [])
+		.filter((token) => token.length > 1 && !STOPWORDS.has(token))
+		.map(stem);
 }
 
 /** Remove frontmatter e ruído de marcação, preservando o texto legível. */
@@ -44,6 +93,37 @@ function stripMarkup(raw: string): string {
 		.replace(/^import\s.+$/gm, '')
 		.replace(/^export\s.+$/gm, '')
 		.replace(/\r/g, '');
+}
+
+/**
+ * Tags do frontmatter.
+ *
+ * Aceita as duas formas que o YAML permite — `tags: [a, b]` e a lista com
+ * hífens —, porque as duas aparecem em documentação escrita à mão.
+ */
+export function readFrontmatterTags(raw: string): string[] {
+	const match = raw.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+	if (!match) return [];
+
+	const front = match[1];
+
+	const inline = front.match(/^tags:\s*\[(.*?)\]/m);
+	if (inline) {
+		return inline[1]
+			.split(',')
+			.map((tag) => tag.trim().replace(/^["']|["']$/g, ''))
+			.filter(Boolean);
+	}
+
+	const block = front.match(/^tags:\s*\n((?:[ \t]*-[ \t]*.+\n?)+)/m);
+	if (block) {
+		return block[1]
+			.split('\n')
+			.map((line) => line.replace(/^[ \t]*-[ \t]*/, '').trim().replace(/^["']|["']$/g, ''))
+			.filter(Boolean);
+	}
+
+	return [];
 }
 
 function readFrontmatterTitle(raw: string): string | null {
@@ -92,6 +172,7 @@ export function chunkDocument(
 	kind: 'page' | 'snippet'
 ): DocumentChunk[] {
 	const title = readFrontmatterTitle(raw) ?? relativePath.replace(/\.mdx?$/, '');
+	const tags = readFrontmatterTags(raw);
 	const body = stripMarkup(raw);
 	const url = urlForPath(relativePath);
 
@@ -119,6 +200,7 @@ export function chunkDocument(
 			content,
 			url: currentHeading ? `${url}#${slugify(currentHeading)}` : url,
 			kind,
+			tags,
 		});
 	}
 
@@ -196,7 +278,9 @@ export async function buildIndex(): Promise<Index> {
 	let totalLength = 0;
 
 	for (const chunk of chunks) {
-		const tokens = tokenize(`${chunk.title} ${chunk.heading ?? ''} ${chunk.content}`);
+		// As tags entram no índice: uma pergunta com o nome do assunto passa a
+		// casar com a página mesmo que a palavra não apareça no texto dela.
+		const tokens = tokenize(`${chunk.title} ${chunk.heading ?? ''} ${(chunk.tags ?? []).join(' ')} ${chunk.content}`);
 		chunkTokens.set(chunk.id, tokens);
 		totalLength += tokens.length;
 		for (const token of new Set(tokens)) {
@@ -284,7 +368,7 @@ export async function retrieveDocumentation(
 		const counts = new Map<string, number>();
 		for (const token of tokens) counts.set(token, (counts.get(token) ?? 0) + 1);
 
-		const titleTokens = new Set(tokenize(`${chunk.title} ${chunk.heading ?? ''}`));
+		const titleTokens = new Set(tokenize(`${chunk.title} ${chunk.heading ?? ''} ${(chunk.tags ?? []).join(' ')}`));
 
 		let score = 0;
 		for (const token of queryTokens) {
