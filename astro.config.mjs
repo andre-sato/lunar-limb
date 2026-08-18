@@ -10,7 +10,6 @@ import starlightLinksValidator from 'starlight-links-validator';
 import starlightScrollToTop from 'starlight-scroll-to-top';
 import starlightTags from 'starlight-tags';
 import starlightVideos from 'starlight-videos';
-import starlightViewModes from 'starlight-view-modes';
 import starlightOpenAPI from 'starlight-openapi';
 import starlightVersions from 'starlight-versions';
 import { portal } from './src/config/portal';
@@ -237,7 +236,7 @@ export default defineConfig({
 					// validador não as vê no grafo de documentação e as acusaria
 					// como quebradas. São de duas naturezas — páginas próprias do
 					// portal (editor, administração) e rotas injetadas por outros
-					// plugins (tags, modo zen, busca warp).
+					// plugins (tags, busca warp).
 					exclude: [
 						'/editor',
 						'/editor/**',
@@ -248,13 +247,10 @@ export default defineConfig({
 						'/tags',
 						'/tags/**',
 						'/atualizacoes',
-						'/zen-mode/**',
 						'/warp',
 						'/warp.xml',
 					],
 				})] : []),
-				// Modos de leitura: zen (só o conteúdo) e tela cheia.
-				starlightViewModes(),
 				// Componentes de vídeo com frontmatter próprio.
 				starlightVideos(),
 				// Voltar ao topo em páginas longas — o manual tem 500 linhas.

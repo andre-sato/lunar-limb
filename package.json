@@ -44,7 +44,6 @@
 		"starlight-tags": "^1.0.1",
 		"starlight-versions": "^0.9.1",
 		"starlight-videos": "^0.5.0",
-		"starlight-view-modes": "^0.13.1",
 		"unified": "^11.0.5",
 		"unist-util-visit": "^5.1.0"
 	},

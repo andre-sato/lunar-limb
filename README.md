@@ -10,7 +10,7 @@ O portal separa três tipos de conteúdo:
 
 Todas as páginas oferecem o menu **Compartilhar com IA**: ele copia o título, URL e conteúdo da página. A lista de clientes e seus destinos pode ser configurada em `src/config/portal.ts`.
 
-O cabeçalho também inclui **Buscar na documentação** ao lado da busca padrão: você escreve a dúvida em linguagem natural e recebe os trechos mais próximos das páginas publicadas, cada um com o link da sua página. **Não há modelo de linguagem envolvido** — nada é redigido, resumido ou inferido, e por isso não há como a interface afirmar algo que a documentação não diga. Um bloco de conteúdo reutilizável aparece com o link da página que o inclui, porque bloco não tem página própria. Trechos por busca, relevância mínima e limite de uso ficam em **Settings → Chatbot**.
+A barra lateral traz **Fale com o chatbot**, aberto: você escreve a dúvida em linguagem natural e recebe os trechos mais próximos das páginas publicadas, cada um com o link da sua página. **Não há modelo de linguagem envolvido** — nada é redigido, resumido ou inferido, e por isso não há como a interface afirmar algo que a documentação não diga. Um bloco de conteúdo reutilizável aparece com o link da página que o inclui, porque bloco não tem página própria. Trechos por busca, relevância mínima e limite de uso ficam em **Settings → Chatbot**.
 
 ## Idiomas
 
@@ -264,9 +264,6 @@ Três detalhes que essa troca envolve:
   aviso tiraria o assistente do cabeçalho.
 - O Pagefind continua sendo gerado mesmo com o Algolia ativo: a busca "warp"
   (`/warp?q=termo`) consulta aquele índice local.
-- Com o Algolia, o componente de busca do `starlight-view-modes` sai de cena. O
-  botão do modo zen continua onde estava, mas o **atalho de teclado** dele é
-  registrado naquele componente e se perde.
 
 O índice do Algolia precisa ser alimentado pelo crawler do DocSearch, que é
 configurado na conta do Algolia — o portal só consulta.

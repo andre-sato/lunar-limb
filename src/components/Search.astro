@@ -1,6 +1,6 @@
 ---
 /**
- * Busca do cabeçalho + assistente de documentação.
+ * Busca do cabeçalho.
  *
  * Dois provedores, escolhidos por ambiente (ver `src/config/search.ts`):
  *
@@ -9,22 +9,15 @@
  * - **Pagefind**, quando não há. Índice gerado no build, sem serviço externo —
  *   é o que faz o portal funcionar recém-clonado.
  *
- * O componente do Pagefind vem do `starlight-view-modes`, e não da Starlight:
- * ele reimplementa a busca para reescrever os resultados quando se está no modo
- * zen. Com o Algolia esse tratamento se perde, porque o widget é do Algolia —
- * o botão do modo zen continua no seu lugar, mas o atalho de teclado dele, que
- * é registrado naquele componente, sai junto.
- *
  * O assistente de documentação mora na barra lateral, aberto. Aqui ele só
  * aparece nas páginas **sem** barra lateral — a capa —, que de outro modo
  * ficariam sem busca conversacional. É o mesmo componente, na forma de modal.
  *
- * Por que este override existe mesmo assim: o `starlight-docsearch` e o
- * `starlight-view-modes` disputam o mesmo ponto, e compor os dois aqui é o que
- * os dois pedem no aviso de build.
+ * Este override existe porque o `starlight-docsearch` quer o mesmo ponto, e
+ * escolher entre os dois provedores tem de acontecer em algum lugar nosso.
  */
 import ChatAssistant from './ChatAssistant.astro';
-import ViewModesSearch from 'starlight-view-modes/components/Search.astro';
+import DefaultSearch from '@astrojs/starlight/components/Search.astro';
 import DocSearch from '@astrojs/starlight-docsearch/DocSearch.astro';
 import { searchProvider } from '../config/search';
 import { serverFeatures } from '../config/deploy';
@@ -34,6 +27,6 @@ const hasSidebar = Astro.locals.starlightRoute?.hasSidebar ?? false;
 ---
 
 <div class="header-search-actions">
-	{searchProvider === 'algolia' ? <DocSearch {...Astro.props} /> : <ViewModesSearch {...Astro.props} />}
+	{searchProvider === 'algolia' ? <DocSearch {...Astro.props} /> : <DefaultSearch {...Astro.props} />}
 	{serverFeatures.chat && !hasSidebar && <ChatAssistant />}
 </div>

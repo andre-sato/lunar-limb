@@ -38,9 +38,9 @@
 	"feedback.skip": "Agora não",
 	"feedback.thanks": "Obrigado pelo retorno.",
 	"feedback.error": "Não foi possível enviar seu retorno.",
-	"chat.trigger": "Buscar na documentação",
+	"chat.trigger": "Fale com o chatbot",
 	"chat.eyebrow": "Busca",
-	"chat.title": "Buscar na documentação",
+	"chat.title": "Fale com o chatbot",
 	"chat.close": "Fechar",
 	"chat.intro": "Escreva a sua dúvida em linguagem natural. Eu devolvo os trechos da documentação que mais se aproximam, com o link de cada página. Nada é redigido por IA: o que aparece aqui está publicado em alguma página.",
 	"chat.placeholder": "Como autenticar uma requisição?",
@@ -55,10 +55,5 @@
 	"chat.helpful": "Trechos úteis",
 	"chat.notHelpful": "Trechos não úteis",
 	"chat.feedbackThanks": "Obrigado pelo retorno.",
-	"starlightViewModes.switchesHeading": "Modos de leitura",
-	"starlightViewModes.defaultMode.title": "Modo normal",
-	"starlightViewModes.zenMode.title": "Modo zen",
-	"starlightViewModes.switchToDefaultMode": "Voltar ao modo normal",
-	"starlightViewModes.switchToZenMode": "Abrir o modo zen",
 	"chat.openPage": "Abrir a página →"
 }

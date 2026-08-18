@@ -2,20 +2,19 @@
 /**
  * Barra lateral: navegação da seção + assistente de documentação.
  *
- * O assistente fica aqui, aberto, e não mais atrás de um botão no cabeçalho.
- * A dúvida aparece durante a leitura, e um painel visível é respondido; um
- * botão que abre um modal é lembrado por quem já sabe que ele existe.
+ * O assistente fica no rodapé da coluna, aberto, no lugar que era do link de
+ * entrar — que passou para a barra de navegação, onde ações de conta costumam
+ * estar. A dúvida aparece durante a leitura, e um painel visível é usado; um
+ * botão que abre um modal só é lembrado por quem já sabe que ele existe.
  *
  * Vem **depois** da navegação: a lista de páginas da seção é o que se usa com
- * mais frequência, e ela precisa estar no topo, onde o olho começa.
+ * mais frequência, e precisa estar no topo, onde o olho começa.
  */
 import Default from '@astrojs/starlight/components/Sidebar.astro';
 import ChatAssistant from './ChatAssistant.astro';
-import SidebarAccount from './auth/SidebarAccount.astro';
 import { serverFeatures } from '../config/deploy';
 ---
 
 <Default {...Astro.props}><slot /></Default>
 
 {serverFeatures.chat && <ChatAssistant variant="panel" />}
-{serverFeatures.accountMenu && <SidebarAccount server:defer />}
