@@ -64,7 +64,7 @@
 
 	.diagrama figcaption {
 		font-size: var(--sl-text-sm);
-		color: var(--sl-color-gray-3);
+		color: var(--sl-color-gray-2);
 		margin-top: 0.5rem;
 	}
 
@@ -90,8 +90,11 @@
 		font-weight: 600;
 	}
 
+	/* `gray-2`, e não `gray-3`: sobre o preenchimento da caixa, o `gray-3` dá
+	   1,97:1 no tema claro — abaixo de qualquer mínimo legível. Medido no
+	   navegador, nos dois temas. */
 	.rotulo--fraco {
-		fill: var(--sl-color-gray-3);
+		fill: var(--sl-color-gray-2);
 		font-size: 11px;
 	}
 
