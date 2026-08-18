@@ -96,6 +96,45 @@
 
 /* Nota explicativa no topo de um painel — o que o número quer dizer antes de a
    pessoa tirar a própria conclusão dele. */
+/* Health Center */
+.health-basis {
+	margin: 12px 0 0;
+	padding-left: 18px;
+	font-size: 0.78rem;
+	line-height: 1.7;
+	color: var(--sl-color-gray-2);
+}
+
+.health-actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 10px;
+	margin-top: 14px;
+}
+
+.health-backlog h3 {
+	font-size: 0.95rem;
+	margin: 14px 0 6px;
+}
+
+.health-backlog ul,
+.health-questions {
+	margin: 0;
+	padding-left: 18px;
+	font-size: 0.84rem;
+	line-height: 1.7;
+}
+
+.health-gap-detail,
+.health-gap-factors {
+	color: var(--sl-color-gray-2);
+}
+
+.health-gap-factors {
+	font-size: 0.76rem;
+}
+
 .panel-hint {
 	font-size: 0.82rem;
 	line-height: 1.6;

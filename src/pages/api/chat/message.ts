@@ -9,6 +9,8 @@ import { normalizeLocale } from '../../../lib/chat/retrieval';
 import { ChatError } from '../../../lib/chat/search';
 import { checkRateLimit, getOrCreateConversation } from '../../../lib/chat/store';
 import { getTrustIndex } from '../../../lib/trust/load';
+import { recordSearchEvent } from '../../../lib/health/analytics';
+import { loadHealthConfig } from '../../../lib/health/config';
 
 export const prerender = false;
 
@@ -102,6 +104,21 @@ export const POST: APIRoute = async ({ request, locals }) => {
 		});
 
 		const answer = await assistant.ask(conversation, message, user);
+
+		// Analytics de busca (§7, §8 de Health & SLO). Contadores sempre; o **texto**
+		// da pergunta só quando quem opera o portal ligou isso explicitamente, e só
+		// para as consultas que ficaram sem resposta. Ver `health/analytics.ts`.
+		const health = await loadHealthConfig();
+		await recordSearchEvent({
+			confidence: answer.confidence,
+			empty: answer.empty,
+			refused: answer.safety?.filtered === true,
+			question: message,
+			storeQuestions: health.storeQuestions,
+		}).catch(() => {
+			// Falha ao registrar métrica não pode derrubar a resposta de quem perguntou.
+		});
+
 		return jsonResponse({ ...answer, remaining: limit.remaining }, 200);
 	} catch (error) {
 		if (error instanceof ChatError) {

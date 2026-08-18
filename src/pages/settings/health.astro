@@ -1,0 +1,14 @@
+---
+import SettingsLayout from '../../layouts/SettingsLayout.astro';
+import HealthPanel from '../../components/settings/HealthPanel';
+
+export const prerender = false;
+---
+
+<SettingsLayout
+	title="Health"
+	description="Saúde operacional da documentação: dimensões, SLOs e o que fazer primeiro."
+	active="health"
+>
+	<HealthPanel client:load />
+</SettingsLayout>
