@@ -15,6 +15,7 @@ import LintPanel from './LintPanel';
 import { useLint } from './useLint';
 import type { LintFinding } from '../../lib/linter/types';
 import ContentGraphModal from './ContentGraphModal';
+import GitWorkflowModal from './GitWorkflowModal';
 import CommandPalette, { type PaletteMode } from './CommandPalette';
 import SearchModal from './SearchModal';
 import VariablesModal from './VariablesModal';
@@ -142,6 +143,7 @@ export default function EditorApp() {
 	);
 	const [deleteWarning, setDeleteWarning] = useState<DeleteWarningState | null>(null);
 	const [showGraphModal, setShowGraphModal] = useState(false);
+	const [showGitModal, setShowGitModal] = useState(false);
 	const [globalProblemCount, setGlobalProblemCount] = useState(0);
 
 	// ---- Fase 5 -----------------------------------------------------------
@@ -857,6 +859,8 @@ export default function EditorApp() {
 				onInsertReusable={handleOpenInsertModal}
 				onExtractReusable={handleOpenExtractModal}
 				onOpenGraph={() => setShowGraphModal(true)}
+				onOpenGit={() => setShowGitModal(true)}
+				branch={gitStatus?.branch}
 				problemCount={globalProblemCount}
 				onInsertConditional={handleInsertConditional}
 				onOpenVariables={() => setShowVariables(true)}
@@ -1048,6 +1052,7 @@ export default function EditorApp() {
 				/>
 			)}
 
+			{showGitModal && <GitWorkflowModal onClose={() => { setShowGitModal(false); void refreshGitStatus(); }} />}
 			{showVariables && <VariablesModal onClose={() => setShowVariables(false)} onSaved={handleVariablesSaved} />}
 		</div>
 	);

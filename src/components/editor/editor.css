@@ -2202,3 +2202,133 @@ body {
 	clip: rect(0 0 0 0);
 	white-space: nowrap;
 }
+
+
+/* ---- Workflow de Git ---------------------------------------------------- */
+
+.icon-btn--labelled {
+	width: auto;
+	gap: 0.35rem;
+	padding-inline: 0.5rem;
+}
+
+.toolbar-branch {
+	font-size: 0.72rem;
+	max-width: 12rem;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.git-section {
+	padding: 0.75rem 1rem;
+	border-top: 1px solid var(--editor-border);
+}
+
+.git-section h3 {
+	margin: 0 0 0.5rem;
+	font-size: 0.8rem;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	color: var(--editor-text-dim);
+}
+
+.git-current {
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
+	flex-wrap: wrap;
+	margin-bottom: 0.5rem;
+}
+
+.git-warning,
+.git-impact {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.3rem;
+	font-size: 0.78rem;
+	color: var(--editor-warning, #d79b3b);
+}
+
+.git-row {
+	display: flex;
+	gap: 0.5rem;
+	align-items: center;
+	margin-bottom: 0.5rem;
+}
+
+.git-row input,
+.git-row select,
+.git-row textarea {
+	flex: 1;
+	min-width: 0;
+	padding: 0.35rem 0.5rem;
+	border: 1px solid var(--editor-border);
+	border-radius: 0.3rem;
+	background: var(--editor-bg);
+	color: var(--editor-text);
+	font: inherit;
+}
+
+.git-files {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: grid;
+	gap: 0.2rem;
+	max-height: 14rem;
+	overflow-y: auto;
+}
+
+.git-files li {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	font-size: 0.8rem;
+}
+
+.git-files code {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.git-counts {
+	margin-inline-start: auto;
+	white-space: nowrap;
+}
+
+.git-change {
+	flex: none;
+	min-width: 5.5rem;
+	font-size: 0.7rem;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: var(--editor-text-dim);
+}
+
+.git-change--added { color: #4ea36b; }
+.git-change--removed { color: #d05c5c; }
+.git-change--renamed { color: #6f9bd6; }
+
+.git-add { color: #4ea36b; }
+.git-del { color: #d05c5c; }
+
+.git-score {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+	font-size: 1rem;
+	font-weight: 600;
+}
+
+.git-score--ok { color: #4ea36b; }
+.git-score--bad { color: #d79b3b; }
+
+.git-empty,
+.git-hint,
+.git-summary {
+	font-size: 0.8rem;
+	color: var(--editor-text-dim);
+	margin: 0 0 0.4rem;
+}

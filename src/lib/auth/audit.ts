@@ -33,7 +33,14 @@ export type AuditAction =
 	// linguagem não há injeção de prompt nem saída a bloquear, e uma consulta
 	// que não encontra nada é resultado normal, não incidente. O conteúdo da
 	// busca nunca entra no log.
-	| 'CHAT_RATE_LIMITED';
+	| 'CHAT_RATE_LIMITED'
+	// Workflow de Git: estas escrevem no repositório, e quem trocou de branch
+	// mudou o que todo o editor mostra.
+	| 'BRANCH_CREATED'
+	| 'BRANCH_SWITCHED'
+	| 'BRANCH_RENAMED'
+	| 'BRANCH_DELETED'
+	| 'PULL_REQUEST_PREPARED';
 
 export interface AuditEvent {
 	id: string;
