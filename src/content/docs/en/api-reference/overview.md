@@ -3,6 +3,7 @@ title: Overview
 description: Common conventions for consuming the API.
 sidebar:
   order: 1
+tags: [api]
 ---
 
 This section describes the API’s technical contract. The paths and names are neutral examples that help document any product.

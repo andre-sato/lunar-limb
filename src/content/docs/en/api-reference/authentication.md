@@ -3,6 +3,7 @@ title: Authentication
 description: Send credentials securely in every request.
 sidebar:
   order: 2
+tags: [api, seguranca, autenticacao]
 ---
 
 Use the `Authorization` header to send an access token in API calls.

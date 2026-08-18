@@ -10,11 +10,12 @@ import starlightLinksValidator from 'starlight-links-validator';
 import starlightScrollToTop from 'starlight-scroll-to-top';
 import starlightTags from 'starlight-tags';
 import starlightVideos from 'starlight-videos';
-import starlightViewModes from 'starlight-view-modes';
 import starlightOpenAPI from 'starlight-openapi';
 import starlightVersions from 'starlight-versions';
 import { portal } from './src/config/portal';
 import { rehypeBasePath } from './src/lib/deploy/rehype-base-path';
+import starlightDocSearch from '@astrojs/starlight-docsearch';
+import { algoliaCredentials } from './src/config/search';
 
 // `monaco-vim` (Fase 5) importa caminhos internos como
 // `monaco-editor/esm/vs/editor/editor.api`. O campo `exports` do monaco-editor
@@ -98,12 +99,91 @@ function versionPlugins() {
  * dependem de servidor não são renderizados.
  */
 /**
+ * Busca pelo Algolia DocSearch (`@astrojs/starlight-docsearch`).
+ *
+ * Registrado só quando as três credenciais estão no ambiente — elas são suas e
+ * não entram no repositório. Sem elas, a busca continua sendo o Pagefind, que
+ * não depende de serviço externo. Ver `src/config/search.ts`.
+ *
+ * O plugin avisa no build que existe um override de `Search` e não o substitui.
+ * É esperado: o override é nosso e compõe o DocSearch com o assistente de
+ * documentação, que fica ao lado da busca. Remover o override para "resolver" o
+ * aviso tiraria o assistente do cabeçalho.
+ *
+ * O Pagefind segue ligado mesmo com o Algolia ativo, porque a busca "warp"
+ * (`/warp?q=termo`) consulta aquele índice. São coisas diferentes: o Algolia é a
+ * interface de busca; o índice local é o que responde ao atalho.
+ */
+function docSearchPlugins() {
+	const credentials = algoliaCredentials();
+	if (!credentials) return [];
+
+	return [
+		starlightDocSearch({
+			appId: credentials.appId,
+			apiKey: credentials.apiKey,
+			indexName: credentials.indexName,
+		}),
+	];
+}
+
+/**
+ * Stub do módulo virtual do DocSearch.
+ *
+ * `DocSearch.astro` importa `virtual:starlight/docsearch-config` no script do
+ * cliente, e esse módulo só existe quando o plugin está registrado. Como o
+ * componente é importado estaticamente pelo nosso `Search.astro`, sem o stub o
+ * build quebraria justamente na configuração mais comum: a que não tem Algolia.
+ */
+function docSearchStub() {
+	if (algoliaCredentials()) return [];
+
+	const id = 'virtual:starlight/docsearch-config';
+	const resolved = `\0${id}`;
+	return [
+		{
+			name: 'docsearch-config-stub',
+			/** @param {string} source */
+			resolveId: (source) => (source === id ? resolved : undefined),
+			/** @param {string} moduleId */
+			load: (moduleId) => (moduleId === resolved ? 'export default {};' : undefined),
+		},
+	];
+}
+
+/**
  * `base` para site de projeto no Pages (`usuario.github.io/repositorio`).
  *
  * Vazio para site de usuário/organização ou domínio próprio, onde a raiz é `/`.
  */
 const basePath = (process.env.PAGES_BASE || '/').trim();
 const normalizedBase = basePath === '' || basePath === '/' ? '/' : `/${basePath.replace(/^\/+|\/+$/g, '')}/`;
+
+/**
+ * Prerender das páginas de tag.
+ *
+ * O `starlight-tags` injeta uma rota dinâmica com `getStaticPaths`. Num projeto
+ * de output `server`, a Astro ignora `getStaticPaths` e chama a página sob
+ * demanda — sem os dados que ela espera, o que dá 500 em cada `/tags/<tag>`.
+ * O aviso aparece no build ("getStaticPaths() ignored in dynamic page"), mas o
+ * arquivo é do pacote e não dá para acrescentar `export const prerender = true`
+ * nele.
+ *
+ * Este hook marca a rota como pré-renderizada de fora, que é para isso que ele
+ * existe. O índice `/tags` já funcionava; o que estava quebrado era a página de
+ * cada tag.
+ */
+function prerenderTagPages() {
+	return {
+		name: 'prerender-tag-pages',
+		hooks: {
+			/** @param {{ route: { component: string, prerender: boolean } }} options */
+			'astro:route:setup': ({ route }) => {
+				if (route.component.includes('starlight-tags')) route.prerender = true;
+			},
+		},
+	};
+}
 
 // https://astro.build/config
 export default defineConfig({
@@ -156,7 +236,7 @@ export default defineConfig({
 					// validador não as vê no grafo de documentação e as acusaria
 					// como quebradas. São de duas naturezas — páginas próprias do
 					// portal (editor, administração) e rotas injetadas por outros
-					// plugins (tags, modo zen, busca warp).
+					// plugins (tags, busca warp).
 					exclude: [
 						'/editor',
 						'/editor/**',
@@ -166,13 +246,11 @@ export default defineConfig({
 						'/403',
 						'/tags',
 						'/tags/**',
-						'/zen-mode/**',
+						'/atualizacoes',
 						'/warp',
 						'/warp.xml',
 					],
 				})] : []),
-				// Modos de leitura: zen (só o conteúdo) e tela cheia.
-				starlightViewModes(),
 				// Componentes de vídeo com frontmatter próprio.
 				starlightVideos(),
 				// Voltar ao topo em páginas longas — o manual tem 500 linhas.
@@ -194,12 +272,17 @@ export default defineConfig({
 				// declaradas. Ver as funções no topo do arquivo.
 				...openApiPlugins(),
 				...versionPlugins(),
+				...docSearchPlugins(),
 			],
 			customCss: ['./src/styles/custom.css'],
+			// Middleware de rota da Starlight: desliga a coluna lateral, já que a
+			// navegação passou para o topo. Ver src/lib/nav/route-middleware.ts.
+			routeMiddleware: './src/lib/nav/route-middleware.ts',
 			components: {
 				PageTitle: './src/components/PageTitle.astro',
 				Hero: './src/components/Hero.astro',
 				Search: './src/components/Search.astro',
+				Header: './src/components/PortalHeader.astro',
 				Sidebar: './src/components/PortalSidebar.astro',
 				Head: './src/components/Head.astro',
 				Footer: './src/components/Footer.astro',
@@ -226,6 +309,7 @@ export default defineConfig({
 		// Busca "warp drive": `/warp?q=termo` cai direto no melhor resultado do
 		// Pagefind, e o OpenSearch registra o portal como buscador no navegador.
 		// É integração do Astro, não plugin da Starlight.
+		prerenderTagPages(),
 		starWarp({
 			openSearch: {
 				enabled: true,
@@ -241,5 +325,6 @@ export default defineConfig({
 	},
 	vite: {
 		resolve: { alias: [monacoEsmAlias] },
+		plugins: [...docSearchStub()],
 	},
 });

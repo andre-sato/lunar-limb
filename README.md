@@ -10,7 +10,7 @@ O portal separa três tipos de conteúdo:
 
 Todas as páginas oferecem o menu **Compartilhar com IA**: ele copia o título, URL e conteúdo da página. A lista de clientes e seus destinos pode ser configurada em `src/config/portal.ts`.
 
-O cabeçalho também inclui **Buscar na documentação** ao lado da busca padrão: você escreve a dúvida em linguagem natural e recebe os trechos mais próximos das páginas publicadas, cada um com o link da sua página. **Não há modelo de linguagem envolvido** — nada é redigido, resumido ou inferido, e por isso não há como a interface afirmar algo que a documentação não diga. Um bloco de conteúdo reutilizável aparece com o link da página que o inclui, porque bloco não tem página própria. Trechos por busca, relevância mínima e limite de uso ficam em **Settings → Chatbot**.
+A barra lateral traz **Fale com o chatbot**, aberto: você escreve a dúvida em linguagem natural e recebe os trechos mais próximos das páginas publicadas, cada um com o link da sua página. **Não há modelo de linguagem envolvido** — nada é redigido, resumido ou inferido, e por isso não há como a interface afirmar algo que a documentação não diga. Um bloco de conteúdo reutilizável aparece com o link da página que o inclui, porque bloco não tem página própria. Trechos por busca, relevância mínima e limite de uso ficam em **Settings → Chatbot**.
 
 ## Idiomas
 
@@ -191,6 +191,83 @@ As respostas ficam em **Settings → Feedback**: proporção de "útil", coment�
 
 Com a integração do Do11y ligada, o mesmo clique também vira um evento `feedback` no Supabase. Detalhes em [docs/feedback-de-pagina.md](docs/feedback-de-pagina.md).
 
+## Navegação
+
+O menu fica no topo, não numa coluna lateral, e é montado a partir da mesma
+árvore que a Starlight gera das pastas de conteúdo: cada pasta de primeiro nível
+vira um item, e as páginas de dentro formam o submenu. Nenhum item é escrito à
+mão — criar uma página basta para ela aparecer.
+
+A barra lateral continua existindo, mostrando **só a seção aberta** — o arranjo
+do portal da OpenAI usado como referência. O topo diz onde você pode ir; a
+lateral, onde você está. Mostrar a árvore inteira nos dois lugares repetiria a
+mesma informação e gastaria a altura da tela com seções que não estão sendo
+lidas.
+
+O estreitamento acontece em [route-middleware.ts](src/lib/nav/route-middleware.ts),
+pelo ponto de extensão que a Starlight documenta para modificar dados de rota. A
+árvore completa é guardada em `locals.topNav` antes do corte: o cabeçalho precisa
+dela inteira, a lateral só do galho atual. Páginas fora de qualquer seção — a
+capa — não têm lateral, e aí `hasSidebar` é desligado de fato, o que é diferente
+de esconder com CSS: a coluna deixa de ser reservada.
+
+Dois efeitos que vieram junto e precisaram de decisão:
+
+- **Profundidade.** A lateral aninhava sem limite; um menu suspenso dentro de
+  outro é difícil de operar com mouse e pior com teclado. A árvore é achatada em
+  dois níveis, e o subgrupo vira um título dentro do painel. A lógica está em
+  [top-nav.ts](src/lib/nav/top-nav.ts), separada do componente para ser testável.
+- **Medida de leitura.** Sem barra lateral, a Starlight aplica a medida larga que
+  reserva para páginas de capa — 1080px de linha na documentação. O CSS do
+  projeto devolve a medida normal às páginas sem hero.
+
+O menu funciona sem JavaScript: cada submenu é um `<details>`. O script só
+acrescenta o que o HTML não dá — fechar ao clicar fora, fechar com `Esc`
+devolvendo o foco, e manter um submenu aberto por vez.
+
+## Atualizações recentes
+
+[`/atualizacoes`](src/pages/atualizacoes.astro) lista as páginas alteradas nos
+últimos 30 dias, da mais recente para a mais antiga, agrupadas por dia.
+
+A data vem do **Git**, não do `mtime`: o `mtime` muda a cada clone ou `npm ci`,
+e num servidor de CI todos os arquivos teriam a data de agora. Um clone raso
+(`fetch-depth: 1`) não tem histórico — nesse caso a página cai para o sistema de
+arquivos e **avisa na tela** que as datas não são as das alterações.
+
+A sugestão de montar a estrutura a partir de um `index` por pasta não se aplica
+aqui: só os diretórios de idioma têm um. O agrupamento usa a própria pasta, que
+é de onde a Starlight já deriva as seções.
+
+## Busca
+
+Dois provedores, escolhidos por ambiente:
+
+| Provedor | Quando | Índice |
+| --- | --- | --- |
+| **Pagefind** (padrão) | sem credenciais do Algolia | gerado no build, sem serviço externo |
+| **Algolia DocSearch** | com `ALGOLIA_APP_ID`, `ALGOLIA_SEARCH_API_KEY` e `ALGOLIA_INDEX_NAME` | hospedado no Algolia |
+
+As credenciais são suas e ficam no ambiente, nunca no repositório. Use a chave
+**Search-Only**: ela é pública por natureza, vai para o navegador e só lê o
+índice. A chave de Admin escreve no índice e não deve aparecer no cliente.
+
+É tudo ou nada: com uma variável faltando, o portal fica no Pagefind em vez de
+carregar um widget que falharia na primeira busca.
+
+Três detalhes que essa troca envolve:
+
+- O `Search` é um override nosso, porque o assistente de documentação fica ao
+  lado da busca. Por isso o `starlight-docsearch` avisa no build que não vai
+  substituir o componente — é esperado, e a composição está em
+  [Search.astro](src/components/Search.astro). Remover o override para calar o
+  aviso tiraria o assistente do cabeçalho.
+- O Pagefind continua sendo gerado mesmo com o Algolia ativo: a busca "warp"
+  (`/warp?q=termo`) consulta aquele índice local.
+
+O índice do Algolia precisa ser alimentado pelo crawler do DocSearch, que é
+configurado na conta do Algolia — o portal só consulta.
+
 ## Publicação no GitHub Pages
 
 O portal tem duas naturezas no mesmo repositório: um **site de documentação**, que é HTML estático, e uma **aplicação** — editor, login, Settings, chat, feedback —, que precisa de um servidor Node. O GitHub Pages serve arquivos, não processos, então o que se publica lá é a primeira metade.
@@ -312,6 +389,32 @@ Também é possível iniciar diretamente o servidor standalone gerado:
 ```bash
 node ./dist/server/entry.mjs
 ```
+
+### Docker
+
+Há um `Dockerfile` de dois estágios (build + runtime) que empacota o portal como imagem Node 22 Alpine. O container roda como usuário não-root (`node`) e espera um volume persistente em `/app/data`, onde ficam usuários, sessões e auditoria.
+
+**Construir e rodar:**
+
+```bash
+docker build -t lunar-limb .
+docker run -d --name lunar-limb \
+  -p 4321:4321 \
+  --env-file .env \
+  -v lunar-limb-data:/app/data \
+  --restart unless-stopped \
+  lunar-limb
+```
+
+O portal fica em `http://localhost:4321`.
+
+**Variáveis de ambiente:** o container lê as mesmas variáveis do `.env` (veja [`.env.sample`](.env.sample)) — `AUTH_SECRET`, `PORTAL_ADMIN_EMAIL`, `PORTAL_ADMIN_PASSWORD`, `SITE_URL`, `PORTAL_DATA_DIR` etc. Com `--env-file .env`, basta preencher o arquivo local.
+
+**Volume de dados:** `data/` é o único estado persistente. Remover o volume (`docker volume rm lunar-limb-data`) apaga usuários e sessões e faz o portal semear um novo admin no primeiro request.
+
+**Perda de senha do admin:** como `users.json` guarda só o hash, a senha não é recuperável. Apague o volume e reinicie com `PORTAL_ADMIN_EMAIL`/`PORTAL_ADMIN_PASSWORD` definidas, ou crie outro admin por `npm run user:create`.
+
+> O seed do admin (`PORTAL_ADMIN_EMAIL`/`PORTAL_ADMIN_PASSWORD`) só roda quando não existe nenhum usuário. Depois que `users.json` é criado, mudar essas variáveis não tem efeito.
 
 ### Limitações atuais (para as próximas fases da especificação)
 

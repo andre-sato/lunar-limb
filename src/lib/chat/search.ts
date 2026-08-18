@@ -14,6 +14,7 @@
 
 import { randomUUID } from 'node:crypto';
 import { redactSecrets } from './sanitize';
+import { summarize } from './summary';
 import { retrieveDocumentation, toSourceReferences, urlForPath } from './retrieval';
 import { trimConversation } from './store';
 import type { ChatUser, Conversation, Excerpt, RetrievedChunk, SearchAnswer } from './types';
@@ -126,17 +127,15 @@ export interface SearchOptions {
 const NOTHING_FOUND =
 	'Não encontrei isso na documentação deste portal. Tente outros termos, ou procure pelo nome exato de um campo, erro ou comando.';
 
-function framing(count: number): string {
-	return count === 1
-		? 'Encontrei este trecho na documentação:'
-		: `Encontrei ${count} trechos na documentação:`;
-}
+
 
 /**
  * Executa uma consulta e registra o turno na conversa.
  *
- * A "resposta" é uma frase de enquadramento — deliberadamente uma frase, e não
- * prosa gerada. Quem responde são os trechos.
+ * A resposta tem três partes, nesta ordem: um resumo curto do que foi
+ * encontrado, os trechos, e os links das páginas. O resumo é extrativo — cita a
+ * primeira frase útil do trecho mais relevante, com a origem declarada. Sem
+ * modelo de linguagem, resumir de outra forma seria inventar; ver `summary.ts`.
  */
 export async function searchDocumentation(
 	conversation: Conversation,
@@ -169,11 +168,13 @@ export async function searchDocumentation(
 	const sources = toSourceReferences(chunks);
 	const empty = excerpts.length === 0;
 
+	const summary = empty ? NOTHING_FOUND : summarize(excerpts);
+
 	const now = new Date().toISOString();
 	conversation.messages.push({ role: 'user', content: trimmed, timestamp: now });
 	conversation.messages.push({
 		role: 'assistant',
-		content: empty ? NOTHING_FOUND : framing(excerpts.length),
+		content: summary,
 		timestamp: now,
 		excerpts,
 		sources,
@@ -182,7 +183,7 @@ export async function searchDocumentation(
 	trimConversation(conversation);
 
 	return {
-		message: empty ? NOTHING_FOUND : framing(excerpts.length),
+		message: summary,
 		excerpts,
 		sources,
 		empty,

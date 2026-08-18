@@ -31,6 +31,17 @@
 	--sl-text-h1: 2.55rem;
 }
 
+/*
+ * Com a navegação no topo, nenhuma página tem barra lateral — e a Starlight
+ * reserva para esse caso uma medida larga (67.5rem), pensada para páginas de
+ * capa. Aplicada à documentação, ela dava 1080px de linha, larga demais para
+ * ler. A medida do projeto volta aqui; a página com hero, que é justamente o
+ * caso da regra original, continua larga.
+ */
+html:not([data-has-sidebar]):not([data-has-hero]) {
+	--sl-content-width: 52rem;
+}
+
 .hero {
 	padding-block: clamp(3rem, 8vw, 6rem);
 }

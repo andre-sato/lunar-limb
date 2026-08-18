@@ -3,6 +3,7 @@ title: Comienza aquí
 description: Realiza tu primera llamada a la API en pocos minutos.
 sidebar:
   order: 1
+tags: [guia, api, autenticacao]
 ---
 
 Esta guía presenta el flujo mínimo de integración. Los ejemplos usan valores de demostración para que el portal pueda adaptarse a cualquier producto.

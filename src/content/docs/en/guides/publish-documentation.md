@@ -3,6 +3,7 @@ title: Publish documentation
 description: Add pages and keep the portal’s three areas current.
 sidebar:
   order: 3
+tags: [guia, publicacao, portal]
 ---
 
 Every Markdown or MDX file in `src/content/docs/` becomes a portal page. Directories separate task-oriented content, technical contracts, and the history of changes.

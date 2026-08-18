@@ -3,6 +3,7 @@ title: Errors
 description: HTTP status codes and error structures returned by the API.
 sidebar:
   order: 3
+tags: [api, erros]
 ---
 
 Errors should use standard HTTP status codes and a JSON body that helps identify and fix the issue.

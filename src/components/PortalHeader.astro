@@ -1,0 +1,410 @@
+---
+/**
+ * Cabeçalho do portal: título, menu horizontal e ações.
+ *
+ * Substitui a barra lateral por um menu no topo, com submenus. A navegação vem
+ * de `starlightRoute.sidebar` — a mesma árvore gerada a partir das pastas de
+ * conteúdo —, então criar uma página continua bastando para ela aparecer.
+ *
+ * O menu funciona sem JavaScript: cada submenu é um `<details>`, que abre e
+ * fecha por conta própria. O script só acrescenta o que o HTML não dá — fechar
+ * ao clicar fora, fechar com Escape, e manter um submenu aberto por vez.
+ */
+import LanguageSelect from 'virtual:starlight/components/LanguageSelect';
+import Search from 'virtual:starlight/components/Search';
+import SiteTitle from 'virtual:starlight/components/SiteTitle';
+import SocialIcons from 'virtual:starlight/components/SocialIcons';
+import ThemeSelect from 'virtual:starlight/components/ThemeSelect';
+import config from 'virtual:starlight/user-config';
+import SidebarAccount from './auth/SidebarAccount.astro';
+import { serverFeatures } from '../config/deploy';
+import { sectionsOf } from '../lib/nav/top-nav';
+
+const route = Astro.locals.starlightRoute;
+// A árvore completa vem do middleware de rota: aqui `route.sidebar` já foi
+// estreitado para a seção aberta, que é o que a coluna da esquerda mostra.
+const items = Astro.locals.topNav ?? [];
+
+// A raiz do idioma atual: o "Home" do menu.
+const homeHref = route?.locale ? `/${route.locale}/` : '/';
+const isHome = Astro.url.pathname.replace(/\/+$/, '') === homeHref.replace(/\/+$/, '');
+
+const homeLabel =
+	route?.lang?.startsWith('es') ? 'Inicio' : route?.lang?.startsWith('en') ? 'Home' : 'Início';
+const menuLabel =
+	route?.lang?.startsWith('es') ? 'Menú' : route?.lang?.startsWith('en') ? 'Menu' : 'Menu';
+
+const shouldRenderSearch =
+	config.pagefind || config.components.Search !== '@astrojs/starlight/components/Search.astro';
+---
+
+<div class="portal-header">
+	<div class="portal-header__title">
+		<SiteTitle />
+	</div>
+
+	<button
+		type="button"
+		class="portal-header__toggle"
+		aria-expanded="false"
+		aria-controls="portal-nav"
+		data-nav-toggle
+	>
+		<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+			<path d="M3 6h18M3 12h18M3 18h18" />
+		</svg>
+		<span>{menuLabel}</span>
+	</button>
+
+	<nav class="portal-header__nav" id="portal-nav" aria-label={menuLabel} data-nav>
+		<ul class="portal-nav__list">
+			<li>
+				<a class="portal-nav__link" href={homeHref} aria-current={isHome ? 'page' : undefined}>
+					{homeLabel}
+				</a>
+			</li>
+
+			{items.map((item) => (
+				<li>
+					{item.href ? (
+						<a
+							class="portal-nav__link"
+							href={item.href}
+							aria-current={item.isCurrent ? 'page' : undefined}
+						>
+							{item.label}
+						</a>
+					) : (
+						<details class="portal-nav__menu" data-nav-menu>
+							<summary class="portal-nav__link" data-current={item.isCurrent ? 'true' : undefined}>
+								<span>{item.label}</span>
+								<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+									<path d="m6 9 6 6 6-6" />
+								</svg>
+							</summary>
+
+							<div class="portal-nav__panel">
+								{sectionsOf(item).map((section) => (
+									<div class="portal-nav__section">
+										{section.title && <p class="portal-nav__section-title">{section.title}</p>}
+										<ul>
+											{section.links.map((link) => (
+												<li>
+													<a href={link.href} aria-current={link.isCurrent ? 'page' : undefined}>
+														{link.label}
+														{link.badge && <span class="portal-nav__badge">{link.badge}</span>}
+													</a>
+												</li>
+											))}
+										</ul>
+									</div>
+								))}
+							</div>
+						</details>
+					)}
+				</li>
+			))}
+		</ul>
+	</nav>
+
+	<div class="portal-header__actions print:hidden">
+		{shouldRenderSearch && <Search />}
+		<div class="portal-header__icons sl-hidden md:sl-flex">
+			<SocialIcons />
+			<ThemeSelect />
+			<LanguageSelect />
+		</div>
+		{serverFeatures.accountMenu && <SidebarAccount server:defer />}
+	</div>
+</div>
+
+<script>
+	(() => {
+		const header = document.querySelector<HTMLElement>('.portal-header');
+		if (!header) return;
+
+		const menus = [...header.querySelectorAll<HTMLDetailsElement>('[data-nav-menu]')];
+		const toggle = header.querySelector<HTMLButtonElement>('[data-nav-toggle]');
+		const nav = header.querySelector<HTMLElement>('[data-nav]');
+
+		function closeMenus(except?: HTMLDetailsElement): void {
+			for (const menu of menus) {
+				if (menu !== except) menu.open = false;
+			}
+		}
+
+		// Um submenu por vez: dois painéis abertos se sobrepõem.
+		for (const menu of menus) {
+			menu.addEventListener('toggle', () => {
+				if (menu.open) closeMenus(menu);
+			});
+		}
+
+		document.addEventListener('click', (event) => {
+			const target = event.target;
+			if (target instanceof Node && header.contains(target)) return;
+			closeMenus();
+		});
+
+		document.addEventListener('keydown', (event) => {
+			if (event.key !== 'Escape') return;
+			const open = menus.find((menu) => menu.open);
+			if (!open) return;
+			open.open = false;
+			// O foco volta para o botão que abriu: sem isso ele cairia no início
+			// da página e a navegação por teclado se perderia.
+			open.querySelector('summary')?.focus();
+		});
+
+		toggle?.addEventListener('click', () => {
+			const expanded = toggle.getAttribute('aria-expanded') === 'true';
+			toggle.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+			nav?.toggleAttribute('data-open', !expanded);
+			if (expanded) closeMenus();
+		});
+	})();
+</script>
+
+<style>
+	.portal-header {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+		height: 100%;
+	}
+
+	.portal-header__title {
+		/* Título longo não pode empurrar o menu para fora da tela. */
+		overflow: clip;
+		min-width: 0;
+		padding: 0.25rem;
+		margin: -0.25rem;
+	}
+
+	.portal-header__nav {
+		/* Cresce e encolhe no lugar do título e das ações, que têm tamanho
+		   próprio. `min-width: 0` é o que permite o encolhimento acontecer aqui,
+		   e não espremendo o nome do portal. */
+		flex: 1;
+		min-width: 0;
+	}
+
+	.portal-nav__list {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.15rem;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+		/* Numa janela intermediária, o menu rola na horizontal em vez de
+		   quebrar a linha e dobrar a altura do cabeçalho. */
+		overflow-x: auto;
+		scrollbar-width: none;
+	}
+
+	.portal-nav__list::-webkit-scrollbar {
+		display: none;
+	}
+
+	.portal-nav__list > li {
+		flex: none;
+	}
+
+	.portal-nav__link {
+		display: flex;
+		align-items: center;
+		gap: 0.25rem;
+		padding: 0.4rem 0.7rem;
+		border-radius: 0.4rem;
+		font-size: var(--sl-text-sm);
+		font-weight: 600;
+		color: var(--sl-color-gray-2);
+		text-decoration: none;
+		white-space: nowrap;
+		cursor: pointer;
+	}
+
+	.portal-nav__link:hover {
+		color: var(--sl-color-white);
+		background: var(--sl-color-gray-6);
+	}
+
+	/* A página aberta e a seção que a contém ficam marcadas do mesmo jeito. */
+	.portal-nav__link[aria-current='page'],
+	.portal-nav__link[data-current='true'] {
+		color: var(--sl-color-white);
+		background: var(--sl-color-gray-6);
+	}
+
+	.portal-nav__link svg {
+		width: 0.9em;
+		height: 0.9em;
+		transition: transform 0.15s ease;
+	}
+
+	.portal-nav__menu[open] > .portal-nav__link svg {
+		transform: rotate(180deg);
+	}
+
+	/* O marcador nativo do <summary> apareceria antes do rótulo. */
+	.portal-nav__link::-webkit-details-marker {
+		display: none;
+	}
+	.portal-nav__menu > summary {
+		list-style: none;
+	}
+
+	.portal-nav__panel {
+		position: absolute;
+		z-index: var(--sl-z-index-navbar, 20);
+		margin-top: 0.4rem;
+		min-width: 15rem;
+		max-width: min(90vw, 34rem);
+		max-height: min(70vh, 32rem);
+		overflow-y: auto;
+		padding: 0.6rem;
+		display: grid;
+		gap: 0.7rem;
+		background: var(--sl-color-black);
+		border: 1px solid var(--sl-color-gray-5);
+		border-radius: 0.6rem;
+		box-shadow: var(--sl-shadow-md);
+	}
+
+	.portal-nav__section-title {
+		margin: 0 0 0.25rem;
+		padding: 0 0.5rem;
+		font-size: var(--sl-text-xs);
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+		color: var(--sl-color-gray-3);
+	}
+
+	.portal-nav__section ul {
+		margin: 0;
+		padding: 0;
+		list-style: none;
+		display: grid;
+		gap: 0.1rem;
+	}
+
+	.portal-nav__section a {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.5rem;
+		padding: 0.35rem 0.5rem;
+		border-radius: 0.35rem;
+		font-size: var(--sl-text-sm);
+		color: var(--sl-color-gray-2);
+		text-decoration: none;
+	}
+
+	.portal-nav__section a:hover {
+		color: var(--sl-color-white);
+		background: var(--sl-color-gray-6);
+	}
+
+	.portal-nav__section a[aria-current='page'] {
+		color: var(--sl-color-text-accent);
+		background: var(--sl-color-gray-6);
+	}
+
+	.portal-nav__badge {
+		font-size: var(--sl-text-xs);
+		padding: 0.05rem 0.35rem;
+		border-radius: 999px;
+		background: var(--sl-color-gray-5);
+		color: var(--sl-color-gray-1);
+	}
+
+	.portal-header__actions {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		margin-inline-start: auto;
+	}
+
+	.portal-header__icons {
+		align-items: center;
+		gap: 0.75rem;
+	}
+
+	.portal-header__toggle {
+		display: none;
+		align-items: center;
+		gap: 0.4rem;
+		padding: 0.4rem 0.6rem;
+		border: 1px solid var(--sl-color-gray-5);
+		border-radius: 0.4rem;
+		background: transparent;
+		color: var(--sl-color-white);
+		font-size: var(--sl-text-sm);
+		cursor: pointer;
+	}
+
+	.portal-header__toggle svg {
+		width: 1.1em;
+		height: 1.1em;
+	}
+
+	/*
+	 * Abaixo de 50rem o menu horizontal não cabe: vira um painel que desce do
+	 * cabeçalho, com os itens empilhados e os submenus abertos no lugar, em vez
+	 * de flutuando sobre a página.
+	 */
+	@media (max-width: 50rem) {
+		.portal-header__toggle {
+			display: flex;
+			margin-inline-start: auto;
+			order: 2;
+		}
+
+		.portal-header__actions {
+			order: 3;
+			margin-inline-start: 0;
+		}
+
+		.portal-header__nav {
+			order: 4;
+			display: none;
+			position: absolute;
+			inset-inline: 0;
+			top: var(--sl-nav-height);
+			max-height: calc(100vh - var(--sl-nav-height));
+			overflow-y: auto;
+			padding: 0.6rem var(--sl-nav-pad-x) 1rem;
+			background: var(--sl-color-black);
+			border-block-end: 1px solid var(--sl-color-gray-5);
+		}
+
+		.portal-header__nav[data-open] {
+			display: block;
+		}
+
+		.portal-nav__list {
+			flex-direction: column;
+			align-items: stretch;
+			gap: 0.15rem;
+		}
+
+		.portal-nav__panel {
+			position: static;
+			max-width: none;
+			max-height: none;
+			border: 0;
+			box-shadow: none;
+			padding: 0.2rem 0 0.4rem 0.8rem;
+			background: transparent;
+		}
+	}
+
+	@media print {
+		.portal-header__nav,
+		.portal-header__toggle {
+			display: none;
+		}
+	}
+</style>

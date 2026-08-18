@@ -3,6 +3,7 @@ title: Visão geral
 description: Convenções comuns para consumir a API.
 sidebar:
   order: 1
+tags: [api]
 ---
 
 Esta seção descreve o contrato técnico da API. Os caminhos e nomes apresentados são exemplos neutros para orientar a documentação de qualquer produto.

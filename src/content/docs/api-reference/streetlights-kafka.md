@@ -3,7 +3,7 @@ title: "Streetlights Kafka API"
 description: "The Smartylighting Streetlights API allows you to remotely manage the city lights."
 sidebar:
   order: 10
-tags: [api]
+tags: [api, eventos]
 ---
 
 :::note[Página gerada]

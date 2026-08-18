@@ -70,3 +70,91 @@ tags:
       en: Features aimed at agents and assistants.
       es: Funciones orientadas a agentes y asistentes.
     color: '#f59e0b'
+
+  autenticacao:
+    label:
+      pt-BR: Autenticação
+      en: Authentication
+      es: Autenticación
+    description:
+      pt-BR: Credenciais, tokens e como provar identidade na API.
+      en: Credentials, tokens and how to prove identity to the API.
+      es: Credenciales, tokens y cómo probar identidad ante la API.
+    color: '#8b5cf6'
+
+  erros:
+    label:
+      pt-BR: Erros
+      en: Errors
+      es: Errores
+    description:
+      pt-BR: Códigos de erro, formato das respostas e o que fazer com cada um.
+      en: Error codes, response format and what to do about each one.
+      es: Códigos de error, formato de las respuestas y qué hacer con cada uno.
+    color: '#ef4444'
+
+  eventos:
+    label:
+      pt-BR: Eventos
+      en: Events
+      es: Eventos
+    description:
+      pt-BR: Canais, mensagens e integração orientada a eventos.
+      en: Channels, messages and event-driven integration.
+      es: Canales, mensajes e integración orientada a eventos.
+    color: '#14b8a6'
+
+  changelog:
+    label:
+      pt-BR: Changelog
+      en: Changelog
+      es: Historial
+    description:
+      pt-BR: Alterações que afetam integrações existentes.
+      en: Changes that affect existing integrations.
+      es: Cambios que afectan integraciones existentes.
+    color: '#f59e0b'
+
+  configuracao:
+    label:
+      pt-BR: Configuração
+      en: Configuration
+      es: Configuración
+    description:
+      pt-BR: Ajustes do portal — marca, idiomas, navegação, integrações.
+      en: Portal settings — branding, languages, navigation, integrations.
+      es: Ajustes del portal — marca, idiomas, navegación, integraciones.
+    color: '#64748b'
+
+  publicacao:
+    label:
+      pt-BR: Publicação
+      en: Publishing
+      es: Publicación
+    description:
+      pt-BR: Como o conteúdo escrito chega ao ar.
+      en: How written content reaches production.
+      es: Cómo el contenido escrito llega al aire.
+    color: '#22c55e'
+
+  conteudo:
+    label:
+      pt-BR: Conteúdo
+      en: Content
+      es: Contenido
+    description:
+      pt-BR: Reuso, condicionais e organização do texto.
+      en: Reuse, conditionals and text organization.
+      es: Reutilización, condicionales y organización del texto.
+    color: '#a855f7'
+
+  portal:
+    label:
+      pt-BR: Portal
+      en: Portal
+      es: Portal
+    description:
+      pt-BR: O portal em si — navegação, busca, recursos de leitura.
+      en: The portal itself — navigation, search, reading features.
+      es: El portal en sí — navegación, búsqueda, funciones de lectura.
+    color: '#0ea5e9'

@@ -20,6 +20,7 @@
 		"@astrojs/node": "^11.1.0",
 		"@astrojs/react": "^6.0.2",
 		"@astrojs/starlight": "^0.41.3",
+		"@astrojs/starlight-docsearch": "^0.7.0",
 		"@inox-tools/star-warp": "^2.0.0",
 		"@monaco-editor/react": "^4.7.0",
 		"astro": "^7.0.2",
@@ -43,7 +44,6 @@
 		"starlight-tags": "^1.0.1",
 		"starlight-versions": "^0.9.1",
 		"starlight-videos": "^0.5.0",
-		"starlight-view-modes": "^0.13.1",
 		"unified": "^11.0.5",
 		"unist-util-visit": "^5.1.0"
 	},
