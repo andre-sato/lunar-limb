@@ -1,0 +1,14 @@
+---
+import SettingsLayout from '../../layouts/SettingsLayout.astro';
+import GapsPanel from '../../components/settings/GapsPanel';
+
+export const prerender = false;
+---
+
+<SettingsLayout
+	title="Gaps"
+	description="O que as pessoas procuram e não encontram, cruzado com o que o produto expõe."
+	active="gaps"
+>
+	<GapsPanel client:load />
+</SettingsLayout>

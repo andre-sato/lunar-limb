@@ -47,6 +47,7 @@ Arquivos Markdown e MDX dentro de `src/content/docs/` são publicados automatica
 | `npm run docs:health` | Health Center na linha de comando: dimensões, SLOs e backlog. |
 | `npm run twin` | Digital Twin: cobertura, não documentados, obsoletos, impacto. |
 | `npm run contract` | Contract Testing: o exemplo representa o contrato de verdade? |
+| `npm run gaps` | Gap Mining: o que as pessoas procuram e não encontram. |
 | `npm run docs:asyncapi` | Gera páginas de referência a partir de especificações AsyncAPI. |
 | `npm run user:create` | Cria um usuário do portal (ver *Usuários e controle de acesso*). |
 
@@ -281,7 +282,21 @@ A associação página↔contrato vem do **Digital Twin** (§25: esta camada nã
 
 No merge, **só `invalid` bloqueia** (`failOnBreaking` em `contracts.yml`). Travar merge por aviso leva a equipe a desligar o portão inteiro. Para APIs sem OpenAPI completo há baseline declarável, que é o caminho de adoção gradual.
 
-Rodar contra o portal expôs um defeito que nenhum teste sintético pegaria: em JavaScript `$` não casa antes de `` e `.` não consome ``, então a extração de cabeçalhos HTTP devolvia lista vazia em **todo** arquivo de um checkout no Windows — que é como este repositório está. Guia em [/guides/contratos-de-documentacao/](src/content/docs/guides/contratos-de-documentacao.mdx).
+Rodar contra o portal expôs um defeito que nenhum teste sintético pegaria: em JavaScript `$` não casa antes de `
+` e `.` não consome `
+`, então a extração de cabeçalhos HTTP devolvia lista vazia em **todo** arquivo de um checkout no Windows — que é como este repositório está. Guia em [/guides/contratos-de-documentacao/](src/content/docs/guides/contratos-de-documentacao.mdx).
+
+## Lacunas de documentação
+
+Saber que uma página teve dez mil acessos não diz o que falta. Esta camada pergunta **que informação as pessoas procuram e não encontram**, cruzando busca, assistente, MCP, feedback, contratos e o Digital Twin num backlog priorizado — em Settings → Gaps e em `npm run gaps`.
+
+**Publicar não é resolver**, e é a regra que dá sentido ao resto. `start` registra o sinal de hoje como linha de base; depois de publicar, `resolve` compara — e **recusa** se as consultas e as respostas sem lastro não caíram pelo menos dois terços. Não se exige queda a zero: a pergunta continua sendo feita mesmo quando a resposta existe.
+
+Seis tipos, cada um levando a uma ação diferente: falta documentação, incompleta, desatualizada (quando o Twin ou o Contract acusam divergência), pouco clara, difícil de achar (mexer na navegação, não no texto) e contraditória. O score combina demanda, falha do assistente, cobertura baixa, insatisfação e contrato quebrado — este último pesando muito, porque documentação que diverge do produto é **pior** que ausente: ela leva a pessoa a errar com confiança.
+
+Rodar contra o portal expôs dois erros de medição que só aparecem com dados reais. **Cobertura não é relevância de busca**: o BM25 normaliza pelo melhor resultado, então "como rotacionar a chave de API" — assunto sobre o qual não existe uma linha aqui — foi classificada como *difícil de achar* com 100% de cobertura; agora o que se mede é a presença dos termos da pergunta nas páginas. E o agrupamento precisava de **dois** conjuntos de termos: a interseção admite variações no grupo, mas medir cobertura por ela reduzia "rotacionar a chave de api" a `chave, api`, que o portal documenta.
+
+A privacidade segue a decisão anterior: texto das perguntas desligado por padrão, e mesmo ligado só a pergunta **sem resposta**, sem quem perguntou, truncada e com credenciais redigidas. Desligado, a camada funciona com os sinais estruturais e diz na primeira linha que está trabalhando com menos. Guia em [/guides/lacunas-de-documentacao/](src/content/docs/guides/lacunas-de-documentacao.mdx).
 
 ## Feedback de página
 

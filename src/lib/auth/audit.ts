@@ -41,6 +41,11 @@ export type AuditAction =
 	// guardadas. As duas falam para fora ou destroem dado, e por isso ficam no log.
 	| 'HEALTH_ALERT_SENT'
 	| 'HEALTH_QUESTIONS_FORGOTTEN'
+	// Gap Mining: mudança de ciclo de vida de uma lacuna e apagamento da
+	// telemetria de perguntas. A primeira é decisão de trabalho, a segunda destrói
+	// dado — as duas ficam no log.
+	| 'GAP_STATUS_CHANGED'
+	| 'GAP_SIGNALS_FORGOTTEN'
 	// Workflow de Git: estas escrevem no repositório, e quem trocou de branch
 	// mudou o que todo o editor mostra.
 	| 'BRANCH_CREATED'

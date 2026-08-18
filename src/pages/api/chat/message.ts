@@ -13,6 +13,7 @@ import { recordSearchEvent } from '../../../lib/health/analytics';
 import { loadHealthConfig } from '../../../lib/health/config';
 import { contextFromCookie, mergeContext, normalizeContext, CONTEXT_COOKIE } from '../../../lib/adaptive/context';
 import { recordAudienceEvent } from '../../../lib/adaptive/analytics';
+import { recordQuerySignal } from '../../../lib/gaps/telemetry';
 
 export const prerender = false;
 
@@ -133,6 +134,19 @@ export const POST: APIRoute = async ({ request, locals, cookies }) => {
 
 		// Distribuição por audiência (§13): só contadores, nada que identifique.
 		await recordAudienceEvent(readerContext.audience, answer.empty).catch(() => {});
+
+		// Sinal para o Gap Mining. O texto só é gravado quando quem opera o portal
+		// ligou isso, e mesmo então apenas quando a consulta **falhou** — pergunta
+		// respondida não é lacuna. Ver `gaps/telemetry.ts`.
+		await recordQuerySignal({
+			question: message,
+			origin: 'assistant',
+			// Falha aqui é "não houve resposta com fundamento": ou nada passou do
+			// limiar, ou a confiança ficou baixa. Uma resposta fraca conta como
+			// lacuna tanto quanto nenhuma resposta.
+			failed: answer.empty || answer.confidence === 'low',
+			storeQuestions: health.storeQuestions,
+		}).catch(() => {});
 
 		return jsonResponse({ ...answer, remaining: limit.remaining }, 200);
 	} catch (error) {
