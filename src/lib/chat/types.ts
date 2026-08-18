@@ -101,3 +101,89 @@ export interface ChatUser {
 	role: 'viewer' | 'editor' | 'admin';
 	status: 'active' | 'inactive';
 }
+
+// ---------------------------------------------------------------------------
+// Camada de modelo e segurança
+//
+// Estes tipos voltaram do histórico junto com os guardrails: o chatbot passa a
+// redigir quando há credencial, e redigir exige classificar a entrada, isolar o
+// contexto e conferir a saída. Sem credencial nada disso roda — a busca
+// devolve os trechos, como antes.
+// ---------------------------------------------------------------------------
+
+export type InputRisk = 'safe' | 'suspicious' | 'prompt_injection' | 'jailbreak' | 'unsafe_content';
+
+export type SafetyCategory =
+	| 'prompt-injection'
+	| 'jailbreak'
+	| 'system-prompt-probe'
+	| 'hate'
+	| 'harassment'
+	| 'threat'
+	| 'violence-incitement'
+	| 'dehumanization'
+	| 'data-exfiltration'
+	| 'secret-exposure'
+	| 'pii-exposure'
+	| 'ungrounded'
+	| 'off-topic';
+
+export interface SafetyClassification {
+	risk: InputRisk;
+	/** 0–1. Abaixo de 0,70 não deve gerar bloqueio duro (§64 do linter, mesma lógica). */
+	confidence: number;
+	categories: SafetyCategory[];
+	/**
+	 * Trechos que dispararam a classificação, para auditoria. Nunca vão para o
+	 * usuário nem para o modelo — o §19 proíbe revelar o funcionamento interno,
+	 * e o §25 proíbe repetir o conteúdo ofensivo de volta.
+	 */
+	evidence?: string[];
+}
+
+/**
+ * Abstração de moderação (§59).
+ *
+ * A implementação determinística cobre ataques estruturais com boa precisão.
+ * Sutileza semântica é o que um provedor de moderação de verdade resolve — e é
+ * por isso que isto é uma interface, e não uma função.
+ */
+export interface SafetyClassifier {
+	classifyInput(input: string, context?: string): Promise<SafetyClassification>;
+	classifyOutput(output: string, groundingContext?: string): Promise<SafetyClassification>;
+}
+
+// ------------------------------------------------------------------- modelo
+
+export interface ChatMessage {
+	role: 'user' | 'assistant';
+	content: string;
+	/** Presente em respostas do assistente. */
+	sources?: SourceReference[];
+	timestamp: string;
+	/** Marca respostas que foram substituídas por uma recusa. */
+	refused?: boolean;
+}
+
+export interface ChatModelRequest {
+	systemPrompt: string;
+	/** Histórico já recortado pelo orçamento de contexto. */
+	messages: ChatMessage[];
+	maxOutputTokens: number;
+	temperature: number;
+}
+
+export interface ChatModelResponse {
+	text: string;
+	usage?: { inputTokens: number; outputTokens: number };
+	/** Identificação do modelo que respondeu, para observabilidade. */
+	model: string;
+}
+
+/** Abstração de provedor (§58): trocar o modelo não deve tocar o chatbot. */
+export interface ChatModel {
+	readonly name: string;
+	/** `false` quando falta credencial — o serviço cai no modo só-retrieval. */
+	isConfigured(): boolean;
+	generate(request: ChatModelRequest): Promise<ChatModelResponse>;
+}

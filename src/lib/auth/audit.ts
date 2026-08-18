@@ -34,6 +34,9 @@ export type AuditAction =
 	// que não encontra nada é resultado normal, não incidente. O conteúdo da
 	// busca nunca entra no log.
 	| 'CHAT_RATE_LIMITED'
+	// Um guardrail que interveio: entrada recusada, contexto filtrado, citação
+	// inventada, saída bloqueada. O evento registra o tipo, nunca o conteúdo.
+	| 'CHAT_GUARDRAIL'
 	// Workflow de Git: estas escrevem no repositório, e quem trocou de branch
 	// mudou o que todo o editor mostra.
 	| 'BRANCH_CREATED'

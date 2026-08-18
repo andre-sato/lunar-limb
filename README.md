@@ -10,7 +10,7 @@ O portal separa três tipos de conteúdo:
 
 Todas as páginas oferecem o menu **Compartilhar com IA**: ele copia o título, URL e conteúdo da página. A lista de clientes e seus destinos pode ser configurada em `src/config/portal.ts`.
 
-A barra lateral traz **Fale com o chatbot**, aberto: você escreve a dúvida em linguagem natural e recebe os trechos mais próximos das páginas publicadas, cada um com o link da sua página. **Não há modelo de linguagem envolvido** — nada é redigido, resumido ou inferido, e por isso não há como a interface afirmar algo que a documentação não diga. Um bloco de conteúdo reutilizável aparece com o link da página que o inclui, porque bloco não tem página própria. Trechos por busca, relevância mínima e limite de uso ficam em **Settings → Chatbot**.
+A barra lateral traz **Fale com o chatbot**, aberto: você escreve a dúvida em linguagem natural e recebe uma resposta com as fontes. Sem chave de provedor no ambiente — que é o padrão — ele devolve os trechos das páginas e um resumo extrativo, sem redigir nada. Com `ANTHROPIC_API_KEY`, o mesmo pipeline redige a resposta a partir desses trechos, atravessando os guardrails descritos em *Assistente de documentação*. Um bloco de conteúdo reutilizável aparece com o link da página que o inclui, porque bloco não tem página própria.
 
 ## Idiomas
 
@@ -224,6 +224,54 @@ Dois efeitos que vieram junto e precisaram de decisão:
 O menu funciona sem JavaScript: cada submenu é um `<details>`. O script só
 acrescenta o que o HTML não dá — fechar ao clicar fora, fechar com `Esc`
 devolvendo o foco, e manter um submenu aberto por vez.
+
+## Assistente de documentação
+
+O mesmo pipeline atende os dois modos, e o modelo é a **última** etapa, não a
+espinha:
+
+```text
+entrada → guardrails → recuperação → autorização → contexto → modelo
+        → guardrails de saída → validação de citação → resposta
+```
+
+Sem `ANTHROPIC_API_KEY` no ambiente, a etapa do modelo não roda e a resposta são
+os trechos com um resumo extrativo. Não é modo degradado: é a configuração
+padrão, e a única **imune por construção** a alucinação e a injeção indireta,
+porque não há nada a instruir.
+
+### As decisões que valem registro
+
+**A autorização vem antes do contexto.** Filtrar depois da geração significaria
+que o modelo já leu o que a pessoa não pode ver — e uma resposta filtrada ainda
+vazaria pela forma como foi escrita. O gancho `authorize` roda sobre os trechos
+recuperados, antes de qualquer coisa chegar ao prompt.
+
+**Confiança baixa não gera.** Gerar a partir de evidência fraca é exatamente
+onde um assistente inventa. Abaixo do limiar, o pipeline devolve os trechos e
+diz que não encontrou o suficiente — os trechos continuam ali para quem quiser
+julgar sozinho.
+
+**Citação inventada derruba o texto.** Se a resposta cita uma página que não
+entrou no contexto, o texto gerado é descartado e os trechos assumem. Uma
+citação falsa é pior que nenhuma: dá aparência de fundamento a uma frase que não
+tem.
+
+**A credencial vive no ambiente.** Não em `integrations.json`, pelo mesmo motivo
+do Algolia e do GitHub: segredo em arquivo de configuração acaba num backup, num
+log ou numa resposta de API.
+
+**Falha do provedor não vira resposta inventada.** Cai nos trechos, que
+continuam sendo uma resposta útil.
+
+Cada intervenção de guardrail vira evento de auditoria com o tipo, nunca com o
+conteúdo da conversa.
+
+### O que ficou de fora
+
+Sugestões de pergunta por página (§14) e o botão "perguntar sobre esta página"
+(§15) não foram implementados. O resumo de conversa longa continua sendo o
+recorte das mensagens recentes, não um resumo gerado.
 
 ## Versionamento
 

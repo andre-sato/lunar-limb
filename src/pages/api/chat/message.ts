@@ -1,9 +1,12 @@
 import type { APIRoute } from 'astro';
 import { jsonResponse, requireAuthUser } from '../../../lib/auth/api';
 import { recordAudit } from '../../../lib/auth/audit';
-import { loadChatConfig } from '../../../lib/chat/config';
+import { canGenerate, loadChatConfig, providerApiKey } from '../../../lib/chat/config';
+import { anthropicModel } from '../../../lib/chat/models';
+import { createAssistant } from '../../../lib/chat/service';
+import { can } from '../../../lib/auth/permissions';
 import { normalizeLocale } from '../../../lib/chat/retrieval';
-import { ChatError, searchDocumentation } from '../../../lib/chat/search';
+import { ChatError } from '../../../lib/chat/search';
 import { checkRateLimit, getOrCreateConversation } from '../../../lib/chat/store';
 
 export const prerender = false;
@@ -64,11 +67,32 @@ export const POST: APIRoute = async ({ request, locals }) => {
 	}
 
 	try {
-		const answer = await searchDocumentation(conversation, message, user, {
+		// O modelo entra no pipeline só quando há credencial no ambiente e a
+		// redação está ligada. Sem isso, o mesmo pipeline devolve os trechos.
+		const model = canGenerate(config)
+			? anthropicModel({ apiKey: providerApiKey(), model: config.model, effort: 'low' })
+			: undefined;
+
+		const assistant = createAssistant({
+			model,
 			maxExcerpts: config.maxExcerpts,
 			minScore: config.minScore,
 			excerptChars: config.excerptChars,
+			// A autorização acontece **antes** do contexto ir ao modelo. Hoje o
+			// portal não tem documentação restrita por papel, então a regra é a
+			// mesma para todos; o gancho existe para o dia em que tiver, e para o
+			// filtro nunca acontecer depois da geração.
+			authorize: (_, candidate) => can(candidate, 'docs.read'),
+			onEvent: async (event) => {
+				await recordAudit({
+					actorId: event.userId,
+					action: 'CHAT_GUARDRAIL',
+					metadata: { event: event.event, detail: event.detail ?? null },
+				});
+			},
 		});
+
+		const answer = await assistant.ask(conversation, message, user);
 		return jsonResponse({ ...answer, remaining: limit.remaining }, 200);
 	} catch (error) {
 		if (error instanceof ChatError) {
