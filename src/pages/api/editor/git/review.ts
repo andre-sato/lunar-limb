@@ -19,6 +19,8 @@ import { analyzeImpactOf } from '../../../../lib/impact/engine';
 import { digitalTwin } from '../../../../lib/twin/service';
 import { loadTwinConfig } from '../../../../lib/twin/load';
 import { loadContractConfig, runContractTests } from '../../../../lib/contract/engine';
+import { collectHealth } from '../../../../lib/health/collect';
+import { listSnapshots, snapshotNearest } from '../../../../lib/health/snapshots';
 
 export const prerender = false;
 
@@ -208,18 +210,57 @@ async function contractGate(paths: readonly string[]) {
 	}
 }
 
+/**
+ * Saúde antes e depois (§20 do Observability).
+ *
+ * O "antes" é o snapshot mais recente do histórico, e o "depois" é a medição de
+ * agora. Sem snapshot não há comparação — e dizer isso é melhor que inventar uma
+ * linha de base, porque um PR que mostra "-0" quando não havia base ensina a
+ * equipe a ignorar o número.
+ */
+async function healthGate() {
+	try {
+		const [report, snapshots] = await Promise.all([collectHealth(), listSnapshots()]);
+		const previous = snapshotNearest(snapshots, 0);
+
+		return {
+			score: report.overall,
+			minimum: report.minimumHealthScore,
+			previous: previous?.score ?? null,
+			delta: previous ? report.overall - previous.score : null,
+			regression: report.regression,
+			newIssues: report.regression?.newIssues ?? [],
+			passed: report.overall >= report.minimumHealthScore && report.sloStatus !== 'breached',
+		};
+	} catch (error) {
+		// Não conseguir medir não é aprovar, mas também não bloqueia: o portão de
+		// merge que trava por erro de execução é o portão que alguém desliga.
+		return {
+			score: null,
+			minimum: 0,
+			previous: null,
+			delta: null,
+			regression: null,
+			newIssues: [],
+			passed: true,
+			error: error instanceof Error ? error.message : 'Falha ao medir a saúde.',
+		};
+	}
+}
+
 export const GET: APIRoute = async ({ url }) => {
 	try {
 		const base = url.searchParams.get('base') || (await detectDefaultBranch());
 		const head = await currentBranch();
 
 		const [diff, paths, remote] = await Promise.all([branchDiff(base), changedPaths(base), getRemote()]);
-		const [gate, impact, tests, coverage, contracts] = await Promise.all([
+		const [gate, impact, tests, coverage, contracts, health] = await Promise.all([
 			runGate(paths),
 			analyzeImpactOf({ base }),
 			runTests(paths),
 			coverageGate(),
 			contractGate(paths),
+			healthGate(),
 		]);
 
 		return json({
@@ -231,6 +272,7 @@ export const GET: APIRoute = async ({ url }) => {
 			tests,
 			coverage,
 			contracts,
+			health,
 			remote: remote ? { url: remote.url, owner: remote.owner, repo: remote.repo } : null,
 			// A interface precisa saber se o botão cria o PR ou abre o provedor.
 			canCreatePullRequest: Boolean(remote && providerToken()),
@@ -258,12 +300,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
 			return json({ error: 'Não há alterações entre as duas branches.' }, 400);
 		}
 
-		const [gate, impact, tests, coverage, contracts] = await Promise.all([
+		const [gate, impact, tests, coverage, contracts, health] = await Promise.all([
 			runGate(paths),
 			analyzeImpactOf({ base }),
 			runTests(paths),
 			coverageGate(),
 			contractGate(paths),
+			healthGate(),
 		]);
 
 		const input = {
@@ -281,6 +324,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
 				contracts.counts.invalid + contracts.counts.warning === 0
 					? undefined
 					: { broken: contracts.counts.invalid, warning: contracts.counts.warning, pages: contracts.broken.flatMap((item) => item.pages) },
+			health:
+				health.score === null
+					? undefined
+					: { score: health.score, previous: health.previous, delta: health.delta, newIssues: health.newIssues },
 		};
 
 		const result = await createPullRequest(input);
@@ -300,7 +347,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 			},
 		});
 
-		return json({ ...result, gate, impact, tests, coverage, contracts, body: composePullRequestBody(input) });
+		return json({ ...result, gate, impact, tests, coverage, contracts, health, body: composePullRequestBody(input) });
 	} catch (error) {
 		return json({ error: error instanceof Error ? error.message : 'Falha ao criar o pull request.' }, 500);
 	}

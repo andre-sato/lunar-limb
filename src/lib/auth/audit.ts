@@ -41,6 +41,9 @@ export type AuditAction =
 	// guardadas. As duas falam para fora ou destroem dado, e por isso ficam no log.
 	| 'HEALTH_ALERT_SENT'
 	| 'HEALTH_QUESTIONS_FORGOTTEN'
+	// Snapshot de saúde: é o único dado que a observabilidade persiste, e saber
+	// quem o gravou permite explicar um ponto fora da curva na série.
+	| 'HEALTH_SNAPSHOT_TAKEN'
 	// Gap Mining: mudança de ciclo de vida de uma lacuna e apagamento da
 	// telemetria de perguntas. A primeira é decisão de trabalho, a segunda destrói
 	// dado — as duas ficam no log.

@@ -28,14 +28,26 @@ const CONFIG_FILE = path.resolve(process.cwd(), 'health.yml');
 export const DEFAULT_SLO: SloConfig = {
 	dimensions: {
 		quality: { target: 90, warning: 5 },
-		freshness: { target: 95, warning: 10 },
+		// Contrato é o mais rígido depois dos absolutos: documentação que diverge do
+		// contrato leva quem lê a errar com confiança.
+		contractIntegrity: { target: 99, warning: 4 },
+		coverage: { target: 90, warning: 10 },
+		freshness: { target: 90, warning: 10 },
+		reliability: { target: 99, warning: 4 },
+		trust: { target: 90, warning: 15 },
+		aiReadiness: { target: 90, warning: 10 },
 		consistency: { target: 90, warning: 5 },
 		testCoverage: { target: 90, warning: 10 },
-		apiCoverage: { target: 100, warning: 10 },
-		trust: { target: 90, warning: 15 },
 		accessibility: { target: 95, warning: 5 },
 	},
-	brokenLinks: 0,
+	minimumHealthScore: 90,
+	budgets: {
+		// Zero nos dois que não têm justificativa: link morto e contrato quebrado.
+		brokenLinks: 0,
+		contractFailures: 0,
+		failedExamples: 2,
+		staleContent: 5,
+	},
 	webhookConfigured: false,
 };
 
@@ -47,21 +59,37 @@ export interface HealthConfig extends SloConfig {
 	storeQuestions: boolean;
 }
 
+type RawTarget = { target?: number; warning?: number; minimum?: number; maximum?: number } | number;
+
 interface RawConfig {
 	documentation?: {
-		slo?: Record<string, { target?: number; warning?: number } | number>;
+		slo?: Record<string, RawTarget>;
 		analytics?: { storeUnansweredQuestions?: boolean };
 	};
-	slo?: Record<string, { target?: number; warning?: number } | number>;
+	slo?: Record<string, RawTarget>;
 	analytics?: { storeUnansweredQuestions?: boolean };
 }
 
-function parseTarget(value: { target?: number; warning?: number } | number | undefined, fallback: SloTarget): SloTarget {
-	// A spec escreve `quality: { target: 90 }`, mas `quality: 90` é o que alguém
-	// digita por reflexo. As duas formas funcionam.
+function parseTarget(value: RawTarget | undefined, fallback: SloTarget): SloTarget {
+	// Três formas aceitas, porque as três aparecem: `quality: 90` é o que alguém
+	// digita por reflexo, `{ target: 90 }` é o que a spec de Health escreve, e
+	// `{ minimum: 90 }` é o que a spec de Observability escreve. Recusar duas
+	// delas faria a configuração do exemplo não funcionar.
 	if (typeof value === 'number') return { target: value, warning: fallback.warning };
-	if (!value || typeof value.target !== 'number') return fallback;
-	return { target: value.target, warning: typeof value.warning === 'number' ? value.warning : fallback.warning };
+	if (!value) return fallback;
+
+	const target = typeof value.target === 'number' ? value.target : typeof value.minimum === 'number' ? value.minimum : undefined;
+	if (target === undefined) return fallback;
+
+	return { target, warning: typeof value.warning === 'number' ? value.warning : fallback.warning };
+}
+
+/** Contagem máxima, para os orçamentos: aceita número puro ou `{ maximum }`. */
+function parseBudget(value: RawTarget | undefined, fallback: number): number {
+	if (typeof value === 'number') return value;
+	if (value && typeof value.maximum === 'number') return value.maximum;
+	if (value && typeof value.target === 'number') return value.target;
+	return fallback;
 }
 
 export function webhookUrl(): string {
@@ -69,7 +97,12 @@ export function webhookUrl(): string {
 }
 
 export async function loadHealthConfig(): Promise<HealthConfig> {
-	const base: HealthConfig = { ...DEFAULT_SLO, storeQuestions: false, webhookConfigured: webhookUrl() !== '' };
+	const base: HealthConfig = {
+		...DEFAULT_SLO,
+		budgets: { ...DEFAULT_SLO.budgets },
+		storeQuestions: false,
+		webhookConfigured: webhookUrl() !== '',
+	};
 
 	let raw: string;
 	try {
@@ -95,16 +128,18 @@ export async function loadHealthConfig(): Promise<HealthConfig> {
 		dimensions[key] = parseTarget(slo[key], fallback);
 	}
 
-	const brokenLinks = slo.brokenLinks;
-
 	return {
 		dimensions,
-		brokenLinks:
-			typeof brokenLinks === 'number'
-				? brokenLinks
-				: typeof brokenLinks === 'object' && typeof brokenLinks?.target === 'number'
-					? brokenLinks.target
-					: DEFAULT_SLO.brokenLinks,
+		minimumHealthScore: parseTarget(slo.healthScore, {
+			target: DEFAULT_SLO.minimumHealthScore,
+			warning: 0,
+		}).target,
+		budgets: {
+			brokenLinks: parseBudget(slo.brokenLinks, DEFAULT_SLO.budgets.brokenLinks),
+			contractFailures: parseBudget(slo.contractFailures, DEFAULT_SLO.budgets.contractFailures),
+			failedExamples: parseBudget(slo.failedExamples, DEFAULT_SLO.budgets.failedExamples),
+			staleContent: parseBudget(slo.staleContent, DEFAULT_SLO.budgets.staleContent),
+		},
 		storeQuestions: analytics?.storeUnansweredQuestions === true,
 		webhookConfigured: webhookUrl() !== '',
 	};

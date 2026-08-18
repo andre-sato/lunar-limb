@@ -27,7 +27,10 @@ const FULL: HealthInputs = {
 	lint: { averageScore: 9.4, analyzed: 40, consistencyAverage: 9.7, accessibilityRatio: 0.98 },
 	trust: { documented: 10, verified: 9, stale: 1, invalid: 0, averageScore: 91, pages: 40 },
 	tests: { total: 120, passed: 118, failed: 2, pagesCovered: 36, pages: 40, brokenLinks: 2 },
-	api: { endpoints: 10, documented: 9 },
+	coverage: { endpoints: 90, schemas: 96, examples: 82, features: 87 },
+	contracts: { valid: 98, invalid: 1, warning: 1, unknown: 4 },
+	freshness: { score: 90, measured: 40, stale: 2 },
+	ai: { queries: 100, highConfidence: 91, unanswered: 4 },
 };
 
 // ---------------------------------------------------------------------------
@@ -39,16 +42,41 @@ describe('dimensões', () => {
 		expect(dimensionOf(computeDimensions(FULL), 'quality').value).toBe(94);
 	});
 
-	it('frescor mede o conteúdo com proveniência, não o portal inteiro', () => {
-		// Uma página que ninguém anotou não está "vencida", está sem informação —
-		// diluir o indicador com ela faria o frescor cair conforme o portal cresce.
+	it('frescor vem da avaliação cruzada, não da idade pura', () => {
 		const freshness = dimensionOf(computeDimensions(FULL), 'freshness');
 		expect(freshness.value).toBe(90);
-		expect(freshness.basis).toContain('10');
+		expect(freshness.basis).toContain('obsoleta');
 	});
 
-	it('cobertura de API é documentados sobre declarados', () => {
-		expect(dimensionOf(computeDimensions(FULL), 'apiCoverage').value).toBe(90);
+	it('cobertura vem do Digital Twin, com as quatro fatias', () => {
+		// Esta camada tinha o próprio cálculo de cobertura de API. Mantê-lo seria a
+		// duplicação que o critério de aceite proíbe.
+		const coverage = dimensionOf(computeDimensions(FULL), 'coverage');
+		expect(coverage.value).toBe(89);
+		expect(coverage.basis).toContain('endpoints 90%');
+	});
+
+	it('integridade de contrato ignora os desconhecidos', () => {
+		// Contrato que ninguém documentou não está certo nem errado — está sem
+		// documentação, e isso é assunto da cobertura.
+		const integrity = dimensionOf(computeDimensions(FULL), 'contractIntegrity');
+		expect(integrity.value).toBe(98);
+		expect(integrity.basis).toContain('fora da conta');
+	});
+
+	it('confiabilidade conta defeitos sobre verificações', () => {
+		const reliability = dimensionOf(computeDimensions(FULL), 'reliability');
+		expect(reliability.measured).toBe(true);
+		expect(reliability.basis).toContain('link(s) quebrado(s)');
+	});
+
+	it('preparo para IA é a proporção de respostas com confiança alta', () => {
+		expect(dimensionOf(computeDimensions(FULL), 'aiReadiness').value).toBe(91);
+	});
+
+	it('sem consulta ao assistente, preparo para IA não é medido', () => {
+		const scores = computeDimensions({ ...FULL, ai: { queries: 0, highConfidence: 0, unanswered: 0 } });
+		expect(dimensionOf(scores, 'aiReadiness').measured).toBe(false);
 	});
 
 	it('cobertura de testes é páginas com teste sobre páginas', () => {
@@ -69,12 +97,11 @@ describe('dimensões', () => {
 		expect(dimensionOf(scores, 'trust').basis).toContain('indisponível');
 	});
 
-	it('portal sem proveniência não derruba frescor nem confiança', () => {
+	it('portal sem proveniência não derruba a confiança para zero', () => {
 		const scores = computeDimensions({
 			...FULL,
 			trust: { documented: 0, verified: 0, stale: 0, invalid: 0, averageScore: 0, pages: 40 },
 		});
-		expect(dimensionOf(scores, 'freshness').measured).toBe(false);
 		expect(dimensionOf(scores, 'trust').measured).toBe(false);
 	});
 
@@ -151,9 +178,9 @@ describe('SLO', () => {
 		).toBe('breached');
 	});
 
-	it('cobertura de API e links quebrados nascem como absolutos', () => {
-		expect(DEFAULT_SLO.dimensions.apiCoverage?.target).toBe(100);
-		expect(DEFAULT_SLO.brokenLinks).toBe(0);
+	it('os orçamentos zerados são os que não têm justificativa', () => {
+		expect(DEFAULT_SLO.budgets.brokenLinks).toBe(0);
+		expect(DEFAULT_SLO.budgets.contractFailures).toBe(0);
 	});
 });
 

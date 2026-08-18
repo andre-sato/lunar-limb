@@ -72,16 +72,59 @@ interface Report {
 		total: number;
 		distribution: Array<{ audience: string; queries: number; share: number; unanswered: number }>;
 	};
+	minimumHealthScore: number;
+	reliability: {
+		brokenLinks: number;
+		failedTests: number;
+		brokenContracts: number;
+		invalidPages: number;
+		stalePages: number;
+	};
+	budgets: Array<{ name: string; allowed: number; used: number; remaining: number; exceeded: boolean }>;
+	freshness: {
+		fresh: number;
+		potentiallyStale: number;
+		stale: number;
+		unknown: number;
+		score: number;
+		worst: Array<{ path: string; status: string; reasons: string[]; ageDays?: number }>;
+	};
+	regression: {
+		delta: number;
+		previous: number;
+		current: number;
+		since: string;
+		byDimension: Array<{ dimension: string; delta: number }>;
+		newIssues: string[];
+	} | null;
+	changeCandidates: Array<{ commit: string; subject: string; relevantFiles: string[] }>;
+	pages: Array<{
+		path: string;
+		score: number | null;
+		dimensions: Array<{ name: string; value: number; basis: string }>;
+		unmeasured: Array<{ name: string; reason: string }>;
+	}>;
+	history: Array<{ at: string; score: number }>;
 }
 
 const DIMENSION_LABEL: Record<string, string> = {
 	quality: 'Qualidade',
+	contractIntegrity: 'Integridade de contrato',
+	coverage: 'Cobertura',
 	freshness: 'Frescor',
+	reliability: 'Confiabilidade',
+	trust: 'Confiança',
+	aiReadiness: 'Preparo para IA',
 	consistency: 'Consistência',
 	testCoverage: 'Cobertura de testes',
-	apiCoverage: 'Cobertura de API',
-	trust: 'Confiança',
 	accessibility: 'Acessibilidade',
+};
+
+const STALENESS_MARK: Record<string, string> = {
+	fresh: '🟢',
+	'potentially-stale': '🟡',
+	stale: '🔴',
+	unknown: '⚪',
 };
 
 const STATUS_MARK: Record<SloStatus, string> = { healthy: '🟢', 'at-risk': '🟡', breached: '🔴' };
@@ -190,6 +233,164 @@ export default function HealthPanel() {
 				</div>
 			</div>
 
+			{report.regression && report.regression.delta !== 0 && (
+				<section className="panel">
+					<h2>{report.regression.delta < 0 ? 'Regressão' : 'Melhora'}</h2>
+					<p className="panel-hint">
+						{report.regression.previous} → {report.regression.current} (
+						<strong style={{ color: report.regression.delta < 0 ? 'var(--sl-color-red)' : 'var(--sl-color-green)' }}>
+							{report.regression.delta > 0 ? '+' : ''}
+							{report.regression.delta}
+						</strong>
+						) desde {report.regression.since.slice(0, 10)}.
+					</p>
+
+					{report.regression.byDimension.length > 0 && (
+						<ul className="health-basis">
+							{report.regression.byDimension.map((entry) => (
+								<li key={entry.dimension}>
+									{DIMENSION_LABEL[entry.dimension] ?? entry.dimension}: <strong>{entry.delta}</strong>
+								</li>
+							))}
+						</ul>
+					)}
+
+					{report.regression.newIssues.length > 0 && (
+						<p className="panel-hint">Defeitos novos: {report.regression.newIssues.join(', ')}</p>
+					)}
+
+					{report.changeCandidates.length > 0 && (
+						<>
+							<h3>Mudanças que podem explicar</h3>
+							<p className="panel-hint">
+								São <strong>candidatos</strong>, não causa: a documentação também degrada quando o produto muda
+								e ninguém mexe nela — e nesse caso o commit responsável não está nesta lista.
+							</p>
+							<ul className="health-basis">
+								{report.changeCandidates.map((candidate) => (
+									<li key={candidate.commit}>
+										<code>{candidate.commit.slice(0, 8)}</code> {candidate.subject}{' '}
+										<span className="stat-card-hint">({candidate.relevantFiles.length} arquivo(s))</span>
+									</li>
+								))}
+							</ul>
+						</>
+					)}
+				</section>
+			)}
+
+			<section className="panel">
+				<h2>Error budget</h2>
+				<p className="panel-hint">
+					Quanto ainda sobra antes de o compromisso estar quebrado. A leitura é do que <strong>resta</strong>, não
+					do que já se gastou: quem vê "40% restante" decide diferente de quem vê "3 de 5".
+				</p>
+				<div className="breakdown">
+					{report.budgets.map((budget) => (
+						<div key={budget.name} className="breakdown-row breakdown-row--wide">
+							<span className="breakdown-label">{budget.name}</span>
+							<span className="breakdown-bar">
+								<span
+									style={{
+										width: `${budget.remaining}%`,
+										background: budget.exceeded
+											? 'var(--sl-color-red)'
+											: budget.remaining < 50
+												? 'var(--sl-color-orange)'
+												: 'var(--sl-color-green)',
+									}}
+								/>
+							</span>
+							<span className="breakdown-count">
+								{budget.remaining}%{' '}
+								<span className="stat-card-hint">
+									({budget.used}/{budget.allowed})
+								</span>
+							</span>
+						</div>
+					))}
+				</div>
+			</section>
+
+			<section className="panel">
+				<h2>Frescor</h2>
+				<p className="panel-hint">
+					A idade sozinha <strong>não</strong> determina que uma página está obsoleta — conteúdo estável pode ficar
+					válido por anos. O que decide é o cruzamento com evidência de divergência: contrato quebrado,
+					proveniência inválida, a API mudando depois da última edição.
+				</p>
+				<div className="stat-grid">
+					<div className="stat-card">
+						<p className="stat-card-label">Atuais</p>
+						<p className="stat-card-value">{report.freshness.fresh}</p>
+					</div>
+					<div className="stat-card">
+						<p className="stat-card-label">Possivelmente obsoletas</p>
+						<p className="stat-card-value">{report.freshness.potentiallyStale}</p>
+					</div>
+					<div className="stat-card">
+						<p className="stat-card-label">Obsoletas</p>
+						<p
+							className="stat-card-value"
+							style={{ color: report.freshness.stale > 0 ? 'var(--sl-color-red)' : undefined }}
+						>
+							{report.freshness.stale}
+						</p>
+					</div>
+					<div className="stat-card">
+						<p className="stat-card-label">Sem informação</p>
+						<p className="stat-card-value">{report.freshness.unknown}</p>
+						<p className="stat-card-hint">sem histórico de alteração</p>
+					</div>
+				</div>
+
+				{report.freshness.worst.length > 0 && (
+					<ul className="health-basis">
+						{report.freshness.worst.slice(0, 12).map((verdict) => (
+							<li key={verdict.path}>
+								{STALENESS_MARK[verdict.status]} <code>{verdict.path}</code>
+								<span className="stat-card-hint"> — {verdict.reasons.join('; ')}</span>
+							</li>
+						))}
+					</ul>
+				)}
+			</section>
+
+			<section className="panel">
+				<h2>Páginas com menor saúde</h2>
+				<p className="panel-hint">
+					Cada página tem a própria nota, com as mesmas regras do painel: dimensão sem dado fica fora da média e
+					aparece com o motivo. Uma página sem proveniência declarada não é uma página sem confiança — é uma
+					página que ninguém anotou.
+				</p>
+				<div className="data-table-wrap">
+					<table className="data-table">
+						<thead>
+							<tr>
+								<th>Página</th>
+								<th style={{ width: 90, textAlign: 'right' }}>Saúde</th>
+								<th style={{ width: 260 }}>Não medido</th>
+							</tr>
+						</thead>
+						<tbody>
+							{report.pages.slice(0, 12).map((page) => (
+								<tr key={page.path}>
+									<td>
+										<code>{page.path}</code>
+									</td>
+									<td style={{ textAlign: 'right', color: barColor(page.score ?? 0, page.score !== null) }}>
+										{page.score === null ? '—' : page.score}
+									</td>
+									<td className="stat-card-hint">
+										{page.unmeasured.map((entry) => entry.name).join(', ') || '—'}
+									</td>
+								</tr>
+							))}
+						</tbody>
+					</table>
+				</div>
+			</section>
+
 			<section className="panel">
 				<h2>Dimensões</h2>
 				<p className="panel-hint">
@@ -255,6 +456,9 @@ export default function HealthPanel() {
 					</button>
 					<button type="button" onClick={() => void act({ action: 'alert', channels: ['issue'] })} disabled={busy}>
 						Abrir issue
+					</button>
+					<button type="button" onClick={() => void act({ action: 'snapshot' })} disabled={busy}>
+						Gravar snapshot
 					</button>
 					<span className="stat-card-hint">
 						{breached.length === 0

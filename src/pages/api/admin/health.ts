@@ -3,6 +3,7 @@ import { jsonResponse, requireAuthUser } from '../../../lib/auth/api';
 import { can } from '../../../lib/auth/permissions';
 import { recordAudit } from '../../../lib/auth/audit';
 import { collectHealth } from '../../../lib/health/collect';
+import { documentationHealth } from '../../../lib/health/service';
 import { buildBacklog, composeAlert } from '../../../lib/health/gaps';
 import { createIssueAlert, sendWebhookAlert } from '../../../lib/health/alerts';
 import { forgetQuestions } from '../../../lib/health/analytics';
@@ -22,11 +23,22 @@ export const prerender = false;
  * importava. Aqui ele é ação de quem administra, e fica na auditoria.
  */
 
-export const GET: APIRoute = async ({ locals }) => {
+export const GET: APIRoute = async ({ url, locals }) => {
 	const actor = requireAuthUser(locals);
 	if (!actor) return jsonResponse({ error: 'unauthorized' }, 401);
 
 	try {
+		// Histórico e saúde de página são consultas baratas e específicas; separá-las
+		// evita refazer a análise inteira só para desenhar um gráfico (§12, §17).
+		const days = url.searchParams.get('history');
+		if (days) return jsonResponse(await documentationHealth.getHistory({ days: Number.parseInt(days, 10) || 30 }), 200);
+
+		const page = url.searchParams.get('page');
+		if (page) {
+			const health = await documentationHealth.getPageHealth(page);
+			return health ? jsonResponse(health, 200) : jsonResponse({ error: 'not_found' }, 404);
+		}
+
 		const report = await collectHealth();
 		return jsonResponse({ ...report, backlog: buildBacklog(report.gaps) }, 200);
 	} catch (error) {
@@ -50,6 +62,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
 	}
 
 	const action = String(payload.action ?? '');
+
+	if (action === 'snapshot') {
+		const snapshot = await documentationHealth.createSnapshot();
+		await recordAudit({ actorId: actor.id, action: 'HEALTH_SNAPSHOT_TAKEN', metadata: { score: snapshot.score } });
+		return jsonResponse({ ok: true, snapshot }, 200);
+	}
 
 	if (action === 'forget-questions') {
 		await forgetQuestions();

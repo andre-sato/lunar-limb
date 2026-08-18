@@ -44,7 +44,7 @@ Arquivos Markdown e MDX dentro de `src/content/docs/` são publicados automatica
 | `npm test` | Roda os testes (Vitest). |
 | `npm run docs:lint` | Analisa a documentação e calcula o Quality Score. |
 | `npm run docs:test` | Testes de documentação: links, âncoras, referências e exemplos de API. |
-| `npm run docs:health` | Health Center na linha de comando: dimensões, SLOs e backlog. |
+| `npm run docs:health` | Observabilidade: dimensões, SLOs, orçamento, histórico e regressões. |
 | `npm run twin` | Digital Twin: cobertura, não documentados, obsoletos, impacto. |
 | `npm run contract` | Contract Testing: o exemplo representa o contrato de verdade? |
 | `npm run gaps` | Gap Mining: o que as pessoas procuram e não encontram. |
@@ -230,21 +230,23 @@ O **Trust Score** (0–100) combina validade da fonte, cobertura por teste, fres
 
 No **assistente**, a confiança ajusta a relevância sem substituí-la, e conteúdo vencido não é escondido — é a melhor informação que o portal tem, e a resposta sai com o aviso na frente, não no rodapé. No **MCP**, `get_document` devolve `trust` com `checked: "declaracao"`: o leitor Python lê o que a página declara e confere a data, mas não resolve evidência, e por isso nunca reporta `invalid`. Guia em [/guides/confianca-e-proveniencia/](src/content/docs/guides/confianca-e-proveniencia.mdx).
 
-## Health Center e SLOs
+## Observabilidade e SLOs
 
-O linter mede escrita, a suíte mede comportamento, o Impact Engine mede consequência, o Trust mede evidência. Nenhum deles responde à pergunta de segunda-feira: **a documentação está saudável, e o que fazemos primeiro?** É o que **Settings → Health** monta — sem medir nada de novo, juntando o que já é medido, comparando com um alvo declarado e virando fila de trabalho.
+O linter mede escrita, a suíte mede comportamento, o Impact Engine mede consequência, o Trust mede evidência, o Twin mede cobertura, o Contract mede fidelidade ao contrato. Nenhum deles responde à pergunta de segunda-feira: **a documentação está saudável, e o que fazemos primeiro?** É o que **Settings → Health** e `npm run docs:health` montam.
 
-Sete dimensões: qualidade, frescor, consistência, cobertura de testes, cobertura de API, confiança e acessibilidade (esta última das regras `IMAGE-001`, `IMAGE-002`, `LINK-001` e `STRUCTURE-001`, que são as de acessibilidade de fato). Cada uma mostra **de onde o número veio** — "9 de 10 endpoints documentados", não só "90%".
+**Ela não mede nada de novo** — e isso é requisito, não estilo. Quando a camada foi estendida para observabilidade, o cálculo próprio de cobertura de API que ela tinha foi **removido** e substituído pela consulta ao Digital Twin: duas contas para o mesmo número divergem na primeira mudança, e aí ninguém sabe qual acreditar.
 
-**Não medido não é zero.** Dimensão sem dado aparece como não medida, com o motivo, e fica fora da média geral; no SLO ela entra como *em risco*, nunca como violação, porque não se viola um alvo que não foi aferido. Um portal onde ninguém declarou proveniência ainda não é um portal com confiança zero — e um painel que confunde as duas coisas a equipe ignora na primeira semana. Pela mesma razão, frescor mede o conteúdo **anotado**, não o portal inteiro.
+Dez dimensões: qualidade, integridade de contrato, cobertura, frescor, confiabilidade, confiança, preparo para IA, consistência, cobertura de testes e acessibilidade. Cada uma mostra **de onde o número veio**. O Health Score é do portal inteiro e não substitui o Quality Score, que continua sendo a nota por página.
 
-Os alvos ficam em `health.yml`, versionado no Git, com uma faixa `warning` entre "no alvo" e "violado" — sem ela o painel alterna entre verde e vermelho a cada ponto. Cobertura de API em 100% e links quebrados em 0 nascem absolutos.
+**Não medido não é zero.** Dimensão sem dado fica fora da média e entra no SLO como *em risco*, nunca como violação — não se viola um alvo que não foi aferido.
 
-A fila prioriza: **P0** é evidência inválida, o único sinal de documentação possivelmente errada; **P1** é endpoint sem página, teste reprovado, pergunta muito repetida; **P2** é verificação vencida e nota baixa — página malescrita e correta ainda ajuda quem lê. Cada item carrega por que recebeu a prioridade.
+**A idade sozinha não determina obsolescência**, e essa é a regra que separa um indicador útil de um mar de vermelho. Uma página com 200 dias e nenhum sinal de divergência continua atual; a suspeita começa depois de um ano. O que empurra para obsoleta é evidência: contrato quebrado, proveniência que não confere, a API mudando depois da última edição. Uma página editada ontem com contrato quebrado fica vermelha; uma de dois anos, correta e muito lida, fica verde — e o relatório diz por quê.
 
-**Uma decisão de privacidade explícita.** A spec pede "top unanswered questions", o que exige guardar o texto do que os leitores perguntam — e o portal já tinha decidido não guardar perguntas. Ficou assim: contadores sempre (consultas, confiança, sem resposta, recusadas), texto **só** com `documentation.analytics.storeUnansweredQuestions: true`, e mesmo então apenas a pergunta sem resposta, sem quem perguntou, truncada, com credenciais redigidas e com botão de apagar. Desligado por padrão; as lacunas continuam vindo dos outros sinais.
+O **error budget** mostra quanto **resta**, não quanto se gastou: "40% restante" leva a decisão diferente de "3 de 5". Orçamento zero é caso normal — link morto e contrato quebrado não têm cota.
 
-Alertas por webhook (`DOCS_HEALTH_WEBHOOK`, só `https`) e por issue no provedor. **Nada sai sozinho** — o disparo é ação de quem administra e fica na auditoria, porque notificação repetida é notificação silenciada. Guia em [/guides/saude-da-documentacao/](src/content/docs/guides/saude-da-documentacao.mdx).
+O **snapshot** é a única coisa que esta camada persiste, porque histórico não se deriva; ele guarda números e o commit, nunca conteúdo. A regressão compara com a medição mais **próxima** do alvo e lista só as dimensões que pioraram. Os commits correlacionados são **candidatos**, não causa: a documentação também degrada quando o produto muda e ninguém mexe nela.
+
+`npm run docs:health -- check` serve ao CI (sai com 1 em SLO violado; risco não reprova, senão a equipe afrouxa os alvos até tudo ficar verde), e o PR mostra `antes → depois` — dizendo quando não há base de comparação, em vez de exibir `-0`. Guia em [/guides/observabilidade/](src/content/docs/guides/observabilidade.mdx).
 
 ## Documentação adaptativa
 

@@ -94,6 +94,8 @@ export interface PullRequestInput {
 	coverage?: { endpoints: number; minimum: number; passed: boolean };
 	/** Contratos de documentação quebrados ou com aviso. */
 	contracts?: { broken: number; warning: number; pages: string[] };
+	/** Saúde da documentação, antes e depois. */
+	health?: { score: number; previous: number | null; delta: number | null; newIssues: string[] };
 }
 
 /**
@@ -124,6 +126,23 @@ export function composePullRequestBody(input: PullRequestInput): string {
 			`**Testes de documentação:** ${failed === 0 ? '✅' : '❌'} ${passed} passaram, ${failed} falharam, ${skipped} pulados`,
 			''
 		);
+	}
+
+	if (input.health) {
+		const { score, previous, delta, newIssues } = input.health;
+
+		if (previous === null || delta === null) {
+			// Sem snapshot anterior não há comparação. Dizer isso é melhor que
+			// mostrar "-0", que uma equipe aprende a ignorar.
+			parts.push(`**Documentation Health:** ${score}/100 _(sem medição anterior para comparar)_`, '');
+		} else {
+			const mark = delta < 0 ? '🔴' : delta > 0 ? '🟢' : '⚪';
+			parts.push(`**Documentation Health:** ${previous} → ${score} ${mark} ${delta > 0 ? '+' : ''}${delta}`, '');
+		}
+
+		if (newIssues.length > 0) {
+			parts.push('Defeitos novos: ' + newIssues.join(', '), '');
+		}
 	}
 
 	if (input.contracts && input.contracts.broken + input.contracts.warning > 0) {

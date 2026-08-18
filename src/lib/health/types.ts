@@ -19,36 +19,53 @@
 export type HealthDimension =
 	/** Nota editorial do linter. */
 	| 'quality'
-	/** Percentual de conteúdo dentro do prazo de verificação. */
-	| 'freshness'
 	/** Consistência de terminologia, do linter e do glossário. */
 	| 'consistency'
-	/** Percentual de páginas cobertas pela Documentation Test Suite. */
-	| 'testCoverage'
-	/** Endpoints documentados sobre o total declarado nas especificações. */
-	| 'apiCoverage'
+	/** Regras de acessibilidade do linter. */
+	| 'accessibility'
+	/** Cobertura documental do produto, vinda do Digital Twin. */
+	| 'coverage'
+	/** Contratos válidos sobre contratos verificados. */
+	| 'contractIntegrity'
+	/** Conteúdo atual, cruzando idade com evidência de divergência. */
+	| 'freshness'
+	/** Ausência de defeitos: link quebrado, teste reprovado, contrato quebrado. */
+	| 'reliability'
 	/** Proveniência válida. */
 	| 'trust'
-	/** Regras de acessibilidade do linter. */
-	| 'accessibility';
+	/** Percentual de páginas cobertas pela Documentation Test Suite. */
+	| 'testCoverage'
+	/** Qualidade das respostas do assistente: proporção com confiança alta. */
+	| 'aiReadiness';
 
+/**
+ * A ordem é a de leitura do painel, e ela é estável de propósito: um indicador
+ * que troca de lugar entre duas visitas obriga a pessoa a reencontrar o que já
+ * sabia onde estava.
+ */
 export const HEALTH_DIMENSIONS: readonly HealthDimension[] = [
 	'quality',
+	'contractIntegrity',
+	'coverage',
 	'freshness',
+	'reliability',
+	'trust',
+	'aiReadiness',
 	'consistency',
 	'testCoverage',
-	'apiCoverage',
-	'trust',
 	'accessibility',
 ];
 
 export const DIMENSION_LABEL: Record<HealthDimension, string> = {
 	quality: 'Qualidade',
+	contractIntegrity: 'Integridade de contrato',
+	coverage: 'Cobertura',
 	freshness: 'Frescor',
+	reliability: 'Confiabilidade',
+	trust: 'Confiança',
+	aiReadiness: 'Preparo para IA',
 	consistency: 'Consistência',
 	testCoverage: 'Cobertura de testes',
-	apiCoverage: 'Cobertura de API',
-	trust: 'Confiança',
 	accessibility: 'Acessibilidade',
 };
 
@@ -99,8 +116,20 @@ export interface SloTarget {
 
 export interface SloConfig {
 	dimensions: Partial<Record<HealthDimension, SloTarget>>;
-	/** Alvo absoluto de links quebrados — normalmente zero. */
-	brokenLinks: number;
+	/** Mínimo do score geral (§10). */
+	minimumHealthScore: number;
+	/**
+	 * Orçamento de defeitos (§9): quantos de cada tipo são tolerados.
+	 *
+	 * Separado dos alvos por dimensão porque a leitura é outra: alvo é
+	 * percentual a atingir, orçamento é contagem absoluta a não ultrapassar.
+	 */
+	budgets: {
+		brokenLinks: number;
+		contractFailures: number;
+		failedExamples: number;
+		staleContent: number;
+	};
 	/** Webhook de alerta. Vem do ambiente, nunca do arquivo. */
 	webhookConfigured: boolean;
 }
@@ -146,6 +175,17 @@ export interface Gap {
 	target?: string;
 	/** Componentes da prioridade, para o número não ser um oráculo. */
 	factors: string[];
+}
+
+/** Contadores de confiabilidade (§8). */
+export interface ReliabilityCounters {
+	brokenLinks: number;
+	failedTests: number;
+	brokenContracts: number;
+	/** Páginas com proveniência que não confere. */
+	invalidPages: number;
+	/** Páginas classificadas como obsoletas. */
+	stalePages: number;
 }
 
 export interface HealthReport {

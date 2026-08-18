@@ -1,4 +1,4 @@
-# Documentation Health & SLO — alvos (§4).
+# Documentation Observability & SLO — alvos e orçamentos.
 #
 # Versionado no Git de propósito: um alvo de qualidade é um acordo da equipe, e
 # acordo que só existe na tela de configuração de alguém não sobrevive à troca de
@@ -10,33 +10,65 @@
 
 documentation:
   slo:
-    # `target` é o alvo; `warning` é quantos pontos abaixo dele ainda contam como
-    # "em risco" em vez de violação. Sem essa faixa o painel alterna entre verde e
-    # vermelho a cada ponto, e a equipe aprende a ignorar o vermelho.
+    # Mínimo do score geral. Abaixo disso, `npm run docs:health -- check` falha.
+    healthScore:
+      minimum: 90
+
+    # `target` (ou `minimum`) é o alvo; `warning` é quantos pontos abaixo dele
+    # ainda contam como "em risco" em vez de violação. Sem essa faixa o painel
+    # alterna entre verde e vermelho a cada ponto, e a equipe aprende a ignorar o
+    # vermelho.
     quality:
       target: 90
       warning: 5
+
+    # Contrato é o mais rígido depois dos absolutos: documentação que diverge do
+    # contrato leva quem lê a errar com confiança.
+    contractIntegrity:
+      target: 99
+      warning: 4
+
+    coverage:
+      target: 90
+      warning: 10
+
     freshness:
       target: 95
       warning: 10
-    consistency:
-      target: 90
-      warning: 5
-    testCoverage:
-      target: 90
-      warning: 10
-    # Os dois absolutos: endpoint sem página e link morto não têm justificativa
-    # que valha a discussão.
-    apiCoverage:
-      target: 100
-      warning: 10
-    brokenLinks: 0
+
+    reliability:
+      target: 99
+      warning: 4
+
     trust:
       target: 90
       warning: 15
+
+    aiReadiness:
+      target: 90
+      warning: 10
+
+    consistency:
+      target: 90
+      warning: 5
+
+    testCoverage:
+      target: 90
+      warning: 10
+
     accessibility:
       target: 95
       warning: 5
+
+    # Error budget: contagem absoluta de defeitos tolerados, não percentual.
+    #
+    # Zero nos dois que não têm justificativa que valha a discussão — link morto e
+    # contrato quebrado. Orçamento zero é caso normal: sem ocorrência ele está
+    # inteiro, e com uma ele estoura.
+    brokenLinks: 0
+    contractFailures: 0
+    failedExamples: 2
+    staleContent: 5
 
   analytics:
     # Guardar o **texto** das perguntas que a busca não conseguiu responder.
@@ -49,7 +81,5 @@ documentation:
     # Ligado, guarda **apenas** a pergunta que ficou sem resposta — sem quem
     # perguntou, truncada, com credenciais redigidas e com teto de registros.
     # Desligado, as lacunas continuam sendo detectadas pelos outros sinais:
-    # endpoint sem página, voto negativo, evidência inválida, teste falhando. O
-    # que se perde é a lista de perguntas, e essa perda é decisão de quem opera o
-    # portal.
+    # endpoint sem página, voto negativo, evidência inválida, teste falhando.
     storeUnansweredQuestions: false

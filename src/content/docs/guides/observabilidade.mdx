@@ -1,0 +1,152 @@
+---
+title: Observabilidade da documentação
+description: Health Score, SLO, error budget, detecção de obsolescência, histórico e regressão — a documentação tratada como sistema observável.
+sidebar:
+  order: 16
+tags: [guia, qualidade, portal]
+owner: Time de Documentação
+audiences: [product, operations]
+---
+
+Documentação não é um conjunto de arquivos Markdown: é um sistema, e como todo
+sistema ela degrada em silêncio. Esta camada trata a documentação como algo
+**observável** — com indicadores, alvos, orçamento de erro e histórico.
+
+```bash
+npm run docs:health                 # o painel
+npm run docs:health -- check        # para CI
+npm run docs:health -- slo          # alvos e orçamentos
+npm run docs:health -- regressions  # o que piorou
+npm run docs:health -- --history 30 # a série
+npm run docs:health -- --snapshot   # grava a medição
+```
+
+## Ela não mede nada de novo
+
+O Health Score **consolida** o que as outras camadas já produzem: Linter,
+Documentation Tests, Contract Testing, Digital Twin, Trust, Glossário, RAG e Gap
+Mining.
+
+Isso é requisito, não estilo. Quando esta camada foi estendida, o cálculo próprio
+de cobertura de API que ela tinha foi **removido** e substituído pela consulta ao
+Digital Twin — duas contas para o mesmo número divergem na primeira mudança, e aí
+ninguém sabe qual acreditar.
+
+## As dez dimensões
+
+| Dimensão | De onde vem |
+| --- | --- |
+| Qualidade | nota média do linter |
+| Integridade de contrato | Contract Testing |
+| Cobertura | Digital Twin: endpoints, schemas, exemplos, domínios |
+| Frescor | cruzamento de idade com evidência de divergência |
+| Confiabilidade | defeitos sobre verificações |
+| Confiança | Trust Score médio |
+| Preparo para IA | proporção de respostas com confiança alta |
+| Consistência | linter, incluindo glossário |
+| Cobertura de testes | páginas com ao menos um teste que rodou |
+| Acessibilidade | regras `IMAGE-001`, `IMAGE-002`, `LINK-001`, `STRUCTURE-001` |
+
+### Health Score ≠ Quality Score
+
+O **Quality Score** responde "esta página está bem escrita?". O **Health Score**
+responde "o sistema de documentação está saudável?". O primeiro continua sendo
+exatamente o que era — nota por página, do linter. O segundo é o portal inteiro.
+
+### Não medido não é zero
+
+Dimensão sem dado aparece como **não medida**, com o motivo, e fica fora da média.
+No SLO ela entra como *em risco*, nunca como violação: não se viola um alvo que
+não foi aferido.
+
+## Obsolescência: idade não decide
+
+A regra que a spec deixa explícita, e que a maioria das ferramentas ignora:
+
+**A idade sozinha não determina que uma página está obsoleta. Conteúdo estável
+pode permanecer válido por anos.**
+
+O que decide é o cruzamento. Uma página com 200 dias e nenhum sinal de divergência
+continua **atual**; a suspeita começa depois de um ano, e mesmo aí não passa de
+*possivelmente obsoleta*. O que empurra para **obsoleta** é evidência:
+
+- contrato de documentação quebrado
+- proveniência que não confere mais
+- a API que a página documenta tendo mudado depois da última edição
+- leitores marcando a página como não útil
+
+Uma página editada ontem com contrato quebrado aparece vermelha. Uma página de
+dois anos, correta e muito lida, aparece verde — e o relatório diz "consultada com
+frequência e sem sinal de divergência".
+
+Cada veredito lista os sinais que pesaram. Um veredito sem justificativa não se
+discute, e o que não se discute a equipe ignora.
+
+## Error budget
+
+Emprestado da observabilidade de software: em vez de "quantos erros o sistema pode
+dar", é "quantos defeitos a documentação pode ter antes de o compromisso estar
+quebrado".
+
+```yaml
+documentation:
+  slo:
+    healthScore: { minimum: 90 }
+    brokenLinks: 0
+    contractFailures: 0
+    failedExamples: 2
+    staleContent: 5
+```
+
+A barra mostra **quanto resta**, não quanto se gastou. Quem vê "40% do orçamento
+restante" decide diferente de quem vê "3 de 5" — a primeira leitura torna visível
+o quanto ainda dá para arriscar.
+
+Orçamento zero é caso normal, não erro de configuração: link morto e contrato
+quebrado não têm cota.
+
+## Histórico e regressão
+
+O snapshot é a **única** coisa que esta camada persiste, e o motivo é que histórico
+não se deriva. Tudo o mais é recalculado das fontes de verdade a cada análise.
+
+Ele guarda números — as dimensões, os contadores de defeito, o commit — e nunca
+conteúdo: nenhum texto de página, nenhuma pergunta, nenhum identificador de pessoa.
+
+A regressão compara com a medição mais **próxima** do alvo, não com a primeira
+dentro da janela: comparar hoje com 29 dias atrás e chamar isso de "30 dias" seria
+impreciso de um jeito que ninguém notaria.
+
+A explicação lista apenas as dimensões que **pioraram** — listar as que melhoraram
+no meio da explicação de uma queda dilui o que se quer ler.
+
+### Correlação com mudanças
+
+Quando há queda, o painel mostra os commits entre as duas medições que tocaram
+conteúdo, especificação ou código.
+
+São **candidatos**, e o texto diz isso: a documentação também degrada quando o
+produto muda e ninguém mexe nela — e nesse caso o commit responsável não está na
+lista.
+
+## Saúde por página
+
+Cada página tem a própria nota, com as mesmas regras: dimensão sem dado fica fora
+da média e aparece com o motivo.
+
+Uma página sem proveniência declarada **não** é uma página sem confiança — é uma
+página que ninguém anotou. Puni-la faria a nota falar do esforço de anotação em vez
+da saúde do conteúdo.
+
+## No CI e no pull request
+
+```bash
+npm run docs:health -- check
+```
+
+Sai com `1` quando algum SLO está violado ou o score fica abaixo do mínimo.
+**Risco não reprova**: bloquear o pipeline por risco levaria a equipe a afrouxar os
+alvos até tudo ficar verde, que é o oposto do que um SLO serve para fazer.
+
+No PR, a saúde aparece como `antes → depois`. Sem snapshot anterior, ele diz que
+não há comparação — em vez de mostrar `-0`, que uma equipe aprende a ignorar.
