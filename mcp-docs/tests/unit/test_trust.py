@@ -114,3 +114,15 @@ def test_inferencia_do_tipo_de_fonte() -> None:
 
 def test_prazo_padrao_igual_ao_do_portal() -> None:
     assert DEFAULT_FRESHNESS_DAYS == 180
+
+
+def test_anotacao_em_bloco_de_codigo_e_exemplo() -> None:
+    # A página que ensina a sintaxe mostra a anotação de propósito; lê-la como
+    # declaração real fazia o próprio guia aparecer como se tivesse proveniência.
+    raw = page("```markdown\n<!-- provenance:\nsource: exemplo.yaml#/nada\nverifiedAt: 2026-08-01\n-->\n```")
+    assert read_trust(raw, today=TODAY).evidence == []
+
+
+def test_anotacao_depois_do_bloco_continua_valendo() -> None:
+    raw = page("```bash\necho 1\n```\n\n<!-- provenance:\nsource: DOC-LINK-001\nverifiedAt: 2026-08-01\n-->\n\nTexto.")
+    assert read_trust(raw, today=TODAY).status == "verified"

@@ -91,6 +91,49 @@ describe('anotação de proveniência', () => {
 		expect(claims[0].provenance[0].owner).toBe('Time de Plataforma');
 	});
 
+	it('anotação dentro de bloco de código é exemplo, não declaração', () => {
+		// Encontrado rodando o coletor de saúde contra o portal: a página que ensina
+		// esta sintaxe mostra as anotações de propósito, e lê-las como reais fazia o
+		// próprio guia de proveniência aparecer no painel como P0, acusado de citar
+		// evidência inexistente.
+		const raw = page(
+			[
+				'Veja como declarar:',
+				'',
+				'```markdown',
+				'<!-- provenance:',
+				'source: exemplo.yaml#/nada',
+				'-->',
+				'```',
+				'',
+				'Fim.',
+			].join('\n')
+		);
+		expect(parseProvenance('a.mdx', raw)).toEqual([]);
+	});
+
+	it('a anotação depois de um bloco de código continua sendo lida, na linha certa', () => {
+		const raw = page(
+			[
+				'```bash',
+				'echo 1',
+				'```',
+				'',
+				'<!-- provenance:',
+				'source: DOC-LINK-001',
+				'-->',
+				'',
+				'A afirmação.',
+			].join('\n')
+		);
+
+		const claims = parseProvenance('a.md', raw);
+		expect(claims).toHaveLength(1);
+		// A cerca é esvaziada preservando as linhas: o número no relatório é o do
+		// arquivo, e apagar de fato deslocaria tudo que vem depois.
+		expect(claims[0].line).toBe(9);
+	});
+
 	it('página sem anotação nenhuma não produz afirmação', () => {
 		expect(parseProvenance('a.md', page('Só texto.'))).toEqual([]);
 	});

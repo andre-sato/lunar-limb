@@ -44,6 +44,7 @@ Arquivos Markdown e MDX dentro de `src/content/docs/` são publicados automatica
 | `npm test` | Roda os testes (Vitest). |
 | `npm run docs:lint` | Analisa a documentação e calcula o Quality Score. |
 | `npm run docs:test` | Testes de documentação: links, âncoras, referências e exemplos de API. |
+| `npm run docs:health` | Health Center na linha de comando: dimensões, SLOs e backlog. |
 | `npm run docs:asyncapi` | Gera páginas de referência a partir de especificações AsyncAPI. |
 | `npm run user:create` | Cria um usuário do portal (ver *Usuários e controle de acesso*). |
 
@@ -225,6 +226,22 @@ O prazo padrão fica em `trust.yml`: 180 dias, que é o que uma equipe consegue 
 O **Trust Score** (0–100) combina validade da fonte, cobertura por teste, frescor e responsável. Página sem afirmação recebe zero — dar nota cheia à ausência de evidência premiaria o que a camada existe para corrigir. Ele aparece **ao lado** do Quality Score em Settings → Quality, nunca dentro: misturar os dois faria uma página impecavelmente escrita e sem evidência parecer pior do que é.
 
 No **assistente**, a confiança ajusta a relevância sem substituí-la, e conteúdo vencido não é escondido — é a melhor informação que o portal tem, e a resposta sai com o aviso na frente, não no rodapé. No **MCP**, `get_document` devolve `trust` com `checked: "declaracao"`: o leitor Python lê o que a página declara e confere a data, mas não resolve evidência, e por isso nunca reporta `invalid`. Guia em [/guides/confianca-e-proveniencia/](src/content/docs/guides/confianca-e-proveniencia.mdx).
+
+## Health Center e SLOs
+
+O linter mede escrita, a suíte mede comportamento, o Impact Engine mede consequência, o Trust mede evidência. Nenhum deles responde à pergunta de segunda-feira: **a documentação está saudável, e o que fazemos primeiro?** É o que **Settings → Health** monta — sem medir nada de novo, juntando o que já é medido, comparando com um alvo declarado e virando fila de trabalho.
+
+Sete dimensões: qualidade, frescor, consistência, cobertura de testes, cobertura de API, confiança e acessibilidade (esta última das regras `IMAGE-001`, `IMAGE-002`, `LINK-001` e `STRUCTURE-001`, que são as de acessibilidade de fato). Cada uma mostra **de onde o número veio** — "9 de 10 endpoints documentados", não só "90%".
+
+**Não medido não é zero.** Dimensão sem dado aparece como não medida, com o motivo, e fica fora da média geral; no SLO ela entra como *em risco*, nunca como violação, porque não se viola um alvo que não foi aferido. Um portal onde ninguém declarou proveniência ainda não é um portal com confiança zero — e um painel que confunde as duas coisas a equipe ignora na primeira semana. Pela mesma razão, frescor mede o conteúdo **anotado**, não o portal inteiro.
+
+Os alvos ficam em `health.yml`, versionado no Git, com uma faixa `warning` entre "no alvo" e "violado" — sem ela o painel alterna entre verde e vermelho a cada ponto. Cobertura de API em 100% e links quebrados em 0 nascem absolutos.
+
+A fila prioriza: **P0** é evidência inválida, o único sinal de documentação possivelmente errada; **P1** é endpoint sem página, teste reprovado, pergunta muito repetida; **P2** é verificação vencida e nota baixa — página malescrita e correta ainda ajuda quem lê. Cada item carrega por que recebeu a prioridade.
+
+**Uma decisão de privacidade explícita.** A spec pede "top unanswered questions", o que exige guardar o texto do que os leitores perguntam — e o portal já tinha decidido não guardar perguntas. Ficou assim: contadores sempre (consultas, confiança, sem resposta, recusadas), texto **só** com `documentation.analytics.storeUnansweredQuestions: true`, e mesmo então apenas a pergunta sem resposta, sem quem perguntou, truncada, com credenciais redigidas e com botão de apagar. Desligado por padrão; as lacunas continuam vindo dos outros sinais.
+
+Alertas por webhook (`DOCS_HEALTH_WEBHOOK`, só `https`) e por issue no provedor. **Nada sai sozinho** — o disparo é ação de quem administra e fica na auditoria, porque notificação repetida é notificação silenciada. Guia em [/guides/saude-da-documentacao/](src/content/docs/guides/saude-da-documentacao.mdx).
 
 ## Feedback de página
 

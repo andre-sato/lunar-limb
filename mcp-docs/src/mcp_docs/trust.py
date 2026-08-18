@@ -159,12 +159,45 @@ def _age_days(iso: str, today: date) -> int | None:
     return (today - parsed_date).days
 
 
+_FENCE = re.compile(r"^\s*(`{3,}|~{3,})")
+
+
+def _blank_code_fences(raw: str) -> str:
+    """Esvazia blocos de código, preservando as linhas.
+
+    Anotação dentro de bloco de código é **exemplo**, não declaração: a página
+    que ensina a sintaxe mostra a anotação de propósito. Sem isso, o guia de
+    proveniência do portal era lido como se declarasse as próprias evidências de
+    exemplo — o caso apareceu rodando o coletor de saúde contra o repositório.
+    """
+    lines: list[str] = []
+    fence: str | None = None
+
+    for line in raw.split("\n"):
+        marker = _FENCE.match(line)
+
+        if fence is not None:
+            if marker and marker.group(1)[0] == fence[0] and len(marker.group(1)) >= len(fence):
+                fence = None
+            lines.append("")
+            continue
+
+        if marker:
+            fence = marker.group(1)
+            lines.append("")
+            continue
+
+        lines.append(line)
+
+    return "\n".join(lines)
+
+
 def read_trust(raw: str, *, freshness_days: int = DEFAULT_FRESHNESS_DAYS, today: date | None = None) -> DeclaredTrust:
     """Lê a proveniência declarada num arquivo de conteúdo."""
     reference = today or datetime.now(timezone.utc).date()
 
     evidence = _parse_entries(_frontmatter_section(raw, "provenance"))
-    for match in _ANNOTATION.finditer(raw):
+    for match in _ANNOTATION.finditer(_blank_code_fences(raw)):
         evidence.extend(_parse_entries(match.group(1)))
 
     owner = _page_owner(raw) or next((item.owner for item in evidence if item.owner), None)

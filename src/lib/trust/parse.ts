@@ -173,6 +173,36 @@ export function parsePageOwner(raw: string): string | undefined {
 }
 
 /**
+ * Substitui o conteúdo dos blocos de código por espaço, preservando as linhas.
+ *
+ * Preservar a contagem de linhas importa: o número que vai para o relatório é o
+ * do arquivo, e apagar as cercas de fato deslocaria toda anotação posterior.
+ */
+function blankCodeFences(raw: string): string {
+	const lines = raw.split('\n');
+	let fence: string | null = null;
+
+	return lines
+		.map((line) => {
+			const marker = line.match(/^\s*(`{3,}|~{3,})/);
+
+			if (fence) {
+				const closing = marker && marker[1][0] === fence[0] && marker[1].length >= fence.length;
+				if (closing) fence = null;
+				return '';
+			}
+
+			if (marker) {
+				fence = marker[1];
+				return '';
+			}
+
+			return line;
+		})
+		.join('\n');
+}
+
+/**
  * Anotações de proveniência de um arquivo de conteúdo.
  *
  * O frontmatter entra como uma "afirmação" da página inteira, na linha 1 — é o
@@ -188,15 +218,22 @@ export function parseProvenance(path: string, raw: string): Claim[] {
 		claims.push({ path, line: 1, provenance: pageEntries.map((entry) => ({ ...entry, owner: entry.owner ?? owner })) });
 	}
 
-	for (const match of raw.matchAll(ANNOTATION)) {
+	// Anotação dentro de bloco de código é **exemplo**, não declaração. A página
+	// que ensina esta sintaxe mostra `source: portal-api.yaml#/paths` de propósito;
+	// lê-la como afirmação real fazia o guia de proveniência aparecer no painel de
+	// saúde como P0, acusado de citar evidência inexistente. O caso foi encontrado
+	// assim, rodando o coletor contra o portal.
+	const scannable = blankCodeFences(raw);
+
+	for (const match of scannable.matchAll(ANNOTATION)) {
 		const entries = parseBlock(match[1]);
 		if (entries.length === 0) continue;
 
-		const before = raw.slice(0, match.index ?? 0);
+		const before = scannable.slice(0, match.index ?? 0);
 		claims.push({
 			path,
 			line: before.split('\n').length,
-			text: claimTextAfter(raw, (match.index ?? 0) + match[0].length),
+			text: claimTextAfter(scannable, (match.index ?? 0) + match[0].length),
 			provenance: entries,
 		});
 	}
