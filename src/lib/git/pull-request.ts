@@ -131,6 +131,8 @@ export interface PullRequestInput {
 	gatePassed?: boolean;
 	changedFiles: readonly string[];
 	impact?: ContentImpact;
+	/** Resumo da Documentation Test Suite, quando ela rodou. */
+	tests?: { total: number; passed: number; failed: number; skipped: number };
 }
 
 /**
@@ -150,6 +152,17 @@ export function composePullRequestBody(input: PullRequestInput): string {
 	if (typeof input.score === 'number') {
 		const verdict = input.gatePassed === false ? '⚠️ abaixo do mínimo' : '✅';
 		parts.push(`**Quality Score:** ${input.score.toFixed(1)}/10 ${verdict}`, '');
+	}
+
+	if (input.tests && input.tests.total > 0) {
+		const { passed, failed, skipped } = input.tests;
+		// Falha de teste é afirmação sobre comportamento — link quebrado, exemplo
+		// que não bate com o contrato. Vem antes da lista de arquivos porque é o
+		// que decide se vale abrir os arquivos.
+		parts.push(
+			`**Testes de documentação:** ${failed === 0 ? '✅' : '❌'} ${passed} passaram, ${failed} falharam, ${skipped} pulados`,
+			''
+		);
 	}
 
 	const docs = input.changedFiles.filter((file) => file.startsWith(DOCS_PREFIX));

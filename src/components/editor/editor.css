@@ -2250,6 +2250,27 @@ body {
 	color: var(--editor-warning, #d79b3b);
 }
 
+.git-test-failures {
+	margin: 0.5rem 0 0;
+	padding-left: 1rem;
+	list-style: disc;
+	font-size: 0.78rem;
+	line-height: 1.5;
+	color: var(--editor-text-muted, #8a8f98);
+}
+
+.git-test-failures code {
+	font-size: 0.74rem;
+	color: var(--editor-text, inherit);
+}
+
+/* O caminho do arquivo fica em fonte monoespaçada: é para ser copiado. */
+.git-test-where {
+	font-family: var(--editor-font-mono, ui-monospace, monospace);
+	font-size: 0.72rem;
+	opacity: 0.85;
+}
+
 .git-row {
 	display: flex;
 	gap: 0.5rem;

@@ -43,6 +43,7 @@ Arquivos Markdown e MDX dentro de `src/content/docs/` são publicados automatica
 | `npm run check` | Typecheck de `.astro`, `.ts` e `.tsx` (`astro check`). |
 | `npm test` | Roda os testes (Vitest). |
 | `npm run docs:lint` | Analisa a documentação e calcula o Quality Score. |
+| `npm run docs:test` | Testes de documentação: links, âncoras, referências e exemplos de API. |
 | `npm run docs:asyncapi` | Gera páginas de referência a partir de especificações AsyncAPI. |
 | `npm run user:create` | Cria um usuário do portal (ver *Usuários e controle de acesso*). |
 
@@ -180,6 +181,22 @@ npm run docs:lint
 `--changed` analisa só o que mudou **mais as páginas consumidoras** dos blocos alterados, usando o Content Graph. Saída `0` aprovado, `1` gate reprovado, `2` configuração, `3` execução.
 
 **Settings → Quality** traz a visão do workspace: nota média, média por dimensão e problemas mais frequentes. Regras e arquitetura em [docs/linter.md](docs/linter.md).
+
+## Testes de documentação
+
+O linter pergunta "isto está bem escrito?". A suíte de testes pergunta "isto **funciona**?" — e é a pergunta que o linter nunca responde. Um link para uma página inexistente passa em qualquer regra de estilo; um exemplo de resposta que não bate mais com o schema está impecavelmente redigido.
+
+```bash
+npm run docs:test
+```
+
+Três perfis, do mais barato ao mais caro: `quick` (padrão — links, âncoras, Content Graph, sem rede), `--standard` (mais exemplos de API e estrutura de snippets) e `--strict` (mais links externos, com rede). `--changed` restringe ao que o Git aponta, `--file <caminho>` a uma página, `--json` serve CI. Saída `0` aprovado, `1` falha, `2` opção inválida, `3` execução.
+
+As regras: `DOC-LINK-001` link interno para página inexistente, `DOC-LINK-002` âncora inexistente (a âncora do link passa pela mesma normalização dos títulos, acento incluído), `DOC-GRAPH-001` referência quebrada no Content Graph, `DOC-API-003` exemplo que envelheceu em relação ao schema, `DOC-SNIPPET-001` blocos marcados como executáveis, `DOC-LINK-003` link externo morto.
+
+**Duas decisões que valem explicação.** A primeira: a execução de snippets **não** é ligada por padrão. Rodar código vindo de arquivo de conteúdo é execução arbitrária — quem escreve documentação passaria a rodar qualquer coisa na máquina de quem testa, e em CI é porta aberta. O que roda é a verificação estrutural; cada bloco aparece como pulado dizendo isso. A segunda: `403` e `429` em link externo não reprovam. Sites bloqueiam robôs, e transformar isso em falha ensina a equipe a ignorar o relatório inteiro — só `404`, `410` e `5xx` são evidência de link morto.
+
+Teste pulado não reprova e também não conta como passado: aparece no relatório com o motivo. A tela de revisão do editor roda o perfil `standard` sobre os arquivos do PR, mostra as falhas com arquivo e linha, e as leva para o corpo do pull request. Quando a suíte não consegue rodar, a tela diz isso — não "aprovado". Guia em [/guides/testes-de-documentacao/](src/content/docs/guides/testes-de-documentacao.mdx).
 
 ## Feedback de página
 

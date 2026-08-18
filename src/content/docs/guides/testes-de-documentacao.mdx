@@ -1,0 +1,127 @@
+---
+title: Testes de documentação
+description: A suíte que verifica se a documentação funciona — links, âncoras, referências de conteúdo e exemplos de API — e como ela entra no pull request.
+sidebar:
+  order: 8
+tags: [guia, qualidade, portal]
+---
+
+O linter pergunta **"isto está bem escrito?"**. A suíte de testes pergunta outra
+coisa, e é a pergunta que o linter nunca vai responder:
+
+**"isto funciona?"**
+
+Um link para uma página que não existe passa em qualquer regra de estilo. Um
+exemplo de resposta que não bate mais com o schema da API está impecavelmente
+redigido. São defeitos de **comportamento** — e é isso que esta camada mede.
+
+## Rodando
+
+```bash
+npm run docs:test
+```
+
+O perfil padrão é o rápido: links e referências de conteúdo, sem rede, em menos
+de um segundo. Os outros dois vão além:
+
+| Comando | O que verifica |
+| --- | --- |
+| `npm run docs:test` | Links internos, âncoras, Content Graph |
+| `npm run docs:test -- --standard` | O acima, mais exemplos de API e estrutura dos snippets |
+| `npm run docs:test -- --strict` | O acima, mais links externos (usa a rede) |
+
+E para restringir o alcance:
+
+```bash
+npm run docs:test -- --changed
+npm run docs:test -- --file guides/manual.mdx
+npm run docs:test -- --standard --json
+```
+
+`--changed` pega o que o Git aponta como alterado. `--json` serve a CI e a
+scripts. Os códigos de saída são `0` aprovado, `1` alguma falha, `2` opção
+inválida, `3` erro de execução.
+
+## O que cada verificação faz
+
+### `DOC-LINK-001` — link para página que não existe
+
+O índice é montado com **todas** as páginas do portal, mais as rotas que não vêm
+de arquivo de conteúdo (`/glossary/`, `/atualizacoes/`, `/editor/`). Barra final
+ausente e *query string* não fazem diferença; link externo, `mailto:` e outro
+protocolo ficam fora — esses são assunto do perfil estrito.
+
+### `DOC-LINK-002` — âncora que não existe
+
+A âncora escrita no link passa pela **mesma** normalização dos títulos, incluindo
+dobra de acento: `#criando-uma-página` encontra o título "Criando uma página",
+que é o que o navegador também faz.
+
+Link dentro de bloco de código não é verificado. Uma página que ensina sintaxe de
+Markdown escreve `[exemplo](/destino/)` de propósito, e acusar isso seria
+transformar o relatório em ruído.
+
+### `DOC-GRAPH-001` — referência de conteúdo quebrada
+
+Vem do Content Graph, o mesmo que o editor usa. Erro reprova; **aviso não**.
+Página órfã é informação para quem escreve, não defeito de comportamento — e ela
+aparece no relatório como pulada, com o motivo.
+
+### `DOC-API-003` — exemplo que envelheceu
+
+Cada exemplo de requisição declarado nas especificações OpenAPI de `src/schemas/`
+é validado contra o próprio schema: tipo, campos obrigatórios e enum. É
+deliberadamente parcial — não pretende ser um validador de JSON Schema completo.
+O que se quer pegar é o exemplo que ficou para trás quando o contrato mudou, e
+isso aparece nesses três.
+
+### `DOC-SNIPPET-001` — blocos executáveis
+
+Um bloco pode se declarar testável na cerca:
+
+````markdown
+```bash test
+# @expect-output: ok
+# @expect-exit: 0
+echo ok
+```
+````
+
+E pode se desligar pelo corpo, com `# @test: false` — marcação na cerca porque é
+visível na leitura, marcação no corpo porque sobrevive a copiar e colar.
+
+**A execução não acontece por padrão, e isso é intencional.** Rodar código vindo
+de um arquivo de conteúdo é execução arbitrária: quem escreve documentação passaria
+a poder rodar qualquer coisa na máquina de quem testa, e em CI isso é uma porta
+aberta. O que roda é a verificação estrutural — o bloco declara linguagem, tem
+corpo, o marcador está bem formado. Cada bloco aparece como pulado, dizendo que a
+execução está desligada.
+
+### `DOC-LINK-003` — link externo morto
+
+Só no perfil estrito, e por bom motivo: depende de rede, de terceiros e do humor
+deles. `HEAD` primeiro, `GET` quando o servidor não aceita `HEAD`, uma sondagem
+por URL mesmo que vinte páginas citem a mesma.
+
+`404`, `410` e a família `5xx` reprovam. **`403` e `429` não** — sites bloqueiam
+robôs, e transformar isso em falha ensinaria a equipe a ignorar o relatório
+inteiro.
+
+## No pull request
+
+A tela de revisão do editor roda a suíte no perfil `standard` sobre os arquivos
+do PR e mostra o resultado ao lado do Quality Score. As falhas vão para o corpo
+do pull request, com identificador, arquivo e linha.
+
+O `strict` fica fora do PR de propósito: um pull request não deve reprovar porque
+um site alheio está fora do ar neste minuto.
+
+Quando a suíte **não consegue rodar**, a tela diz isso — não "aprovado". Um teste
+que não rodou não é evidência de que o portal está bom.
+
+## Pulado não é aprovado
+
+Vale repetir porque é a parte que se perde primeiro: teste pulado não reprova,
+mas também não conta como passado. Ele aparece no relatório com o motivo, agrupado
+por motivo quando são muitos. Sumir do relatório é exatamente como se convence
+uma equipe de que está tudo bem.

@@ -15,6 +15,7 @@ import { getGlossaryIndex } from '../../../../lib/glossary/loader';
 import { setGlossaryIndex } from '../../../../lib/linter/rules/glossary';
 import { getContentFs } from '../../../../lib/editor/content-fs';
 import { recordAudit } from '../../../../lib/auth/audit';
+import { runDocumentationTests } from '../../../../lib/doctest/runner';
 
 export const prerender = false;
 
@@ -93,13 +94,48 @@ async function runGate(paths: readonly string[]) {
 	};
 }
 
+/**
+ * Roda a Documentation Test Suite nos arquivos do PR (§12).
+ *
+ * Perfil `standard`: links, grafo, exemplos de API e estrutura dos snippets. O
+ * `strict` fica fora porque depende de rede e de terceiros, e um PR não deve
+ * reprovar porque um site alheio está fora do ar neste minuto.
+ */
+async function runTests(paths: readonly string[]) {
+	const docs = paths.filter((file) => file.startsWith(DOCS_PREFIX) && /\.mdx?$/.test(file));
+	if (docs.length === 0) return { total: 0, passed: 0, failed: 0, skipped: 0, passing: true, failures: [] };
+
+	try {
+		const report = await runDocumentationTests({ profile: 'standard', changed: docs });
+		return {
+			...report.summary,
+			// Só as falhas vão para a interface: a lista completa de passados tem
+			// centenas de linhas e nada a decidir.
+			failures: report.results
+				.filter((result) => result.status === 'fail')
+				.map((result) => ({ id: result.id, name: result.name, message: result.message, location: result.location })),
+		};
+	} catch (error) {
+		// A suíte não rodar não é o mesmo que aprovar. Informa e deixa claro.
+		return {
+			total: 0,
+			passed: 0,
+			failed: 0,
+			skipped: 0,
+			passing: false,
+			error: error instanceof Error ? error.message : 'Falha ao rodar os testes.',
+			failures: [],
+		};
+	}
+}
+
 export const GET: APIRoute = async ({ url }) => {
 	try {
 		const base = url.searchParams.get('base') || (await detectDefaultBranch());
 		const head = await currentBranch();
 
 		const [diff, paths, remote] = await Promise.all([branchDiff(base), changedPaths(base), getRemote()]);
-		const [gate, impact] = await Promise.all([runGate(paths), contentImpact(paths)]);
+		const [gate, impact, tests] = await Promise.all([runGate(paths), contentImpact(paths), runTests(paths)]);
 
 		return json({
 			base,
@@ -107,6 +143,7 @@ export const GET: APIRoute = async ({ url }) => {
 			diff,
 			gate,
 			impact,
+			tests,
 			remote: remote ? { url: remote.url, owner: remote.owner, repo: remote.repo } : null,
 			// A interface precisa saber se o botão cria o PR ou abre o provedor.
 			canCreatePullRequest: Boolean(remote && providerToken()),
@@ -134,7 +171,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 			return json({ error: 'Não há alterações entre as duas branches.' }, 400);
 		}
 
-		const [gate, impact] = await Promise.all([runGate(paths), contentImpact(paths)]);
+		const [gate, impact, tests] = await Promise.all([runGate(paths), contentImpact(paths), runTests(paths)]);
 
 		const input = {
 			title,
@@ -145,6 +182,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 			gatePassed: gate.passed,
 			changedFiles: paths,
 			impact,
+			tests: { total: tests.total, passed: tests.passed, failed: tests.failed, skipped: tests.skipped },
 		};
 
 		const result = await createPullRequest(input);
@@ -158,10 +196,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
 				created: result.created,
 				files: paths.length,
 				score: gate.score ?? null,
+				testsFailed: tests.failed,
 			},
 		});
 
-		return json({ ...result, gate, impact, body: composePullRequestBody(input) });
+		return json({ ...result, gate, impact, tests, body: composePullRequestBody(input) });
 	} catch (error) {
 		return json({ error: error instanceof Error ? error.message : 'Falha ao criar o pull request.' }, 500);
 	}

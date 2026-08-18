@@ -31,6 +31,15 @@ interface Review {
 	head: string;
 	diff: { files: FileDiff[]; additions: number; deletions: number };
 	gate: { score: number | null; passed: boolean; findings: number };
+	tests: {
+		total: number;
+		passed: number;
+		failed: number;
+		skipped: number;
+		passing: boolean;
+		error?: string;
+		failures: Array<{ id: string; name: string; message?: string; location?: { path: string; line?: number } }>;
+	};
 	impact: { changedSnippets: string[]; affectedPages: string[] };
 	remote: { url: string } | null;
 	canCreatePullRequest: boolean;
@@ -254,6 +263,44 @@ export default function GitWorkflowModal({ onClose }: { onClose: () => void }) {
 						</p>
 					) : (
 						<p className="git-empty">Nenhuma página de documentação alterada.</p>
+					)}
+				</section>
+
+				<section className="git-section">
+					<h3>Testes de documentação</h3>
+					{review!.tests.error ? (
+						// A suíte não ter rodado não é aprovação. Dizer isso é o mínimo.
+						<p className="git-score git-score--bad">
+							<AlertTriangle size={15} /> Não foi possível rodar: {review!.tests.error}
+						</p>
+					) : review!.tests.total === 0 ? (
+						<p className="git-empty">Nenhuma página de documentação alterada.</p>
+					) : (
+						<>
+							<p className={`git-score ${review!.tests.passing ? 'git-score--ok' : 'git-score--bad'}`}>
+								{review!.tests.passing ? <Check size={15} /> : <AlertTriangle size={15} />} {review!.tests.passed}{' '}
+								passaram
+								{review!.tests.failed > 0 && <span> · {review!.tests.failed} falharam</span>}
+								{review!.tests.skipped > 0 && <span> · {review!.tests.skipped} pulados</span>}
+							</p>
+							{review!.tests.failures.length > 0 && (
+								<ul className="git-test-failures">
+									{review!.tests.failures.map((failure, index) => (
+										<li key={`${failure.id}-${index}`}>
+											<code>{failure.id}</code> {failure.name}
+											{failure.message && <span> — {failure.message}</span>}
+											{failure.location && (
+												<span className="git-test-where">
+													{' '}
+													{failure.location.path}
+													{failure.location.line ? `:${failure.location.line}` : ''}
+												</span>
+											)}
+										</li>
+									))}
+								</ul>
+							)}
+						</>
 					)}
 				</section>
 
