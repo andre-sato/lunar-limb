@@ -8,6 +8,7 @@ import { jsonResponse, requireAuthUser } from '../../../lib/auth/api';
 import type { LintResult } from '../../../lib/linter/types';
 import { getTrustIndex } from '../../../lib/trust/load';
 import { trustDimension } from '../../../lib/trust/score';
+import { runContractTests } from '../../../lib/contract/engine';
 
 export const prerender = false;
 
@@ -55,10 +56,17 @@ export const GET: APIRoute = async ({ locals }) => {
 		// parecer pior do que é, e o contrário também.
 		const trust = await getTrustIndex({ fresh: true });
 
+		// Contract entra como **mais uma dimensão ao lado** da nota editorial (§19),
+		// exatamente como Trust: o Quality Score existente não é recalculado.
+		const contracts = await runContractTests().catch(() => null);
+
 		return jsonResponse(
 			{
 				summary,
 				minimumScore: config.qualityGate.minimumScore,
+				contract: contracts
+					? { score: contracts.score.value, dimension: Math.round(contracts.score.value) / 10, counts: contracts.counts }
+					: null,
 				trust: {
 					summary: trust.summary,
 					freshnessDays: trust.config.freshnessDays,

@@ -1,0 +1,22 @@
+# Documentation Contract Testing — baseline e portão (§21, §22).
+
+# Bloquear o merge quando houver contrato **quebrado**.
+#
+# Só `invalid` bloqueia. `warning` — parâmetro obrigatório que a página não
+# lista, campo a mais numa requisição — nunca bloqueia: travar merge por meio
+# caminho leva a equipe a desligar o portão inteiro, que é o oposto do objetivo.
+failOnBreaking: true
+
+# Contratos declarados à mão, para APIs que ainda não têm OpenAPI completo.
+#
+# É o caminho de adoção gradual: descreva o mínimo — endpoint, status esperado,
+# campos obrigatórios — e passe a ter verificação sobre isso enquanto a
+# especificação não existe.
+#
+# Exemplo:
+#   contracts:
+#     - endpoint: POST /api/users
+#       response:
+#         status: '201'
+#       required: [id, email]
+contracts: []

@@ -15,6 +15,7 @@
 		"docs:test": "tsx scripts/docs-test.ts",
 		"docs:health": "tsx scripts/docs-health.ts",
 		"twin": "tsx scripts/twin.ts",
+		"contract": "tsx scripts/contract.ts",
 		"docs:asyncapi": "tsx scripts/asyncapi-to-docs.ts",
 		"build:pages": "tsx scripts/build-pages.ts",
 		"user:create": "tsx scripts/create-user.ts"

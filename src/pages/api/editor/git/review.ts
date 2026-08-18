@@ -18,6 +18,7 @@ import { runDocumentationTests } from '../../../../lib/doctest/runner';
 import { analyzeImpactOf } from '../../../../lib/impact/engine';
 import { digitalTwin } from '../../../../lib/twin/service';
 import { loadTwinConfig } from '../../../../lib/twin/load';
+import { loadContractConfig, runContractTests } from '../../../../lib/contract/engine';
 
 export const prerender = false;
 
@@ -164,17 +165,61 @@ async function coverageGate() {
 	}
 }
 
+/**
+ * Contratos de documentação (§20, §21 do Contract Testing).
+ *
+ * Só `invalid` bloqueia. Um contrato `unknown` — endpoint que nenhuma página
+ * documenta — é assunto de cobertura, não de contrato: reprovar por ele
+ * bloquearia todo PR de um portal que ainda está começando a documentar.
+ */
+async function contractGate(paths: readonly string[]) {
+	const docs = paths.filter((file) => file.startsWith(DOCS_PREFIX) && /\.mdx?$/.test(file));
+
+	try {
+		const [report, config] = await Promise.all([
+			runContractTests(docs.length > 0 ? { changed: docs.map((file) => file.slice(DOCS_PREFIX.length)) } : {}),
+			loadContractConfig(),
+		]);
+
+		const broken = report.contracts.filter((contract) => contract.status === 'invalid');
+
+		return {
+			score: report.score.value,
+			counts: report.counts,
+			blocked: config.failOnBreaking && broken.length > 0,
+			broken: broken.map((contract) => ({
+				id: contract.id,
+				pages: contract.documentation.map((reference) => reference.path),
+				problems: contract.assertions
+					.filter((assertion) => assertion.status === 'invalid')
+					.map((assertion) => ({ id: assertion.id, message: assertion.message, location: assertion.location })),
+			})),
+		};
+	} catch (error) {
+		// A verificação não rodar não é aprovação — mas também não bloqueia: um erro
+		// de execução travando todo merge é como se desliga um portão para sempre.
+		return {
+			score: 0,
+			counts: { valid: 0, invalid: 0, warning: 0, unknown: 0 },
+			blocked: false,
+			broken: [],
+			error: error instanceof Error ? error.message : 'Falha ao testar os contratos.',
+		};
+	}
+}
+
 export const GET: APIRoute = async ({ url }) => {
 	try {
 		const base = url.searchParams.get('base') || (await detectDefaultBranch());
 		const head = await currentBranch();
 
 		const [diff, paths, remote] = await Promise.all([branchDiff(base), changedPaths(base), getRemote()]);
-		const [gate, impact, tests, coverage] = await Promise.all([
+		const [gate, impact, tests, coverage, contracts] = await Promise.all([
 			runGate(paths),
 			analyzeImpactOf({ base }),
 			runTests(paths),
 			coverageGate(),
+			contractGate(paths),
 		]);
 
 		return json({
@@ -185,6 +230,7 @@ export const GET: APIRoute = async ({ url }) => {
 			impact,
 			tests,
 			coverage,
+			contracts,
 			remote: remote ? { url: remote.url, owner: remote.owner, repo: remote.repo } : null,
 			// A interface precisa saber se o botão cria o PR ou abre o provedor.
 			canCreatePullRequest: Boolean(remote && providerToken()),
@@ -212,11 +258,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
 			return json({ error: 'Não há alterações entre as duas branches.' }, 400);
 		}
 
-		const [gate, impact, tests, coverage] = await Promise.all([
+		const [gate, impact, tests, coverage, contracts] = await Promise.all([
 			runGate(paths),
 			analyzeImpactOf({ base }),
 			runTests(paths),
 			coverageGate(),
+			contractGate(paths),
 		]);
 
 		const input = {
@@ -230,6 +277,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
 			impact,
 			tests: { total: tests.total, passed: tests.passed, failed: tests.failed, skipped: tests.skipped },
 			coverage: coverage.endpoints === null ? undefined : { endpoints: coverage.endpoints, minimum: coverage.minimum, passed: coverage.passed },
+			contracts:
+				contracts.counts.invalid + contracts.counts.warning === 0
+					? undefined
+					: { broken: contracts.counts.invalid, warning: contracts.counts.warning, pages: contracts.broken.flatMap((item) => item.pages) },
 		};
 
 		const result = await createPullRequest(input);
@@ -249,7 +300,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 			},
 		});
 
-		return json({ ...result, gate, impact, tests, coverage, body: composePullRequestBody(input) });
+		return json({ ...result, gate, impact, tests, coverage, contracts, body: composePullRequestBody(input) });
 	} catch (error) {
 		return json({ error: error instanceof Error ? error.message : 'Falha ao criar o pull request.' }, 500);
 	}

@@ -46,6 +46,7 @@ Arquivos Markdown e MDX dentro de `src/content/docs/` são publicados automatica
 | `npm run docs:test` | Testes de documentação: links, âncoras, referências e exemplos de API. |
 | `npm run docs:health` | Health Center na linha de comando: dimensões, SLOs e backlog. |
 | `npm run twin` | Digital Twin: cobertura, não documentados, obsoletos, impacto. |
+| `npm run contract` | Contract Testing: o exemplo representa o contrato de verdade? |
 | `npm run docs:asyncapi` | Gera páginas de referência a partir de especificações AsyncAPI. |
 | `npm run user:create` | Cria um usuário do portal (ver *Usuários e controle de acesso*). |
 
@@ -269,6 +270,18 @@ Duas perguntas simétricas com severidades diferentes: **implementação sem doc
 Medir o portal expôs dois defeitos de modelagem que só aparecem com dados reais. `GET /auth/me` da especificação e `GET /api/auth/me` do código eram **dois** endpoints, ambos "não documentados", até o prefixo do servidor entrar na identidade. E as 45 rotas internas do editor derrubavam a cobertura para **6%** — um número que qualquer equipe aprende a ignorar; elas continuam no grafo e saíram da conta via `twin.yml`, com a exceção de que endpoint declarado numa especificação é público por definição.
 
 `npm run twin -- coverage --min 90` serve ao CI (sai com 1 abaixo do mínimo, 0 quando não há o que medir), e a cobertura entra no corpo do PR. **Settings → Intelligence** traz tudo em tabela — um grafo de centenas de nós é bonito na captura de tela e inútil para achar o endpoint que ninguém documentou. Guia em [/guides/digital-twin/](src/content/docs/guides/digital-twin.mdx).
+
+## Contratos de documentação
+
+A Documentation Test Suite pergunta "este exemplo **funciona**?". Esta camada pergunta "este exemplo representa o **contrato** de verdade?". O caso que separa as duas: a API exige `amount` e `currency`, a documentação mostra só `amount` — o exemplo até roda, e está incompleto em relação ao contrato.
+
+Verifica método, caminho, parâmetros, códigos de status, autenticação, requisição, resposta e exemplos de código. A comparação com o schema corre nos **dois sentidos**, e o segundo é o que quase nenhuma ferramenta faz: campo que o exemplo mostra e o contrato não tem. É assim que documentação envelhece sem quebrar — ela continua exibindo um campo que a API removeu, e todo teste de execução continua passando. Numa requisição, campo a mais é aviso; numa resposta é quebra, porque a página está prometendo ao leitor um dado que não vem.
+
+A associação página↔contrato vem do **Digital Twin** (§25: esta camada não mantém grafo próprio), com `contract:` no frontmatter quando a inferência não basta. Contrato sem página fica **desconhecido**, nunca válido: ele não está certo, está sem documentação — e contá-lo como válido inflaria o score com endpoints que ninguém documentou. No score, `unknown` fica fora da conta e `warning` conta como verificado sem contar como bom.
+
+No merge, **só `invalid` bloqueia** (`failOnBreaking` em `contracts.yml`). Travar merge por aviso leva a equipe a desligar o portão inteiro. Para APIs sem OpenAPI completo há baseline declarável, que é o caminho de adoção gradual.
+
+Rodar contra o portal expôs um defeito que nenhum teste sintético pegaria: em JavaScript `$` não casa antes de `` e `.` não consome ``, então a extração de cabeçalhos HTTP devolvia lista vazia em **todo** arquivo de um checkout no Windows — que é como este repositório está. Guia em [/guides/contratos-de-documentacao/](src/content/docs/guides/contratos-de-documentacao.mdx).
 
 ## Feedback de página
 

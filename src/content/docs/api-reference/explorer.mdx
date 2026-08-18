@@ -69,3 +69,31 @@ código, onde é substituída por um marcador. Recarregar a página a apaga.
 Os exemplos de código são gerados a partir da mesma requisição que o botão
 **Enviar** monta. Se os dois divergissem, o exemplo viraria uma armadilha:
 funcionaria na tela e falharia no terminal de quem copiou.
+
+## Chamando fora do portal
+
+O Explorer monta a requisição para você, mas o contrato é o mesmo de qualquer
+cliente. A busca conversacional, por exemplo:
+
+```http
+POST /api/chat/message
+Content-Type: application/json
+Cookie: portal_session=<sua-sessão>
+
+{
+  "message": "como autenticar na API"
+}
+```
+
+A resposta traz o resumo, os trechos e as fontes:
+
+```json
+{
+  "message": "A autenticação usa o cabeçalho Authorization.",
+  "excerpts": [],
+  "sources": []
+}
+```
+
+Os códigos possíveis são `200`, `401` quando não há sessão e `429` no limite de
+uso.

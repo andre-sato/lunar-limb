@@ -92,6 +92,8 @@ export interface PullRequestInput {
 	tests?: { total: number; passed: number; failed: number; skipped: number };
 	/** Cobertura documental do Digital Twin. */
 	coverage?: { endpoints: number; minimum: number; passed: boolean };
+	/** Contratos de documentação quebrados ou com aviso. */
+	contracts?: { broken: number; warning: number; pages: string[] };
 }
 
 /**
@@ -122,6 +124,16 @@ export function composePullRequestBody(input: PullRequestInput): string {
 			`**Testes de documentação:** ${failed === 0 ? '✅' : '❌'} ${passed} passaram, ${failed} falharam, ${skipped} pulados`,
 			''
 		);
+	}
+
+	if (input.contracts && input.contracts.broken + input.contracts.warning > 0) {
+		const { broken, warning, pages } = input.contracts;
+		parts.push(
+			`**Contratos de documentação:** ${broken > 0 ? '🔴' : '🟡'} ${broken} quebrado(s), ${warning} com aviso`,
+			''
+		);
+		for (const page of [...new Set(pages)]) parts.push(`- \`${page}\``);
+		parts.push('');
 	}
 
 	if (input.coverage) {
