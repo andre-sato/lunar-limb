@@ -16,6 +16,9 @@ import { portal } from './src/config/portal';
 import { rehypeBasePath } from './src/lib/deploy/rehype-base-path';
 import starlightDocSearch from '@astrojs/starlight-docsearch';
 import { algoliaCredentials } from './src/config/search';
+import { getGlossaryIndex } from './src/lib/glossary/loader';
+import { describeConflicts } from './src/lib/glossary/index-build';
+import { remarkGlossary } from './src/lib/glossary/remark-glossary';
 
 // `monaco-vim` (Fase 5) importa caminhos internos como
 // `monaco-editor/esm/vs/editor/editor.api`. O campo `exports` do monaco-editor
@@ -156,6 +159,23 @@ function docSearchStub() {
  *
  * Vazio para site de usuário/organização ou domínio próprio, onde a raiz é `/`.
  */
+/**
+ * Glossário: índice carregado uma vez, no build (§28).
+ *
+ * Montar o índice por página custaria uma leitura de disco por arquivo. Aqui ele
+ * é montado uma vez e o transformer recebe a referência pronta.
+ *
+ * Forma disputada por duas definições vira aviso no build (§18): em silêncio,
+ * uma das duas simplesmente nunca apareceria, e ninguém descobriria olhando a
+ * página.
+ */
+const glossaryIndex = await getGlossaryIndex({ fresh: true });
+for (const conflict of describeConflicts(glossaryIndex)) {
+	console.warn(`
+[glossário] ${conflict}
+`);
+}
+
 const basePath = (process.env.PAGES_BASE || '/').trim();
 const normalizedBase = basePath === '' || basePath === '/' ? '/' : `/${basePath.replace(/^\/+|\/+$/g, '')}/`;
 
@@ -247,6 +267,8 @@ export default defineConfig({
 						'/tags',
 						'/tags/**',
 						'/atualizacoes',
+						'/glossary',
+						'/glossary/**',
 						'/warp',
 						'/warp.xml',
 					],
@@ -319,6 +341,7 @@ export default defineConfig({
 		}),
 	],
 	markdown: {
+		remarkPlugins: [[remarkGlossary, { index: glossaryIndex }]],
 		// Só entra em cena quando o site é servido sob um subcaminho: a Astro
 		// reescreve os links que ela gera, mas não os escritos à mão no Markdown.
 		rehypePlugins: normalizedBase === '/' ? [] : [[rehypeBasePath, { base: normalizedBase }]],

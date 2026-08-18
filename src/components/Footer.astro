@@ -12,6 +12,7 @@
  */
 import Default from '@astrojs/starlight/components/Footer.astro';
 import FeedbackWidget from './FeedbackWidget.astro';
+import GlossaryTooltip from './glossary/GlossaryTooltip.astro';
 import { serverFeatures } from '../config/deploy';
 
 // A página inicial usa hero e não é um documento que se "leia até o fim";
@@ -20,4 +21,6 @@ const isSplash = Astro.locals.starlightRoute.entry.data.template === 'splash';
 ---
 
 {!isSplash && serverFeatures.feedback && <FeedbackWidget />}
+{/* Uma bolha por página, compartilhada por todos os termos destacados. */}
+<GlossaryTooltip />
 <Default {...Astro.props}><slot /></Default>

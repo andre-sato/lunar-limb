@@ -1,0 +1,198 @@
+---
+/**
+ * Comportamento e aparência dos termos do glossário (§11, §12, §13).
+ *
+ * Um único componente por página, e não um por termo: o destaque já vem do
+ * transformer como `<span class="glossary-term">`, e o que falta é a bolha e as
+ * três formas de abri-la. Um componente por ocorrência multiplicaria o mesmo
+ * script por dezenas de termos na mesma página.
+ *
+ * **Não depende de hover** (§13). Mouse abre ao passar; teclado abre com Enter
+ * ou Espaço no termo focado e fecha com Esc; toque abre no toque e fecha ao
+ * tocar fora. É a mesma bolha nos três caminhos.
+ *
+ * A definição vem do atributo `data-glossary-definition`, como **texto**, e é
+ * escrita com `textContent`. Uma definição não consegue injetar HTML na página
+ * nem que tente (§44).
+ */
+---
+
+<div class="glossary-tooltip" role="tooltip" data-glossary-tooltip hidden>
+	<p class="glossary-tooltip__term" data-glossary-tooltip-term></p>
+	<p class="glossary-tooltip__definition" data-glossary-tooltip-definition></p>
+	<a class="glossary-tooltip__link" data-glossary-tooltip-link href="/glossary/">Ver no glossário</a>
+</div>
+
+<script>
+	(() => {
+		const found = document.querySelector<HTMLElement>('[data-glossary-tooltip]');
+		if (!found) return;
+
+		// Constante depois da verificação: dentro das funções abaixo o TypeScript
+		// não conserva o estreitamento de uma variável que pode ter mudado.
+		const tooltip = found;
+
+		const termLabel = tooltip.querySelector<HTMLElement>('[data-glossary-tooltip-term]')!;
+		const definitionLabel = tooltip.querySelector<HTMLElement>('[data-glossary-tooltip-definition]')!;
+		const link = tooltip.querySelector<HTMLAnchorElement>('[data-glossary-tooltip-link]')!;
+
+		let current: HTMLElement | null = null;
+
+		function place(target: HTMLElement): void {
+			const box = target.getBoundingClientRect();
+			tooltip.hidden = false;
+
+			// Medir depois de exibir: um elemento escondido não tem dimensão, e a
+			// posição calculada com zero acaba no canto da tela.
+			const size = tooltip.getBoundingClientRect();
+			const margin = 8;
+
+			// Abre para baixo, a menos que não caiba — aí sobe (§12).
+			const below = box.bottom + margin;
+			const top = below + size.height > window.innerHeight && box.top - size.height - margin > 0
+				? box.top - size.height - margin
+				: below;
+
+			// Centraliza no termo, mas nunca ultrapassa a viewport.
+			const centered = box.left + box.width / 2 - size.width / 2;
+			const left = Math.max(margin, Math.min(centered, window.innerWidth - size.width - margin));
+
+			tooltip.style.top = `${top + window.scrollY}px`;
+			tooltip.style.left = `${left + window.scrollX}px`;
+		}
+
+		function open(target: HTMLElement): void {
+			const id = target.dataset.glossaryId ?? '';
+			termLabel.textContent = target.dataset.glossaryTerm ?? '';
+			// `textContent`, nunca `innerHTML`: ver o comentário do componente.
+			definitionLabel.textContent = target.dataset.glossaryDefinition ?? '';
+			link.href = `/glossary/${id}/`;
+			tooltip.id = `glossary-tooltip-${id}`;
+
+			current = target;
+			target.setAttribute('aria-expanded', 'true');
+			place(target);
+		}
+
+		function close(): void {
+			if (!current) return;
+			current.removeAttribute('aria-expanded');
+			current = null;
+			tooltip.hidden = true;
+		}
+
+		function termFrom(target: EventTarget | null): HTMLElement | null {
+			return target instanceof Element ? target.closest<HTMLElement>('.glossary-term') : null;
+		}
+
+		document.addEventListener('pointerover', (event) => {
+			const term = termFrom(event.target);
+			if (term) open(term);
+			else if (current && !tooltip.contains(event.target as Node)) close();
+		});
+
+		document.addEventListener('focusin', (event) => {
+			const term = termFrom(event.target);
+			if (term) open(term);
+			else close();
+		});
+
+		document.addEventListener('click', (event) => {
+			const term = termFrom(event.target);
+			if (term) {
+				// Toque: o mesmo gesto abre e fecha.
+				if (current === term) close();
+				else open(term);
+				return;
+			}
+			if (!tooltip.contains(event.target as Node)) close();
+		});
+
+		document.addEventListener('keydown', (event) => {
+			const term = termFrom(event.target);
+			if (term && (event.key === 'Enter' || event.key === ' ')) {
+				event.preventDefault();
+				if (current === term) close();
+				else open(term);
+				return;
+			}
+			if (event.key === 'Escape') close();
+		});
+
+		// Rolar com a bolha aberta a deixaria para trás do termo.
+		window.addEventListener('scroll', () => close(), { passive: true });
+		window.addEventListener('resize', () => close());
+	})();
+</script>
+
+<style is:global>
+	/*
+	 * Sublinhado pontilhado, não aparência de link (§11): o termo não leva a
+	 * lugar nenhum ao ser clicado — ele explica no lugar.
+	 */
+	.glossary-term {
+		border-block-end: 1px dotted var(--sl-color-gray-3);
+		cursor: help;
+	}
+
+	.glossary-term:hover,
+	.glossary-term:focus-visible {
+		border-block-end-color: var(--sl-color-text-accent);
+		color: var(--sl-color-white);
+	}
+
+	.glossary-term:focus-visible {
+		outline: 2px solid var(--sl-color-text-accent);
+		outline-offset: 2px;
+		border-radius: 2px;
+	}
+
+	.glossary-tooltip {
+		position: absolute;
+		z-index: 100;
+		max-width: min(22rem, calc(100vw - 2rem));
+		padding: 0.6rem 0.75rem;
+		background: var(--sl-color-black);
+		border: 1px solid var(--sl-color-gray-5);
+		border-radius: 0.5rem;
+		box-shadow: var(--sl-shadow-md);
+		font-size: var(--sl-text-sm);
+		animation: glossary-tooltip-in 0.12s ease-out;
+	}
+
+	.glossary-tooltip[hidden] {
+		display: none;
+	}
+
+	.glossary-tooltip__term {
+		margin: 0 0 0.3rem;
+		font-weight: 600;
+		color: var(--sl-color-white);
+	}
+
+	.glossary-tooltip__definition {
+		margin: 0;
+		color: var(--sl-color-gray-2);
+	}
+
+	.glossary-tooltip__link {
+		display: inline-block;
+		margin-top: 0.45rem;
+		font-size: var(--sl-text-xs);
+		color: var(--sl-color-text-accent);
+	}
+
+	@keyframes glossary-tooltip-in {
+		from {
+			opacity: 0;
+			transform: translateY(-2px);
+		}
+	}
+
+	/* §13: quem pediu menos movimento não recebe animação nenhuma. */
+	@media (prefers-reduced-motion: reduce) {
+		.glossary-tooltip {
+			animation: none;
+		}
+	}
+</style>

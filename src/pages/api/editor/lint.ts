@@ -1,6 +1,8 @@
 import type { APIRoute } from 'astro';
 import { lintDocument } from '../../../lib/linter/lint';
 import { listProfiles } from '../../../lib/linter/config';
+import { getGlossaryIndex } from '../../../lib/glossary/loader';
+import { setGlossaryIndex } from '../../../lib/linter/rules/glossary';
 
 export const prerender = false;
 
@@ -30,6 +32,10 @@ export const POST: APIRoute = async ({ request }) => {
 	}
 
 	try {
+		// O glossário alimenta as regras de consistência (§30). O índice tem cache
+		// curto, então isto não relê o disco a cada tecla digitada no editor.
+		setGlossaryIndex(await getGlossaryIndex());
+
 		const result = await lintDocument(body.content, {
 			path: typeof body.path === 'string' ? body.path : undefined,
 			profile: typeof body.profile === 'string' && body.profile ? body.profile : undefined,
