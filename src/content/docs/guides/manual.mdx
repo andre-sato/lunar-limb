@@ -91,15 +91,25 @@ abre o cliente escolhido.
 Os clientes oferecidos (ChatGPT, Claude, Gemini, Copilot) são configuráveis.
 
 **Buscar na documentação**, ao lado da busca no cabeçalho, aceita a pergunta em
-linguagem natural — em português, inglês ou espanhol — e devolve os **trechos**
-das páginas publicadas do seu idioma que mais se aproximam, cada um com o link
-da sua página. Cada busca aceita 👍 ou 👎, e essa contagem aparece em
-**Settings → Chatbot**.
+linguagem natural — em português, inglês ou espanhol — e responde em três
+partes, nesta ordem:
 
-O ponto importante é o que ela **não** faz: não há modelo de linguagem. Nada é
-redigido, resumido ou interpretado. Todo texto que aparece na tela está publicado
-em alguma página, e o link prova onde — então a busca não tem como afirmar algo
-que a documentação não diga.
+1. **um resumo curto** do que foi encontrado;
+2. os **trechos** das páginas publicadas do seu idioma que mais se aproximam;
+3. os **links** das páginas de onde vieram.
+
+Cada busca aceita 👍 ou 👎, e essa contagem aparece em **Settings → Chatbot**.
+
+O resumo cita: ele reproduz a primeira frase do trecho mais relevante, entre
+aspas, dizendo de qual página e seção ela saiu. Não é uma paráfrase, porque não
+há modelo de linguagem para escrevê-la — e uma frase escrita por outro caminho
+seria invenção. Quando nenhum trecho tem uma frase citável — o mais relevante é
+uma tabela de erros, um exemplo de código —, o resumo apenas diz quantos trechos
+foram encontrados. Dizer menos é melhor que dizer errado.
+
+O ponto importante é o que a busca **não** faz: nada é redigido ou interpretado.
+Todo texto que aparece na tela está publicado em alguma página, e o link prova
+onde — então a busca não tem como afirmar algo que a documentação não diga.
 
 Isso muda o modo de usar. Uma pergunta com o nome exato de um campo, de um erro
 ou de um comando encontra o trecho certo na primeira tentativa; uma pergunta

@@ -113,6 +113,11 @@ const { t } = Astro.locals;
 			return element;
 		}
 
+		interface Source {
+			title: string;
+			url: string;
+		}
+
 		interface Excerpt {
 			title: string;
 			section?: string;
@@ -151,6 +156,42 @@ const { t } = Astro.locals;
 
 				messages.append(card);
 			}
+			messages.scrollTop = messages.scrollHeight;
+		}
+
+		/**
+		 * Links das páginas, ao fim da resposta.
+		 *
+		 * Cada trecho já tem o seu link, mas eles se repetem quando dois trechos
+		 * vêm da mesma página. Esta lista é por página e sem repetição: é o que
+		 * o leitor copia ou abre quando quer a fonte inteira, não o recorte.
+		 */
+		function appendSources(sources: Source[]): void {
+			if (sources.length === 0) return;
+
+			const wrapper = document.createElement('nav');
+			wrapper.className = 'doc-chat__sources';
+			wrapper.setAttribute('aria-label', label('sources'));
+
+			const heading = document.createElement('p');
+			heading.className = 'doc-chat__sources-title';
+			heading.textContent = label('sources');
+			wrapper.append(heading);
+
+			const list = document.createElement('ul');
+			for (const source of sources) {
+				if (!source.url.startsWith('/')) continue;
+				const item = document.createElement('li');
+				const link = document.createElement('a');
+				link.href = source.url;
+				link.textContent = source.title;
+				item.append(link);
+				list.append(item);
+			}
+
+			if (list.childElementCount === 0) return;
+			wrapper.append(list);
+			messages.append(wrapper);
 			messages.scrollTop = messages.scrollHeight;
 		}
 
@@ -239,6 +280,7 @@ const { t } = Astro.locals;
 				conversationId = data.conversationId;
 				append('assistant', data.message);
 				appendExcerpts(Array.isArray(data.excerpts) ? data.excerpts : []);
+				appendSources(Array.isArray(data.sources) ? data.sources : []);
 				// Sem trecho não há o que avaliar.
 				if (data.messageId && !data.empty) appendFeedback(data.messageId);
 			} catch {
@@ -415,6 +457,30 @@ const { t } = Astro.locals;
 		display: inline-block;
 		margin-top: 0.45rem;
 		font-size: var(--sl-text-xs);
+		color: var(--sl-color-accent-high);
+	}
+
+	.doc-chat__sources {
+		margin-top: 0.35rem;
+		padding: 0.55rem 0.7rem;
+		border-top: 1px solid var(--sl-color-gray-5);
+		font-size: var(--sl-text-xs);
+	}
+
+	.doc-chat__sources-title {
+		margin: 0 0 0.3rem;
+		font-weight: 600;
+		color: var(--sl-color-gray-2);
+	}
+
+	.doc-chat__sources ul {
+		margin: 0;
+		padding-left: 1.1rem;
+		display: grid;
+		gap: 0.2rem;
+	}
+
+	.doc-chat__sources a {
 		color: var(--sl-color-accent-high);
 	}
 

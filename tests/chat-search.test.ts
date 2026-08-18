@@ -84,16 +84,31 @@ describe('busca na documentação', () => {
 		expect(answer.excerpts[0].text).not.toContain('Document:');
 	});
 
-	it('a mensagem é uma frase de enquadramento, não uma resposta', async () => {
+	it('a mensagem resume o que foi encontrado, citando a documentação', async () => {
 		const answer = await searchDocumentation(createConversation(viewer), 'como autenticar?', viewer);
-		// O que responde são os trechos. A frase só diz quantos são.
-		expect(answer.message).toMatch(/^Encontrei 2 trechos/);
-		expect(answer.message.length).toBeLessThan(80);
+
+		// O resumo é extrativo: a frase citada tem de estar num dos trechos.
+		const quoted = answer.message.match(/"([^"]+)"/)?.[1];
+		expect(quoted).toBeDefined();
+		expect(answer.excerpts.some((excerpt) => excerpt.text.includes(quoted!.slice(0, 30)))).toBe(true);
+
+		// E diz de onde veio e quanto vem abaixo.
+		expect(answer.message).toMatch(/^Em .+:/);
+		expect(answer.message).toContain('2 trechos');
 	});
 
-	it('usa o singular quando há um só trecho', async () => {
+	it('conta trechos e páginas no singular quando é um só', async () => {
 		const answer = await searchDocumentation(createConversation(viewer), 'qual o limite?', viewer);
-		expect(answer.message).toMatch(/^Encontrei este trecho/);
+		expect(answer.message).toContain('1 trecho de 1 página');
+	});
+
+	it('a resposta traz as três partes: resumo, trechos e fontes', async () => {
+		const answer = await searchDocumentation(createConversation(viewer), 'como autenticar?', viewer);
+		expect(answer.message).not.toBe('');
+		expect(answer.excerpts.length).toBeGreaterThan(0);
+		expect(answer.sources.length).toBeGreaterThan(0);
+		// Toda fonte é um caminho interno: a lista final é navegável.
+		expect(answer.sources.every((source) => source.url.startsWith('/'))).toBe(true);
 	});
 
 	it('sem resultado, diz que não encontrou e sugere o que fazer', async () => {
