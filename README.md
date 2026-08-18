@@ -198,6 +198,18 @@ As regras: `DOC-LINK-001` link interno para página inexistente, `DOC-LINK-002` 
 
 Teste pulado não reprova e também não conta como passado: aparece no relatório com o motivo. A tela de revisão do editor roda o perfil `standard` sobre os arquivos do PR, mostra as falhas com arquivo e linha, e as leva para o corpo do pull request. Quando a suíte não consegue rodar, a tela diz isso — não "aprovado". Guia em [/guides/testes-de-documentacao/](src/content/docs/guides/testes-de-documentacao.mdx).
 
+## Análise de impacto
+
+O Content Graph responde "quem usa o quê" — informação. O Impact Engine responde "se eu mudar isso, o que preciso revisar?" — decisão. Ele aparece no editor (painel de referências, botão **Impacto**, sob demanda e antes de salvar) e na revisão do PR, cujo corpo passa a trazer contagem por severidade, Impact Score, escopo estimado, quebras de contrato de API e checklist.
+
+Quatro severidades: 🔴 crítico é o que pode **invalidar** a documentação (endpoint removido, bloco incluído que deixou de existir), 🟠 alto provavelmente exige revisão, 🟡 médio é potencialmente relevante, 🟢 baixo não tem impacto funcional. `critical` fica reservado ao que torna o texto publicado falso, não ao que dá trabalho — classificar tudo como crítico é o mesmo que não classificar nada. A severidade cai com a distância no grafo.
+
+**Dependência indireta é a razão de o motor existir.** `guides/conteudo-reutilizavel.mdx` inclui `api-essentials`, que inclui `authentication-warning`; editar o último altera o texto publicado da página, e **não existe aresta entre os dois**. A contagem de um salto que havia antes respondia "nenhuma página afetada" — com convicção e errada. O relatório mostra por onde o impacto passou, porque "revise esta página" sem o caminho é um palpite pedindo confiança.
+
+O diff de API compara a especificação **interpretada**, não o texto: reordenar chaves do YAML são vinte linhas no `git diff` e mudança nenhuma, renomear um parâmetro é uma linha e quebra total. Renome é reconhecido como renome (`id → userId`) quando lugar, tipo e obrigatoriedade batem. São quebra: operação removida, parâmetro removido/renomeado/com tipo novo/que passou a obrigatório, corpo obrigatório, autenticação diferente, URL base diferente, resposta `2xx` que saiu. Não são: operação nova, opcional novo, obrigatório que relaxou, resposta nova, depreciação. A ligação página↔operação vem primeiro do que é **declarado** (`<TryIt schema=… operation=…/>`) e só depois do caminho literal no texto.
+
+O Impact Score (0–100) traz **cada fator com os pontos e o motivo** — um número que ninguém consegue conferir é o tipo de métrica que a equipe ignora na terceira vez que discorda da intuição. Sem consequência apurada o score é zero, inclusive o fator de tamanho: um PR que só mexe em `astro.config.mjs` não tem nada a revisar na documentação. No checklist entra só o que se consegue conferir — uma página, uma operação, um termo; "revisar a documentação" não é item de checklist. Guia em [/guides/analise-de-impacto/](src/content/docs/guides/analise-de-impacto.mdx).
+
 ## Feedback de página
 
 No fim de cada página de documentação há um widget **"Esta página foi útil?"** com sim/não e um campo opcional de comentário. A Starlight não traz um componente de feedback nem plugin oficial — o caminho que ela indica é sobrescrever `Footer`, que é o que o projeto faz. As alternativas de mercado são SaaS de terceiros; aqui o retorno dos seus leitores fica no próprio projeto.

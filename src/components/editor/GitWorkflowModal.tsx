@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { GitBranch, Check, AlertTriangle, ExternalLink, X } from 'lucide-react';
+import { SEVERITY_MARK, REVIEW_SCOPE_LABEL, type ImpactReport } from '../../lib/impact/types';
 
 /**
  * Workflow de Git no editor: branch, diff, portão de qualidade e pull request.
@@ -40,7 +41,7 @@ interface Review {
 		error?: string;
 		failures: Array<{ id: string; name: string; message?: string; location?: { path: string; line?: number } }>;
 	};
-	impact: { changedSnippets: string[]; affectedPages: string[] };
+	impact: ImpactReport;
 	remote: { url: string } | null;
 	canCreatePullRequest: boolean;
 }
@@ -146,6 +147,9 @@ export default function GitWorkflowModal({ onClose }: { onClose: () => void }) {
 	}
 
 	const score = review?.gate.score;
+	// Páginas que mudam de conteúdo sem aparecer no diff: é o achado que justifica
+	// o motor, porque ninguém as revisaria olhando a lista de arquivos alterados.
+	const hiddenPages = review?.impact.items.filter((item) => item.hidden) ?? [];
 	const onDefaultBranch = current === defaultBranch;
 
 	return (
@@ -243,13 +247,79 @@ export default function GitWorkflowModal({ onClose }: { onClose: () => void }) {
 								))}
 							</ul>
 
-							{review.impact.affectedPages.length > 0 && (
+							{hiddenPages.length > 0 && (
 								<p className="git-impact">
-									<AlertTriangle size={13} /> {review.impact.affectedPages.length} página(s) mudam por causa de
-									bloco reutilizável e <strong>não aparecem acima</strong>:{' '}
-									{review.impact.affectedPages.join(', ')}
+									<AlertTriangle size={13} /> {hiddenPages.length} página(s) mudam de conteúdo e{' '}
+									<strong>não aparecem acima</strong>.
 								</p>
 							)}
+						</>
+					)}
+				</section>
+
+				<section className="git-section">
+					<h3>Impacto</h3>
+					{!review || review.impact.items.length === 0 ? (
+						<p className="git-empty">Nada mais precisa de revisão por causa desta mudança.</p>
+					) : (
+						<>
+							<p className="git-summary">
+								{(['critical', 'high', 'medium', 'low'] as const)
+									.filter((severity) => review.impact.counts[severity] > 0)
+									.map((severity) => `${SEVERITY_MARK[severity]} ${review.impact.counts[severity]}`)
+									.join('  ')}
+								{'  ·  '}
+								Impact Score {review.impact.score.value}/100 · escopo {REVIEW_SCOPE_LABEL[review.impact.scope]}
+							</p>
+
+							{review.impact.api.breaking.length > 0 && (
+								<p className="git-impact">
+									<AlertTriangle size={13} /> {review.impact.api.breaking.length} mudança(s) de API quebram quem
+									já consome: {review.impact.api.breaking.join('; ')}
+								</p>
+							)}
+
+							<ul className="git-impact-items">
+								{review.impact.items.slice(0, 12).map((item) => (
+									<li key={item.node.id}>
+										<span className="git-impact-mark">{SEVERITY_MARK[item.severity]}</span>{' '}
+										<code>{item.node.path}</code>
+										{/* O caminho no grafo fica visível: "revise esta página" sem dizer por
+										    onde o impacto passou é um palpite pedindo confiança. */}
+										{item.via.length > 2 && (
+											<span className="git-impact-via"> via {item.via.length - 2} nível(is)</span>
+										)}
+										<span className="git-impact-reason"> — {item.reason}</span>
+									</li>
+								))}
+								{review.impact.items.length > 12 && (
+									<li className="git-impact-more">… e mais {review.impact.items.length - 12}</li>
+								)}
+							</ul>
+
+							{review.impact.checklist.length > 0 && (
+								<details className="git-checklist">
+									<summary>Checklist de revisão ({review.impact.checklist.length})</summary>
+									<ul>
+										{review.impact.checklist.map((entry, index) => (
+											<li key={`${entry.label}-${index}`}>
+												{SEVERITY_MARK[entry.severity]} {entry.label}
+											</li>
+										))}
+									</ul>
+								</details>
+							)}
+
+							<details className="git-checklist">
+								<summary>Como o score foi calculado</summary>
+								<ul>
+									{review.impact.score.factors.map((factor) => (
+										<li key={factor.name}>
+											+{factor.points} {factor.name} <span className="git-impact-reason">({factor.detail})</span>
+										</li>
+									))}
+								</ul>
+							</details>
 						</>
 					)}
 				</section>

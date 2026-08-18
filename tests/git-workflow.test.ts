@@ -2,10 +2,36 @@ import { describe, it, expect } from 'vitest';
 import { suggestBranchName, validateBranchName } from '../src/lib/git/workflow';
 import { parseUnifiedDiff } from '../src/lib/git/diff';
 import { composePullRequestBody, compareUrl, parseRemote } from '../src/lib/git/pull-request';
+import type { ImpactReport } from '../src/lib/impact/types';
 
 // ---------------------------------------------------------------------------
 // §3.1 — nomes de branch
 // ---------------------------------------------------------------------------
+
+/** Relatório de impacto mínimo, com as páginas que mudam sem aparecer no diff. */
+function impactWith(hiddenPages: string[]): ImpactReport {
+	const items = hiddenPages.map((path) => ({
+		node: { id: `page:${path}`, type: 'page' as const, path },
+		severity: 'high' as const,
+		reason: 'inclui o bloco `aviso`, que foi alterado.',
+		origin: 'src/content/snippets/aviso.md',
+		via: [`page:${path}`, 'snippet:aviso'],
+		hidden: true,
+	}));
+
+	return {
+		changes: [],
+		items,
+		checklist: [],
+		score: { value: items.length * 5, factors: [] },
+		scope: 'small',
+		api: { breaking: [], compatible: [] },
+		glossaryTerms: [],
+		counts: { critical: 0, high: items.length, medium: 0, low: 0 },
+		highest: items.length > 0 ? 'high' : 'low',
+		generatedAt: 0,
+	};
+}
 
 describe('nome de branch', () => {
 	it('aceita nomes normais', () => {
@@ -211,18 +237,16 @@ describe('corpo do pull request', () => {
 	});
 
 	it('avisa sobre páginas que mudam sem aparecer no diff', () => {
-		const body = composePullRequestBody({
-			...base,
-			impact: { changedSnippets: ['aviso'], affectedPages: ['guides/a.mdx', 'guides/b.mdx'] },
-		});
+		const body = composePullRequestBody({ ...base, impact: impactWith(['guides/a.mdx', 'guides/b.mdx']) });
 		expect(body).toContain('2 página(s)');
 		expect(body).toContain('não aparecem no diff');
 		expect(body).toContain('guides/a.mdx');
 	});
 
 	it('sem impacto, não inventa uma seção vazia', () => {
-		const body = composePullRequestBody({ ...base, impact: { changedSnippets: [], affectedPages: [] } });
-		expect(body).not.toContain('Impacto no conteúdo');
+		const body = composePullRequestBody({ ...base, impact: impactWith([]) });
+		expect(body).not.toContain('Documentation Impact');
+		expect(body).not.toContain('Impact Score');
 	});
 
 	it('a descrição do autor vem primeiro', () => {

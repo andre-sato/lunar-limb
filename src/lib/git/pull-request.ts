@@ -19,8 +19,8 @@
 
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { getContentGraph } from '../editor/content-graph';
 import { changedPaths } from './diff';
+import { SEVERITY_MARK, REVIEW_SCOPE_LABEL, type ImpactReport } from '../impact/types';
 
 const run = promisify(execFile);
 
@@ -71,54 +71,6 @@ export async function getRemote(): Promise<RemoteInfo | null> {
 }
 
 // ---------------------------------------------------------------------------
-// Impacto no Content Graph (§4)
-// ---------------------------------------------------------------------------
-
-export interface ContentImpact {
-	/** Blocos reutilizáveis alterados nesta branch. */
-	changedSnippets: string[];
-	/** Páginas que consomem esses blocos e mudam de conteúdo sem serem editadas. */
-	affectedPages: string[];
-}
-
-/**
- * Descobre quem mais muda por tabela.
- *
- * Editar um bloco reutilizável altera todas as páginas que o incluem sem tocar
- * em nenhuma delas. Quem revisa o PR precisa saber disso: são as páginas que
- * mudaram de verdade e não aparecem no diff.
- */
-export async function contentImpact(paths: readonly string[]): Promise<ContentImpact> {
-	const changedSnippets = paths
-		.filter((file) => file.startsWith(SNIPPETS_PREFIX))
-		.map((file) => file.slice(SNIPPETS_PREFIX.length).replace(/\.mdx?$/, ''));
-
-	if (changedSnippets.length === 0) return { changedSnippets: [], affectedPages: [] };
-
-	const graph = await getContentGraph({ fresh: true });
-	const editedPages = new Set(
-		paths.filter((file) => file.startsWith(DOCS_PREFIX)).map((file) => file.slice(DOCS_PREFIX.length))
-	);
-
-	// As arestas do grafo são "quem usa o quê": aqui a leitura é ao contrário —
-	// dado o bloco alterado, quais páginas apontam para ele.
-	const changed = new Set(changedSnippets);
-	const affected = new Set<string>();
-
-	for (const edge of graph.edges) {
-		if (edge.refType !== 'block' || !changed.has(edge.target)) continue;
-
-		const source = graph.nodes.find((node) => node.key === edge.source);
-		if (!source || source.type !== 'page') continue;
-
-		// Página já editada aparece no diff; listá-la de novo seria ruído.
-		if (!editedPages.has(source.path)) affected.add(source.path);
-	}
-
-	return { changedSnippets, affectedPages: [...affected].sort() };
-}
-
-// ---------------------------------------------------------------------------
 // Corpo do pull request
 // ---------------------------------------------------------------------------
 
@@ -130,7 +82,12 @@ export interface PullRequestInput {
 	score?: number;
 	gatePassed?: boolean;
 	changedFiles: readonly string[];
-	impact?: ContentImpact;
+	/**
+	 * Relatório do Impact Engine. Substituiu a contagem de um salto que existia
+	 * aqui: ela dizia "nenhuma página afetada" quando o bloco alterado era usado
+	 * por outro bloco, e essa resposta era confiante e errada.
+	 */
+	impact?: ImpactReport;
 	/** Resumo da Documentation Test Suite, quando ela rodou. */
 	tests?: { total: number; passed: number; failed: number; skipped: number };
 }
@@ -183,17 +140,73 @@ export function composePullRequestBody(input: PullRequestInput): string {
 		parts.push('');
 	}
 
-	if (input.impact && input.impact.affectedPages.length > 0) {
-		parts.push(
-			`**Impacto no conteúdo:** ${input.impact.affectedPages.length} página(s) mudam por causa de bloco reutilizável e **não aparecem no diff**:`,
-			''
-		);
-		for (const page of input.impact.affectedPages) parts.push(`- \`${page}\``);
-		parts.push('');
-	}
+	if (input.impact) parts.push(...impactSection(input.impact));
 
 	parts.push('---', '_Preparado pelo editor do portal._');
 	return parts.join('\n').trim();
+}
+
+/**
+ * A parte do corpo que fala de impacto (§10, §11).
+ *
+ * A ordem é deliberada: primeiro o que **quebra**, depois o que muda sem aparecer
+ * no diff, e por último o checklist. Quem revisa lê de cima para baixo e para
+ * quando entendeu o tamanho do trabalho — então o que muda a decisão vem antes.
+ */
+function impactSection(impact: ImpactReport): string[] {
+	const parts: string[] = [];
+
+	if (impact.api.breaking.length > 0) {
+		parts.push(`**Quebra de contrato de API:** ${impact.api.breaking.length}`, '');
+		for (const change of impact.api.breaking) parts.push(`- ${SEVERITY_MARK.critical} ${change}`);
+		parts.push('');
+	}
+
+	if (impact.items.length > 0) {
+		const { critical, high, medium, low } = impact.counts;
+		parts.push(
+			'**Documentation Impact**',
+			'',
+			[
+				critical > 0 ? `${SEVERITY_MARK.critical} ${critical} crítico(s)` : '',
+				high > 0 ? `${SEVERITY_MARK.high} ${high} alto(s)` : '',
+				medium > 0 ? `${SEVERITY_MARK.medium} ${medium} médio(s)` : '',
+				low > 0 ? `${SEVERITY_MARK.low} ${low} baixo(s)` : '',
+			]
+				.filter(Boolean)
+				.join(' · '),
+			''
+		);
+
+		// Página que muda de conteúdo sem aparecer no diff é o achado que justifica
+		// o motor: ninguém a revisaria olhando os arquivos alterados.
+		const hidden = impact.items.filter((item) => item.hidden);
+		if (hidden.length > 0) {
+			parts.push(`${hidden.length} página(s) mudam de conteúdo e **não aparecem no diff**:`, '');
+			for (const item of hidden.slice(0, 20)) {
+				const path = item.via.length > 2 ? ` _(via ${item.via.length - 2} nível(is))_` : '';
+				parts.push(`- ${SEVERITY_MARK[item.severity]} \`${item.node.path}\`${path} — ${item.reason}`);
+			}
+			if (hidden.length > 20) parts.push(`- … e mais ${hidden.length - 20}`);
+			parts.push('');
+		}
+
+		parts.push(
+			`**Impact Score:** ${impact.score.value}/100 · escopo de revisão: ${REVIEW_SCOPE_LABEL[impact.scope]}`,
+			''
+		);
+	}
+
+	if (impact.checklist.length > 0) {
+		parts.push('**Checklist de revisão**', '');
+		for (const item of impact.checklist.slice(0, 20)) {
+			parts.push(`- [ ] ${SEVERITY_MARK[item.severity]} ${item.label}`);
+		}
+		if (impact.checklist.length > 20) parts.push(`- [ ] … e mais ${impact.checklist.length - 20} item(ns)`);
+		parts.push('');
+	}
+
+	return parts;
 }
 
 /** URL de comparação do provedor, com título e corpo já preenchidos. */

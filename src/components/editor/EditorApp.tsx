@@ -914,6 +914,7 @@ export default function EditorApp() {
 									<FrontmatterPanel content={content} onChange={handleContentChange} />
 									<ReferencePanel
 										path={activePath}
+										root={activeRoot}
 										node={references.node}
 										uses={references.uses}
 										usedBy={references.usedBy}

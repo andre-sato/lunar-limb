@@ -4,7 +4,6 @@ import { detectDefaultBranch, currentBranch } from '../../../../lib/git/workflow
 import {
 	changedPaths,
 	composePullRequestBody,
-	contentImpact,
 	createPullRequest,
 	getRemote,
 	providerToken,
@@ -16,6 +15,7 @@ import { setGlossaryIndex } from '../../../../lib/linter/rules/glossary';
 import { getContentFs } from '../../../../lib/editor/content-fs';
 import { recordAudit } from '../../../../lib/auth/audit';
 import { runDocumentationTests } from '../../../../lib/doctest/runner';
+import { analyzeImpactOf } from '../../../../lib/impact/engine';
 
 export const prerender = false;
 
@@ -135,7 +135,7 @@ export const GET: APIRoute = async ({ url }) => {
 		const head = await currentBranch();
 
 		const [diff, paths, remote] = await Promise.all([branchDiff(base), changedPaths(base), getRemote()]);
-		const [gate, impact, tests] = await Promise.all([runGate(paths), contentImpact(paths), runTests(paths)]);
+		const [gate, impact, tests] = await Promise.all([runGate(paths), analyzeImpactOf({ base }), runTests(paths)]);
 
 		return json({
 			base,
@@ -171,7 +171,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 			return json({ error: 'Não há alterações entre as duas branches.' }, 400);
 		}
 
-		const [gate, impact, tests] = await Promise.all([runGate(paths), contentImpact(paths), runTests(paths)]);
+		const [gate, impact, tests] = await Promise.all([runGate(paths), analyzeImpactOf({ base }), runTests(paths)]);
 
 		const input = {
 			title,
@@ -197,6 +197,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
 				files: paths.length,
 				score: gate.score ?? null,
 				testsFailed: tests.failed,
+				impactScore: impact.score.value,
+				impactHighest: impact.highest,
 			},
 		});
 

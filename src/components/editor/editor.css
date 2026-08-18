@@ -2250,6 +2250,73 @@ body {
 	color: var(--editor-warning, #d79b3b);
 }
 
+.reference-impact-preview {
+	padding: 0.4rem 0.75rem 0.6rem;
+	border-top: 1px solid var(--editor-border, #2a2d33);
+	font-size: 0.76rem;
+	line-height: 1.6;
+}
+
+.reference-impact-head {
+	margin: 0 0 0.3rem;
+	font-weight: 600;
+}
+
+.reference-impact-list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.reference-impact-reason,
+.reference-impact-empty,
+.reference-impact-inline {
+	color: var(--editor-text-muted, #8a8f98);
+}
+
+.reference-impact-error {
+	color: var(--editor-error, #d9534f);
+	font-size: 0.76rem;
+}
+
+.git-impact-items {
+	margin: 0.5rem 0 0;
+	padding: 0;
+	list-style: none;
+	font-size: 0.78rem;
+	line-height: 1.6;
+}
+
+.git-impact-mark {
+	font-size: 0.7rem;
+}
+
+.git-impact-reason,
+.git-impact-via {
+	color: var(--editor-text-muted, #8a8f98);
+}
+
+.git-impact-more {
+	color: var(--editor-text-muted, #8a8f98);
+	font-style: italic;
+}
+
+.git-checklist {
+	margin-top: 0.6rem;
+	font-size: 0.78rem;
+}
+
+.git-checklist summary {
+	cursor: pointer;
+	color: var(--editor-text-muted, #8a8f98);
+}
+
+.git-checklist ul {
+	margin: 0.4rem 0 0;
+	padding-left: 1rem;
+	line-height: 1.6;
+}
+
 .git-test-failures {
 	margin: 0.5rem 0 0;
 	padding-left: 1rem;
