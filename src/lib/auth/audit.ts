@@ -44,6 +44,12 @@ export type AuditAction =
 	// Snapshot de saúde: é o único dado que a observabilidade persiste, e saber
 	// quem o gravou permite explicar um ponto fora da curva na série.
 	| 'HEALTH_SNAPSHOT_TAKEN'
+	// Agentes de documentação. As três entradas cobrem o ciclo inteiro: o que foi
+	// bloqueado por guardrail, o que chegou ao fim, e quem aprovou ou rejeitou —
+	// que é a única porta entre o workspace isolado e o repositório.
+	| 'AGENT_RUN_BLOCKED'
+	| 'AGENT_RUN_COMPLETED'
+	| 'AGENT_RUN_REVIEWED'
 	// Gap Mining: mudança de ciclo de vida de uma lacuna e apagamento da
 	// telemetria de perguntas. A primeira é decisão de trabalho, a segunda destrói
 	// dado — as duas ficam no log.
