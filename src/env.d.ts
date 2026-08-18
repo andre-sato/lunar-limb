@@ -1,4 +1,6 @@
 /// <reference types="astro/client" />
+/// <reference types="@astrojs/starlight/virtual" />
+
 
 import type { AuthUser } from './lib/auth/permissions';
 import type { PublicUser } from './lib/auth/users';

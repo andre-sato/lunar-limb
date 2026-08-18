@@ -391,6 +391,25 @@ const { t } = Astro.locals;
 		display: block;
 	}
 
+	/*
+	 * Em tela estreita o gatilho fica só com o ícone. Com o rótulo, ele quebrava
+	 * em duas linhas e espremia o nome do portal a ponto de sobrar "Sua Em".
+	 */
+	@media (width <= 42rem) {
+		.doc-chat__trigger span {
+			position: absolute;
+			width: 1px;
+			height: 1px;
+			overflow: hidden;
+			clip-path: inset(50%);
+			white-space: nowrap;
+		}
+
+		.doc-chat__trigger {
+			padding-inline: 0.6rem;
+		}
+	}
+
 	.doc-chat__messages {
 		flex: 1;
 		overflow-y: auto;

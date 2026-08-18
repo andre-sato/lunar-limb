@@ -191,6 +191,32 @@ As respostas ficam em **Settings → Feedback**: proporção de "útil", coment�
 
 Com a integração do Do11y ligada, o mesmo clique também vira um evento `feedback` no Supabase. Detalhes em [docs/feedback-de-pagina.md](docs/feedback-de-pagina.md).
 
+## Navegação
+
+O menu fica no topo, não numa coluna lateral, e é montado a partir da mesma
+árvore que a Starlight gera das pastas de conteúdo: cada pasta de primeiro nível
+vira um item, e as páginas de dentro formam o submenu. Nenhum item é escrito à
+mão — criar uma página basta para ela aparecer.
+
+A coluna lateral é desligada em [route-middleware.ts](src/lib/nav/route-middleware.ts),
+pelo ponto de extensão que a Starlight documenta para modificar dados de rota.
+Desligar `hasSidebar` é diferente de esconder com CSS: a coluna deixa de ser
+reservada, e o conteúdo ocupa a largura toda sem correção de layout por cima.
+
+Dois efeitos que vieram junto e precisaram de decisão:
+
+- **Profundidade.** A lateral aninhava sem limite; um menu suspenso dentro de
+  outro é difícil de operar com mouse e pior com teclado. A árvore é achatada em
+  dois níveis, e o subgrupo vira um título dentro do painel. A lógica está em
+  [top-nav.ts](src/lib/nav/top-nav.ts), separada do componente para ser testável.
+- **Medida de leitura.** Sem barra lateral, a Starlight aplica a medida larga que
+  reserva para páginas de capa — 1080px de linha na documentação. O CSS do
+  projeto devolve a medida normal às páginas sem hero.
+
+O menu funciona sem JavaScript: cada submenu é um `<details>`. O script só
+acrescenta o que o HTML não dá — fechar ao clicar fora, fechar com `Esc`
+devolvendo o foco, e manter um submenu aberto por vez.
+
 ## Publicação no GitHub Pages
 
 O portal tem duas naturezas no mesmo repositório: um **site de documentação**, que é HTML estático, e uma **aplicação** — editor, login, Settings, chat, feedback —, que precisa de um servidor Node. O GitHub Pages serve arquivos, não processos, então o que se publica lá é a primeira metade.

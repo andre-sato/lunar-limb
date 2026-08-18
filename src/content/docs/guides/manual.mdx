@@ -38,8 +38,13 @@ src/content/docs/
 └── index.mdx       # página inicial
 ```
 
-A navegação lateral é gerada a partir dessas pastas. Criar um arquivo já o
-publica — não há passo de registro em lugar nenhum.
+O menu do topo é gerado a partir dessas pastas: cada uma vira um item, e as
+páginas de dentro formam o submenu. Criar um arquivo já o publica — não há passo
+de registro em lugar nenhum.
+
+Uma pasta aninhada vira um título dentro do painel do submenu, em vez de um
+submenu dentro do submenu. Menu suspenso encaixado é difícil de operar com o
+mouse e pior com o teclado, então a árvore é achatada em dois níveis.
 
 ### Recursos de leitura
 
@@ -146,7 +151,7 @@ e configuração ficam no `mcp-docs/README.md` do repositório.
 | Empresa, nome do portal, descrição, URL da API, e-mail de suporte | `src/config/portal.ts` |
 | Clientes de IA oferecidos | `src/config/portal.ts` (`aiClients`) |
 | Cores e tipografia | `src/styles/custom.css` |
-| Títulos por idioma, seções da sidebar | `astro.config.mjs` |
+| Títulos por idioma, seções do menu do topo | `astro.config.mjs` |
 | Textos da interface (rótulos, avisos) | `src/content/i18n/*.json` |
 
 ---

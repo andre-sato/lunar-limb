@@ -196,11 +196,14 @@ export default defineConfig({
 				...versionPlugins(),
 			],
 			customCss: ['./src/styles/custom.css'],
+			// Middleware de rota da Starlight: desliga a coluna lateral, já que a
+			// navegação passou para o topo. Ver src/lib/nav/route-middleware.ts.
+			routeMiddleware: './src/lib/nav/route-middleware.ts',
 			components: {
 				PageTitle: './src/components/PageTitle.astro',
 				Hero: './src/components/Hero.astro',
 				Search: './src/components/Search.astro',
-				Sidebar: './src/components/PortalSidebar.astro',
+				Header: './src/components/PortalHeader.astro',
 				Head: './src/components/Head.astro',
 				Footer: './src/components/Footer.astro',
 			},
