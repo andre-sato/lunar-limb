@@ -26,7 +26,10 @@ COPY --from=build /app/dist ./dist
 # files directly under src/content, so those files must exist at runtime.
 COPY --from=build /app/src ./src
 # User state (users, sessions, audit) lives in data/ and is ignored by Git.
-RUN mkdir -p data
+# The editor also reads/writes files under src/content at runtime, so both
+# must be writable by the `node` user. Ownership here also seeds named volumes
+# mounted at /app/data.
+RUN mkdir -p data && chown -R node:node data src
 
 # Run as non-root.
 USER node
