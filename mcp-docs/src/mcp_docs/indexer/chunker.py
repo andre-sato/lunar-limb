@@ -92,6 +92,8 @@ def chunk_document(
     kind: str = "page",
     url: str | None = None,
     used_by: list[str] | None = None,
+    audiences: list[str] | None = None,
+    version: str | None = None,
 ) -> list[Chunk]:
     chunks: list[Chunk] = []
     index = 0
@@ -121,6 +123,8 @@ def chunk_document(
                     kind=kind,  # type: ignore[arg-type]
                     url=_section_url(url, section),
                     used_by=list(used_by or []),
+                    audiences=list(audiences or []),
+                    version=version,
                 )
             )
             index += 1

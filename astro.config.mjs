@@ -19,6 +19,7 @@ import { algoliaCredentials } from './src/config/search';
 import { getGlossaryIndex } from './src/lib/glossary/loader';
 import { describeConflicts } from './src/lib/glossary/index-build';
 import { remarkGlossary } from './src/lib/glossary/remark-glossary';
+import remarkAudience from './src/lib/adaptive/remark-audience';
 import { loadRegistry } from './src/lib/versions/load';
 
 // `monaco-vim` (Fase 5) importa caminhos internos como
@@ -348,7 +349,7 @@ export default defineConfig({
 		}),
 	],
 	markdown: {
-		remarkPlugins: [[remarkGlossary, { index: glossaryIndex }]],
+		remarkPlugins: [[remarkGlossary, { index: glossaryIndex }], remarkAudience],
 		// Só entra em cena quando o site é servido sob um subcaminho: a Astro
 		// reescreve os links que ela gera, mas não os escritos à mão no Markdown.
 		rehypePlugins: normalizedBase === '/' ? [] : [[rehypeBasePath, { base: normalizedBase }]],

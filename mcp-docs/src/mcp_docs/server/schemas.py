@@ -42,6 +42,31 @@ class SearchDocsInput(BaseModel):
     repository: str | None = None
     language: str | None = None
     content_type: str | None = None
+    #: Contexto do agente (Adaptive Documentation §11). Ambos opcionais: sem eles
+    #: a busca é a de sempre, que é o fallback pedido pela §14.
+    audience: str | None = None
+    version: str | None = None
+
+    @field_validator("audience")
+    @classmethod
+    def _validate_audience(cls, value: str | None) -> str | None:
+        if value in (None, ""):
+            return None
+        if value not in ("developer", "support", "product", "operations", "ai-agent"):
+            # Recusar em vez de ignorar: um valor errado que passa calado vira um
+            # filtro que nunca casa, e o agente conclui que não há documentação.
+            raise ValueError("audience desconhecida")
+        return value
+
+    @field_validator("version")
+    @classmethod
+    def _validate_version(cls, value: str | None) -> str | None:
+        if value in (None, ""):
+            return None
+        assert value is not None
+        if len(value) > 40 or not all(char.isalnum() or char in "._-" for char in value):
+            raise ValueError("version inválida")
+        return value
 
     @field_validator("source")
     @classmethod

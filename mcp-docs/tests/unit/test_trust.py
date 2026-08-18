@@ -126,3 +126,63 @@ def test_anotacao_em_bloco_de_codigo_e_exemplo() -> None:
 def test_anotacao_depois_do_bloco_continua_valendo() -> None:
     raw = page("```bash\necho 1\n```\n\n<!-- provenance:\nsource: DOC-LINK-001\nverifiedAt: 2026-08-01\n-->\n\nTexto.")
     assert read_trust(raw, today=TODAY).status == "verified"
+
+
+# ---------------------------------------------------------------------------
+# Contexto de leitura (Adaptive Documentation §11)
+# ---------------------------------------------------------------------------
+
+
+def test_filtro_de_audiencia_nao_descarta_conteudo_sem_audiencia() -> None:
+    from datetime import datetime, timezone
+
+    from mcp_docs.models import Chunk
+    from mcp_docs.search.hybrid import SearchFilters
+
+    def chunk(audiences: list[str], version: str | None = None) -> Chunk:
+        return Chunk(
+            id="x#0",
+            source="a.md",
+            title="A",
+            content="texto",
+            updated_at=datetime.now(timezone.utc),
+            audiences=audiences,
+            version=version,
+        )
+
+    filters = SearchFilters(audience="support")
+
+    # A maior parte do portal não declara audiência: tratá-la como "não é para
+    # você" esconderia quase tudo de quem informou o perfil.
+    assert filters.matches(chunk([])) is True
+    assert filters.matches(chunk(["support"])) is True
+    assert filters.matches(chunk(["developer"])) is False
+
+
+def test_filtro_de_versao_segue_a_mesma_regra() -> None:
+    from datetime import datetime, timezone
+
+    from mcp_docs.models import Chunk
+    from mcp_docs.search.hybrid import SearchFilters
+
+    def chunk(version: str | None) -> Chunk:
+        return Chunk(id="x#0", source="a.md", title="A", content="t", updated_at=datetime.now(timezone.utc), version=version)
+
+    filters = SearchFilters(version="v2")
+    assert filters.matches(chunk(None)) is True
+    assert filters.matches(chunk("v2")) is True
+    assert filters.matches(chunk("v1")) is False
+
+
+def test_audiencia_desconhecida_e_recusada_em_vez_de_ignorada() -> None:
+    import pytest
+
+    from mcp_docs.server.schemas import SearchDocsInput
+
+    # Ignorar calado viraria um filtro que nunca casa, e o agente concluiria que
+    # não existe documentação sobre o assunto.
+    with pytest.raises(ValueError):
+        SearchDocsInput(query="x", audience="marketing")
+
+    assert SearchDocsInput(query="x", audience="support").audience == "support"
+    assert SearchDocsInput(query="x").audience is None

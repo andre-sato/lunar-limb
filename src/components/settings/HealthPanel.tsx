@@ -68,6 +68,10 @@ interface Report {
 		topUnanswered: Array<{ question: string; count: number }>;
 		questionsStored: boolean;
 	};
+	audiences: {
+		total: number;
+		distribution: Array<{ audience: string; queries: number; share: number; unanswered: number }>;
+	};
 }
 
 const DIMENSION_LABEL: Record<string, string> = {
@@ -352,6 +356,39 @@ export default function HealthPanel() {
 					</p>
 				)}
 			</section>
+
+			{report.audiences.total > 0 && (
+				<section className="panel">
+					<h2>Por audiência</h2>
+					<p className="panel-hint">
+						Quem consulta a documentação, por perfil declarado. Só contadores — nem pergunta, nem página, nem
+						quem perguntou. A distribuição é o que muda a prioridade do backlog; o rastro individual não
+						mudaria nada e criaria um arquivo para proteger para sempre.
+					</p>
+					<div className="data-table-wrap">
+						<table className="data-table">
+							<thead>
+								<tr>
+									<th>Perfil</th>
+									<th style={{ width: 110, textAlign: 'right' }}>Consultas</th>
+									<th style={{ width: 90, textAlign: 'right' }}>Fatia</th>
+									<th style={{ width: 130, textAlign: 'right' }}>Sem resposta</th>
+								</tr>
+							</thead>
+							<tbody>
+								{report.audiences.distribution.map((row) => (
+									<tr key={row.audience}>
+										<td>{row.audience === 'unknown' ? 'Não informado' : row.audience}</td>
+										<td style={{ textAlign: 'right' }}>{row.queries}</td>
+										<td style={{ textAlign: 'right' }}>{row.share}%</td>
+										<td style={{ textAlign: 'right' }}>{row.unanswered}</td>
+									</tr>
+								))}
+							</tbody>
+						</table>
+					</div>
+				</section>
+			)}
 
 			<section className="panel">
 				<h2>Por responsável</h2>

@@ -1,0 +1,164 @@
+---
+/**
+ * "Você também pode precisar de" (§9).
+ *
+ * A lista sai do Content Graph, das tags e do contexto declarado pela página —
+ * e cada item diz **por que** apareceu. Uma lista de links sem motivo é
+ * indistinguível de uma lista aleatória, e depois de duas sugestões ruins ninguém
+ * mais olha para a área.
+ *
+ * O contexto do leitor mora num cookie do navegador e as páginas do portal são
+ * pré-renderizadas, então a recomendação é montada no servidor **sem** ele: o que
+ * chega aqui vale para todo mundo. O ajuste por audiência acontece no cliente,
+ * reordenando o que já está na página — nunca buscando outra lista, e nunca
+ * removendo item.
+ */
+import { getAdaptiveIndex } from '../../lib/adaptive/load';
+import { getContentGraph } from '../../lib/editor/content-graph';
+import { recommendPages } from '../../lib/adaptive/recommend';
+
+const entryFilePath = Astro.locals.starlightRoute.entry.filePath;
+const contentRoot = 'src/content/docs/';
+const normalized = entryFilePath?.replaceAll('\\', '/');
+const relativePath = normalized?.startsWith(contentRoot) ? normalized.slice(contentRoot.length) : undefined;
+
+const index = await getAdaptiveIndex();
+const current = relativePath ? index.byPath.get(relativePath) : undefined;
+
+let recommendations: Awaited<ReturnType<typeof recommendPages>> = [];
+
+if (current) {
+	const graph = await getContentGraph().catch(() => null);
+
+	// As arestas do grafo falam em `id` de conteúdo; aqui o que identifica a página
+	// é o caminho do arquivo. A tradução usa os próprios nós do grafo.
+	const edges = (graph?.edges ?? []).flatMap((edge) => {
+		const source = graph?.nodes.find((node) => node.key === edge.source);
+		const target = graph?.nodes.find((node) => node.id === edge.target && node.type === edge.refType);
+		if (!source || !target || source.root !== 'docs' || target.root !== 'docs') return [];
+		return [{ from: source.path, to: target.path }];
+	});
+
+	recommendations = recommendPages({
+		current,
+		pages: index.pages,
+		context: {},
+		edges,
+		limit: 4,
+	});
+}
+
+// Cada item carrega os metadados que o cliente precisa para reordenar sem pedir
+// nada ao servidor.
+const payload = recommendations.map((item) => ({
+	path: item.path,
+	audiences: index.byPath.get(item.path)?.audiences.map((target) => target.audience) ?? [],
+}));
+---
+
+{
+	recommendations.length > 0 && (
+		<nav class="recommendations" aria-labelledby="recommendations-title" data-recommendations={JSON.stringify(payload)}>
+			<h2 id="recommendations-title">Você também pode precisar de</h2>
+			<ul>
+				{recommendations.map((item) => (
+					<li data-path={item.path}>
+						<a href={item.url}>{item.title}</a>
+						<span class="recommendations-reason">{item.reason}</span>
+					</li>
+				))}
+			</ul>
+		</nav>
+	)
+}
+
+<script>
+	/**
+	 * Reordena as recomendações conforme a audiência escolhida.
+	 *
+	 * Reordenar, e só. Nenhum item é removido nem escondido: a §12 vale aqui
+	 * também, e uma sugestão que some por causa de um seletor é uma página que o
+	 * leitor não sabe que existe.
+	 */
+	function reorder() {
+		const nav = document.querySelector<HTMLElement>('.recommendations');
+		if (!nav) return;
+
+		const list = nav.querySelector('ul');
+		if (!list) return;
+
+		let audience = '';
+		try {
+			const raw = document.cookie
+				.split('; ')
+				.find((entry) => entry.startsWith('ll_context='))
+				?.slice('ll_context='.length);
+			if (raw) audience = JSON.parse(decodeURIComponent(raw)).audience ?? '';
+		} catch {
+			audience = '';
+		}
+
+		if (audience === '') return;
+
+		let meta: Array<{ path: string; audiences: string[] }> = [];
+		try {
+			meta = JSON.parse(nav.dataset.recommendations ?? '[]');
+		} catch {
+			return;
+		}
+
+		const relevant = new Set(meta.filter((item) => item.audiences.includes(audience)).map((item) => item.path));
+
+		const items = [...list.querySelectorAll<HTMLLIElement>('li')];
+		for (const item of items) {
+			const isRelevant = relevant.has(item.dataset.path ?? '');
+			item.classList.toggle('recommendations-item--relevant', isRelevant);
+			if (isRelevant) list.prepend(item);
+		}
+	}
+
+	if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', reorder);
+	else reorder();
+
+	document.addEventListener('ll:context-changed', reorder);
+	document.addEventListener('astro:after-swap', reorder);
+</script>
+
+<style>
+	.recommendations {
+		margin-top: 2rem;
+		padding-top: 1rem;
+		border-top: 1px solid var(--sl-color-gray-5);
+	}
+
+	.recommendations h2 {
+		margin: 0 0 0.6rem;
+		font-size: var(--sl-text-base);
+		font-weight: 600;
+	}
+
+	.recommendations ul {
+		margin: 0;
+		padding: 0;
+		list-style: none;
+		display: grid;
+		gap: 0.4rem;
+	}
+
+	.recommendations li {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: baseline;
+		gap: 0.5rem;
+		font-size: var(--sl-text-sm);
+	}
+
+	.recommendations-reason {
+		color: var(--sl-color-gray-2);
+		font-size: var(--sl-text-xs);
+	}
+
+	.recommendations-item--relevant a {
+		font-weight: 600;
+	}
+</style>

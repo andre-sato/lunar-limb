@@ -1,0 +1,170 @@
+---
+/**
+ * Seletor de contexto de leitura (§2, §8, §12, §14).
+ *
+ * Três coisas que este componente **não** faz, e cada uma é uma decisão:
+ *
+ * **Não esconde conteúdo.** Escolher uma audiência abre os blocos dela e recolhe
+ * os outros. Recolhido é `<details>` fechado: continua no documento, alcançável
+ * por teclado, anunciado por leitor de tela e encontrável pela busca do navegador.
+ * A §12 proíbe personalização que impeça acesso ao conteúdo completo.
+ *
+ * **Não decide sozinho.** Nada de inferir audiência por comportamento. Quem lê
+ * escolhe, e a escolha fica num cookie do próprio navegador. Adivinhar o papel de
+ * alguém e reorganizar a documentação em cima do palpite é o tipo de esperteza
+ * que erra em silêncio.
+ *
+ * **Não é obrigatório.** Sem escolha, a página aparece inteira, como sempre foi —
+ * que é o fallback da §14.
+ */
+import { AUDIENCES, AUDIENCE_LABEL, EXPERIENCES, EXPERIENCE_LABEL } from '../../lib/adaptive/types';
+
+const label = 'Como você está lendo';
+---
+
+<section class="audience-switcher" aria-labelledby="audience-switcher-title">
+	<h2 id="audience-switcher-title" class="audience-switcher-title">{label}</h2>
+
+	<label class="audience-switcher-field">
+		<span>Perfil</span>
+		<select id="audience-select" data-context-field="audience">
+			<option value="">Todos (padrão)</option>
+			{AUDIENCES.map((audience) => <option value={audience}>{AUDIENCE_LABEL[audience]}</option>)}
+		</select>
+	</label>
+
+	<label class="audience-switcher-field">
+		<span>Experiência</span>
+		<select id="experience-select" data-context-field="experience">
+			<option value="">Não informar</option>
+			{EXPERIENCES.map((experience) => <option value={experience}>{EXPERIENCE_LABEL[experience]}</option>)}
+		</select>
+	</label>
+
+	<p class="audience-switcher-note">
+		Nada é escondido: o conteúdo das outras audiências fica recolhido na página e continua acessível.
+	</p>
+</section>
+
+<script>
+	const COOKIE = 'll_context';
+
+	function readContext() {
+		const raw = document.cookie
+			.split('; ')
+			.find((entry) => entry.startsWith(`${COOKIE}=`))
+			?.slice(COOKIE.length + 1);
+
+		if (!raw) return {};
+		try {
+			return JSON.parse(decodeURIComponent(raw));
+		} catch {
+			return {};
+		}
+	}
+
+	function writeContext(context: Record<string, string>) {
+		// `SameSite=Lax` e um ano: é preferência de leitura, não sessão. Sem
+		// `Secure` fixo porque o portal também roda em `http://localhost` no
+		// desenvolvimento — em produção o próprio host já é https.
+		document.cookie = `${COOKIE}=${encodeURIComponent(JSON.stringify(context))}; path=/; max-age=31536000; samesite=lax`;
+	}
+
+	/**
+	 * Aplica o contexto aos blocos da página.
+	 *
+	 * Abrir e fechar `<details>`, e nada além disso. Nenhum nó é removido, nenhum
+	 * `display: none`, nenhum `aria-hidden` — o conteúdo de outra audiência
+	 * continua sendo conteúdo da página.
+	 */
+	function applyAudience(audience: string) {
+		const blocks = document.querySelectorAll<HTMLDetailsElement>('details.audience-block');
+
+		for (const block of blocks) {
+			const target = block.dataset.audience;
+			// Sem audiência escolhida, tudo aberto: o padrão é a página inteira.
+			block.open = audience === '' || target === audience;
+			block.classList.toggle('audience-block--other', audience !== '' && target !== audience);
+		}
+	}
+
+	function init() {
+		const context = readContext();
+		const audienceSelect = document.querySelector<HTMLSelectElement>('#audience-select');
+		const experienceSelect = document.querySelector<HTMLSelectElement>('#experience-select');
+
+		if (audienceSelect) audienceSelect.value = typeof context.audience === 'string' ? context.audience : '';
+		if (experienceSelect) experienceSelect.value = typeof context.experience === 'string' ? context.experience : '';
+
+		applyAudience(audienceSelect?.value ?? '');
+
+		for (const select of [audienceSelect, experienceSelect]) {
+			select?.addEventListener('change', () => {
+				const next = readContext();
+				const field = select.dataset.contextField;
+				if (!field) return;
+
+				if (select.value === '') delete next[field];
+				else next[field] = select.value;
+
+				writeContext(next);
+				applyAudience(audienceSelect?.value ?? '');
+
+				// Avisa quem mais depende do contexto na página (recomendações,
+				// assistente) sem obrigar ninguém a recarregar.
+				document.dispatchEvent(new CustomEvent('ll:context-changed', { detail: next }));
+			});
+		}
+	}
+
+	if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+	else init();
+
+	// A Starlight troca de página sem recarregar quando há view transitions.
+	document.addEventListener('astro:after-swap', init);
+</script>
+
+<style>
+	.audience-switcher {
+		margin-top: 1.25rem;
+		padding-top: 1rem;
+		border-top: 1px solid var(--sl-color-gray-5);
+		font-size: var(--sl-text-xs);
+	}
+
+	.audience-switcher-title {
+		margin: 0 0 0.5rem;
+		font-size: var(--sl-text-xs);
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+		color: var(--sl-color-gray-2);
+	}
+
+	.audience-switcher-field {
+		display: flex;
+		flex-direction: column;
+		gap: 0.2rem;
+		margin-bottom: 0.5rem;
+	}
+
+	.audience-switcher-field span {
+		color: var(--sl-color-gray-2);
+	}
+
+	.audience-switcher select {
+		width: 100%;
+		padding: 0.3rem 0.4rem;
+		font-size: var(--sl-text-xs);
+		color: var(--sl-color-white);
+		background: var(--sl-color-black);
+		border: 1px solid var(--sl-color-gray-5);
+		border-radius: 0.25rem;
+	}
+
+	.audience-switcher-note {
+		margin: 0.5rem 0 0;
+		color: var(--sl-color-gray-3);
+		line-height: 1.5;
+	}
+</style>

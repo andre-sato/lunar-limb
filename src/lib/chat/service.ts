@@ -22,6 +22,7 @@ import { retrieveDocumentation, toSourceReferences } from './retrieval';
 import { excerptFrom, canUseChat, normalizeQuery, ChatError, MAX_QUERY_CHARS } from './search';
 import { rankByTrust, trustNotice, type TrustLookup } from './trust';
 import type { VerificationStatus } from '../trust/types';
+import type { DocumentationContext } from '../adaptive/types';
 import { summarize } from './summary';
 import type { ChatModel, ChatUser, Conversation, Excerpt, RetrievedChunk, SourceReference } from './types';
 
@@ -62,6 +63,12 @@ export interface AssistantOptions {
 	 * descrever um portal com conteúdo vencido sem criar um.
 	 */
 	trustFor?: TrustLookup;
+	/**
+	 * Contexto de leitura (§10 de Adaptive Documentation). Muda o recorte e o tom
+	 * da resposta; **não** muda o que o assistente pode ler — isso continua sendo
+	 * decidido por `authorize`, antes do contexto ir ao modelo.
+	 */
+	readerContext?: DocumentationContext;
 	onEvent?: (event: { event: string; userId: string; detail?: string }) => void | Promise<void>;
 }
 
@@ -295,7 +302,8 @@ ${answer.message}`,
 			message: trimmed,
 			history: conversation.messages,
 			summary: conversation.summary,
-			chunks,
+			chunks: ranked,
+			context: options.readerContext,
 		});
 
 		if (prompt.indirectInjectionDetected) {

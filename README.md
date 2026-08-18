@@ -243,6 +243,18 @@ A fila prioriza: **P0** é evidência inválida, o único sinal de documentaçã
 
 Alertas por webhook (`DOCS_HEALTH_WEBHOOK`, só `https`) e por issue no provedor. **Nada sai sozinho** — o disparo é ação de quem administra e fica na auditoria, porque notificação repetida é notificação silenciada. Guia em [/guides/saude-da-documentacao/](src/content/docs/guides/saude-da-documentacao.mdx).
 
+## Documentação adaptativa
+
+Uma fonte de verdade, várias experiências: a mesma página serve a quem programa, a quem atende cliente e a quem opera, **sem duplicar arquivo** — `authentication-developer.md` e `authentication-support.md` divergem no terceiro mês e ninguém percebe qual está certo.
+
+**O limite vem antes da funcionalidade.** Personalização de documentação erra sempre escondendo, então aqui nada é removido: o conteúdo de outra audiência fica recolhido num `<details>` com rótulo, dentro do documento, alcançável por teclado, anunciado por leitor de tela e encontrável pelo Ctrl+F. Vale igual para navegação e recomendações — elas reordenam e destacam, nunca tiram item da lista. É diferente do `<If>` que já existe: aquele resolve em build e **apaga** o trecho, que é o certo para conteúdo interno; aqui o objetivo é publicar tudo e mudar só a ênfase.
+
+As audiências (`developer`, `support`, `product`, `operations`, `ai-agent`) são declaradas no frontmatter, e o conteúdo específico usa `:::audience{type="support"}`. O bloco nasce **aberto**: sem JavaScript a página aparece inteira, porque adaptação é melhoria progressiva. Audiência escrita errada no atributo não faz o texto sumir — perder conteúdo por erro de digitação seria a pior falha possível desta camada.
+
+Quem lê escolhe o perfil na barra lateral; nada é inferido por comportamento, porque adivinhar o papel de alguém e reorganizar a documentação sobre o palpite erra em silêncio. `?audience=support` no link tem precedência sobre o cookie, para "veja isto na visão de suporte" funcionar para quem já tem preferência salva. Sem contexto, a documentação é a de sempre.
+
+No fim da página, **Você também pode precisar de**, montada do Content Graph, das tags e do contexto — cada item dizendo por que apareceu, e restrita ao mesmo idioma. No **assistente**, o contexto entra como enquadramento (recorte e tom), nunca como permissão: a autorização continua acontecendo antes, e nenhuma informação necessária é omitida por parecer de outro perfil. No **MCP**, `search_docs` aceita `audience` e `version`, descarta só o que foi escrito explicitamente para outro público e **recusa** audiência desconhecida em vez de ignorá-la. As analytics registram a distribuição por perfil — contadores, nada mais — e alimentam o Health Center. Guia em [/guides/documentacao-adaptativa/](src/content/docs/guides/documentacao-adaptativa.mdx).
+
 ## Feedback de página
 
 No fim de cada página de documentação há um widget **"Esta página foi útil?"** com sim/não e um campo opcional de comentário. A Starlight não traz um componente de feedback nem plugin oficial — o caminho que ela indica é sobrescrever `Footer`, que é o que o projeto faz. As alternativas de mercado são SaaS de terceiros; aqui o retorno dos seus leitores fica no próprio projeto.

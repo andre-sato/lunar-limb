@@ -174,6 +174,12 @@ class Indexer:
         used_by = consumers.get(snippet_id(file.path), []) if file.kind == "snippet" else []
         url = public_url(file.path) if file.kind == "page" else None
 
+        # Audiências declaradas pela página (Adaptive Documentation §4, §11).
+        # Lista vazia quer dizer "serve a todo mundo" — e é assim que a filtragem
+        # a trata, porque a maior parte do portal não declara nada.
+        audiences = _declared_audiences(item.parsed.frontmatter)
+        version = item.parsed.frontmatter.get("version") or None
+
         chunks = chunk_document(
             path=file.path,
             parsed=item.parsed,
@@ -184,6 +190,8 @@ class Indexer:
             kind=file.kind,
             url=url,
             used_by=used_by,
+            audiences=audiences,
+            version=version,
         )
 
         self.index.documents[file.path] = DocumentMeta(
@@ -196,6 +204,8 @@ class Indexer:
             kind=file.kind,  # type: ignore[arg-type]
             url=url,
             used_by=used_by,
+            audiences=audiences,
+            version=version,
         )
         self.index.add(chunks)
         return chunks
@@ -231,3 +241,20 @@ class Indexer:
 
 def now() -> datetime:
     return datetime.now(tz=timezone.utc)
+
+
+#: Audiências que o portal conhece. Um valor fora desta lista é ignorado em vez
+#: de virar filtro silencioso que nunca casa com nada.
+KNOWN_AUDIENCES = ("developer", "support", "product", "operations", "ai-agent")
+
+
+def _declared_audiences(frontmatter: dict[str, str]) -> list[str]:
+    """Lê `audiences: [a, b]` do frontmatter.
+
+    O parser de frontmatter do indexador é de primeiro nível e devolve o valor
+    como texto, então a lista chega como `"[developer, support]"`. Ler isso com
+    um YAML completo traria uma dependência para resolver meia linha.
+    """
+    raw = frontmatter.get("audiences") or frontmatter.get("audience") or ""
+    parts = [part.strip().strip("\"'") for part in raw.strip("[]").split(",")]
+    return [part for part in parts if part in KNOWN_AUDIENCES]

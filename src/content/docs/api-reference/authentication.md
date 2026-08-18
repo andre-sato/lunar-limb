@@ -5,6 +5,7 @@ sidebar:
   order: 2
 tags: [api, seguranca, autenticacao]
 owner: Time de Plataforma
+audiences: [developer, support]
 ---
 
 <!-- provenance:
@@ -35,3 +36,16 @@ curl https://api.suaempresa.com/v1/resources \
 - Revogue a credencial imediatamente se houver suspeita de exposição.
 
 Uma credencial ausente, inválida ou sem permissão deve retornar `401` ou `403`. Veja todos os [códigos de erro](/api-reference/errors/).
+
+:::audience{type="developer"}
+O cabeçalho vale para toda requisição autenticada, inclusive as de leitura. Chaves
+não expiram sozinhas: a rotação é feita pelo portal, e a chave antiga continua
+válida até ser revogada explicitamente.
+:::
+
+:::audience{type="support"}
+Se a pessoa relatar erro **401**, confira nesta ordem: se o cabeçalho
+`Authorization` está presente, se a chave foi revogada, e se ela pertence ao
+ambiente que a pessoa está chamando. Chave de teste em produção devolve 401, e é
+a causa mais comum.
+:::

@@ -31,6 +31,11 @@ class DocumentMeta(BaseModel):
     url: str | None = None
     #: Caminhos que incluem este documento — preenchido para snippets (§35, §36).
     used_by: list[str] = Field(default_factory=list)
+    #: Audiências declaradas no frontmatter (Adaptive Documentation §4, §11).
+    #: Lista vazia significa "serve a todo mundo", não "não serve a ninguém".
+    audiences: list[str] = Field(default_factory=list)
+    #: Versão declarada pela página, quando houver.
+    version: str | None = None
 
 
 class Chunk(BaseModel):
@@ -48,6 +53,8 @@ class Chunk(BaseModel):
     kind: Literal["page", "snippet"] = "page"
     url: str | None = None
     used_by: list[str] = Field(default_factory=list)
+    audiences: list[str] = Field(default_factory=list)
+    version: str | None = None
     #: Linguagem do bloco quando `content_type == "code"` (§22).
     code_language: str | None = None
     #: Vetor do chunk. Ausente quando não há serviço de embeddings configurado.

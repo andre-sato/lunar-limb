@@ -12,9 +12,14 @@
  */
 import Default from '@astrojs/starlight/components/Sidebar.astro';
 import ChatAssistant from './ChatAssistant.astro';
+import AudienceSwitcher from './adaptive/AudienceSwitcher.astro';
 import { serverFeatures } from '../config/deploy';
 ---
 
 <Default {...Astro.props}><slot /></Default>
 
 {serverFeatures.chat && <ChatAssistant variant="panel" />}
+
+{/* O seletor fica depois do chat: é preferência de leitura, consultada uma vez,
+    não uma ferramenta de uso contínuo. */}
+<AudienceSwitcher />

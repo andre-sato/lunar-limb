@@ -11,6 +11,8 @@ import { checkRateLimit, getOrCreateConversation } from '../../../lib/chat/store
 import { getTrustIndex } from '../../../lib/trust/load';
 import { recordSearchEvent } from '../../../lib/health/analytics';
 import { loadHealthConfig } from '../../../lib/health/config';
+import { contextFromCookie, mergeContext, normalizeContext, CONTEXT_COOKIE } from '../../../lib/adaptive/context';
+import { recordAudienceEvent } from '../../../lib/adaptive/analytics';
 
 export const prerender = false;
 
@@ -21,7 +23,7 @@ export const prerender = false;
  * checagem aqui é a segunda camada, não a primeira — uma rota que confia apenas
  * no middleware fica insegura no dia em que alguém mexe na tabela de rotas.
  */
-export const POST: APIRoute = async ({ request, locals }) => {
+export const POST: APIRoute = async ({ request, locals, cookies }) => {
 	const actor = requireAuthUser(locals);
 	if (!actor) return jsonResponse({ error: 'unauthorized' }, 401);
 
@@ -61,6 +63,15 @@ export const POST: APIRoute = async ({ request, locals }) => {
 	}
 
 	const user = { id: actor.id, role: actor.role, status: actor.status };
+
+	// Contexto de leitura (§10, §11): o que o cliente mandou no corpo, e o cookie
+	// como fallback. Tudo passa pela normalização — audiência é escolha do
+	// navegador de quem lê, e chega aqui como dado, nunca como permissão.
+	const readerContext = mergeContext(
+		normalizeContext(payload.context as Record<string, unknown> | undefined),
+		contextFromCookie(cookies.get(CONTEXT_COOKIE)?.value),
+		{ role: actor.role }
+	);
 	const conversation = getOrCreateConversation(conversationId, user);
 
 	// O idioma vem do cliente e é normalizado contra a lista de traduções
@@ -90,6 +101,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 			// mesma para todos; o gancho existe para o dia em que tiver, e para o
 			// filtro nunca acontecer depois da geração.
 			authorize: (_, candidate) => can(candidate, 'docs.read'),
+			readerContext,
 			trustFor: (documentPath) => {
 				const page = trust.byPath.get(documentPath);
 				return page ? { status: page.status, lastVerified: page.lastVerified } : undefined;
@@ -118,6 +130,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
 		}).catch(() => {
 			// Falha ao registrar métrica não pode derrubar a resposta de quem perguntou.
 		});
+
+		// Distribuição por audiência (§13): só contadores, nada que identifique.
+		await recordAudienceEvent(readerContext.audience, answer.empty).catch(() => {});
 
 		return jsonResponse({ ...answer, remaining: limit.remaining }, 200);
 	} catch (error) {

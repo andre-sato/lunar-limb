@@ -14,6 +14,7 @@ import Default from '@astrojs/starlight/components/Footer.astro';
 import FeedbackWidget from './FeedbackWidget.astro';
 import GlossaryTooltip from './glossary/GlossaryTooltip.astro';
 import TrustPanel from './trust/TrustPanel.astro';
+import Recommendations from './adaptive/Recommendations.astro';
 import { serverFeatures } from '../config/deploy';
 
 // A página inicial usa hero e não é um documento que se "leia até o fim";
@@ -23,6 +24,9 @@ const isSplash = Astro.locals.starlightRoute.entry.data.template === 'splash';
 
 {/* O que sustenta a página vem antes de perguntar se ela foi útil: a pessoa
     decide se acredita no texto, e só depois opina sobre ele. */}
+{/* Para onde ir depois vem antes do que sustenta a página: quem terminou de ler
+    já decidiu se acreditou, e agora quer saber o próximo passo. */}
+{!isSplash && <Recommendations />}
 {!isSplash && <TrustPanel />}
 {!isSplash && serverFeatures.feedback && <FeedbackWidget />}
 {/* Uma bolha por página, compartilhada por todos os termos destacados. */}

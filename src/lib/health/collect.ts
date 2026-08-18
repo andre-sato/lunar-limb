@@ -24,6 +24,7 @@ import { parseOpenApi } from '../api-explorer/model';
 import { aggregateFeedback, listFeedback, MIN_VOTES_FOR_ATTENTION } from '../feedback/store';
 import { loadHealthConfig } from './config';
 import { summarizeAnalytics } from './analytics';
+import { summarizeAudiences } from '../adaptive/analytics';
 import { computeDimensions, evaluateSlo, overallHealth, worstSloStatus, type HealthInputs } from './dimensions';
 import { detectGaps, type GapInputs } from './gaps';
 import type { HealthReport, LintFindingLike } from './types';
@@ -135,7 +136,13 @@ export interface HealthOptions {
 	testProfile?: 'quick' | 'standard';
 }
 
-export async function collectHealth(options: HealthOptions = {}): Promise<HealthReport & { analytics: Awaited<ReturnType<typeof summarizeAnalytics>>; backlogSource: ReturnType<typeof detectGaps> }> {
+export async function collectHealth(options: HealthOptions = {}): Promise<
+	HealthReport & {
+		analytics: Awaited<ReturnType<typeof summarizeAnalytics>>;
+		audiences: Awaited<ReturnType<typeof summarizeAudiences>>;
+		backlogSource: ReturnType<typeof detectGaps>;
+	}
+> {
 	const config = await loadHealthConfig();
 
 	// --- linter -----------------------------------------------------------
@@ -155,12 +162,15 @@ export async function collectHealth(options: HealthOptions = {}): Promise<Health
 	const lintSummary = summarizeWorkspace(results);
 
 	// --- as outras camadas, em paralelo -----------------------------------
-	const [trust, tests, api, feedbackEntries, analytics] = await Promise.all([
+	const [trust, tests, api, feedbackEntries, analytics, audiences] = await Promise.all([
 		getTrustIndex({ fresh: true }).catch(() => null),
 		runDocumentationTests({ profile: options.testProfile ?? 'standard' }).catch(() => null),
 		apiCoverage(bodies),
 		listFeedback().catch(() => []),
 		summarizeAnalytics(config.storeQuestions),
+		// Distribuição por audiência (§13 de Adaptive Documentation, última linha:
+		// "isso poderá alimentar o Documentation Health Center").
+		summarizeAudiences().catch(() => ({ total: 0, distribution: [] })),
 	]);
 
 	const feedback = aggregateFeedback(feedbackEntries);
@@ -250,6 +260,7 @@ export async function collectHealth(options: HealthOptions = {}): Promise<Health
 		gaps,
 		backlogSource: gaps,
 		analytics,
+		audiences,
 		totals: {
 			pages: files.length,
 			endpoints: api.endpoints,

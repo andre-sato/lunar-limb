@@ -43,6 +43,9 @@ class SearchFilters:
     repository: str | None = None
     language: str | None = None
     content_type: str | None = None
+    #: Contexto de leitura (Adaptive Documentation §11).
+    audience: str | None = None
+    version: str | None = None
 
     def matches(self, chunk: Chunk) -> bool:
         if self.source and not chunk.source.startswith(self.source):
@@ -52,6 +55,14 @@ class SearchFilters:
         if self.language and chunk.language != self.language:
             return False
         if self.content_type and chunk.content_type != self.content_type:
+            return False
+        # Audiência **não exclui** conteúdo sem audiência declarada: a maior parte
+        # do portal não declara nada, e tratar isso como "não é para você"
+        # esconderia quase tudo de quem informou o perfil. O filtro só descarta o
+        # que foi explicitamente escrito para outro público.
+        if self.audience and chunk.audiences and self.audience not in chunk.audiences:
+            return False
+        if self.version and chunk.version and chunk.version != self.version:
             return False
         return True
 
@@ -134,6 +145,8 @@ class JsonDocumentIndex:
             repository=_as_optional_str(filters.get("repository")),
             language=_as_optional_str(filters.get("language")),
             content_type=_as_optional_str(filters.get("content_type")),
+            audience=_as_optional_str(filters.get("audience")),
+            version=_as_optional_str(filters.get("version")),
         )
         keyword_weight = float(filters.get("keyword_weight", 0.5) or 0.5)
         min_score = float(filters.get("min_score", 0.0) or 0.0)
