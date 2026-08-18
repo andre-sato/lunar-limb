@@ -1,0 +1,56 @@
+---
+/**
+ * Aviso de ciclo de vida da versão (§17).
+ *
+ * Fica no topo do conteúdo, antes do título: quem chega numa versão obsoleta
+ * precisa saber disso antes de ler a primeira instrução, não depois.
+ *
+ * Sem versões declaradas em `versions.yml`, o componente não renderiza nada — o
+ * portal sem versionamento continua exatamente como era.
+ */
+import { loadRegistry } from '../../lib/versions/load';
+import { noticeFor, resolvePath } from '../../lib/versions/registry';
+
+const registry = loadRegistry();
+const resolved = resolvePath(Astro.url.pathname, registry);
+const notice = registry.versions.length > 0 ? noticeFor(resolved.version, registry, resolved.path) : null;
+---
+
+{notice && (
+	<aside class={`version-notice version-notice--${notice.kind}`} role="note">
+		<p>
+			{notice.message}
+			{notice.href && (
+				<Fragment>
+					{' '}
+					<a href={notice.href}>Ver na {notice.label}</a>.
+				</Fragment>
+			)}
+		</p>
+	</aside>
+)}
+
+<style>
+	.version-notice {
+		margin-block-end: 1.5rem;
+		padding: 0.7rem 0.9rem;
+		border-inline-start: 3px solid var(--sl-color-orange);
+		border-radius: 0.3rem;
+		background: var(--sl-color-orange-low);
+		font-size: var(--sl-text-sm);
+	}
+
+	.version-notice p {
+		margin: 0;
+	}
+
+	.version-notice--archived {
+		border-inline-start-color: var(--sl-color-gray-4);
+		background: var(--sl-color-gray-6);
+	}
+
+	.version-notice--draft {
+		border-inline-start-color: var(--sl-color-blue);
+		background: var(--sl-color-blue-low);
+	}
+</style>

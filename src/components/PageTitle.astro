@@ -2,6 +2,7 @@
 import AiShareDropdown from './AiShareDropdown.astro';
 import EditThisPage from './auth/EditThisPage.astro';
 import { serverFeatures } from '../config/deploy';
+import VersionNotice from './versions/VersionNotice.astro';
 // O `starlight-videos` também quer este ponto de override. Como o projeto já o
 // usa, ele é composto aqui em vez de disputado — é o que o próprio plugin pede
 // no aviso de build.
@@ -26,6 +27,10 @@ const editLabel =
 			? 'Editar esta página'
 			: 'Editar esta página';
 ---
+
+{/* O aviso vem antes do título: quem chega numa versão obsoleta precisa
+    saber disso antes de ler a primeira instrução. */}
+<VersionNotice />
 
 <div class="page-title-with-actions">
 	<div>
