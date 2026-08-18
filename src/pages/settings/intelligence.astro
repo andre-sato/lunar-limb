@@ -1,0 +1,14 @@
+---
+import SettingsLayout from '../../layouts/SettingsLayout.astro';
+import TwinPanel from '../../components/settings/TwinPanel';
+
+export const prerender = false;
+---
+
+<SettingsLayout
+	title="Intelligence"
+	description="Digital Twin: a relação entre produto, documentação e quem consulta."
+	active="intelligence"
+>
+	<TwinPanel client:load />
+</SettingsLayout>

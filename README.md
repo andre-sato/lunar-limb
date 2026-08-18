@@ -45,6 +45,7 @@ Arquivos Markdown e MDX dentro de `src/content/docs/` são publicados automatica
 | `npm run docs:lint` | Analisa a documentação e calcula o Quality Score. |
 | `npm run docs:test` | Testes de documentação: links, âncoras, referências e exemplos de API. |
 | `npm run docs:health` | Health Center na linha de comando: dimensões, SLOs e backlog. |
+| `npm run twin` | Digital Twin: cobertura, não documentados, obsoletos, impacto. |
 | `npm run docs:asyncapi` | Gera páginas de referência a partir de especificações AsyncAPI. |
 | `npm run user:create` | Cria um usuário do portal (ver *Usuários e controle de acesso*). |
 
@@ -254,6 +255,20 @@ As audiências (`developer`, `support`, `product`, `operations`, `ai-agent`) sã
 Quem lê escolhe o perfil na barra lateral; nada é inferido por comportamento, porque adivinhar o papel de alguém e reorganizar a documentação sobre o palpite erra em silêncio. `?audience=support` no link tem precedência sobre o cookie, para "veja isto na visão de suporte" funcionar para quem já tem preferência salva. Sem contexto, a documentação é a de sempre.
 
 No fim da página, **Você também pode precisar de**, montada do Content Graph, das tags e do contexto — cada item dizendo por que apareceu, e restrita ao mesmo idioma. No **assistente**, o contexto entra como enquadramento (recorte e tom), nunca como permissão: a autorização continua acontecendo antes, e nenhuma informação necessária é omitida por parecer de outro perfil. No **MCP**, `search_docs` aceita `audience` e `version`, descarta só o que foi escrito explicitamente para outro público e **recusa** audiência desconhecida em vez de ignorá-la. As analytics registram a distribuição por perfil — contadores, nada mais — e alimentam o Health Center. Guia em [/guides/documentacao-adaptativa/](src/content/docs/guides/documentacao-adaptativa.mdx).
+
+## Digital Twin
+
+O Content Graph responde "quem usa o quê" dentro da documentação. O Twin sobe um nível e responde sobre o **produto**: o que está documentado, o que a documentação descreve e não existe mais, e o que quebra se um endpoint mudar.
+
+**Ele não é fonte de verdade.** A fonte continua sendo o Git — Markdown, OpenAPI, código. O Twin é derivado a cada análise e não persiste nada; se discordar do repositório, quem está errado é o grafo.
+
+O grafo de código desta base é **exato**, não heurístico: a Astro mapeia arquivo para rota de forma determinística, então `src/pages/api/auth/me.ts` que exporta `GET` implementa `GET /api/auth/me`. Cada relação registra se foi `declared` (alguém escreveu a ligação, como um `<TryIt/>`) ou `derived` (convenção) — as duas erram de formas diferentes, e misturá-las impediria julgar o quanto confiar no relatório.
+
+Duas perguntas simétricas com severidades diferentes: **implementação sem documentação** é dívida certa; **documentação sem implementação** é *potencialmente* obsoleta, porque a página pode descrever comportamento histórico, versão anterior, conceito ou algo planejado — um veredito automático aqui viraria alarme falso.
+
+Medir o portal expôs dois defeitos de modelagem que só aparecem com dados reais. `GET /auth/me` da especificação e `GET /api/auth/me` do código eram **dois** endpoints, ambos "não documentados", até o prefixo do servidor entrar na identidade. E as 45 rotas internas do editor derrubavam a cobertura para **6%** — um número que qualquer equipe aprende a ignorar; elas continuam no grafo e saíram da conta via `twin.yml`, com a exceção de que endpoint declarado numa especificação é público por definição.
+
+`npm run twin -- coverage --min 90` serve ao CI (sai com 1 abaixo do mínimo, 0 quando não há o que medir), e a cobertura entra no corpo do PR. **Settings → Intelligence** traz tudo em tabela — um grafo de centenas de nós é bonito na captura de tela e inútil para achar o endpoint que ninguém documentou. Guia em [/guides/digital-twin/](src/content/docs/guides/digital-twin.mdx).
 
 ## Feedback de página
 

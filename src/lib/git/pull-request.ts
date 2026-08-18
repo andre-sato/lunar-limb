@@ -90,6 +90,8 @@ export interface PullRequestInput {
 	impact?: ImpactReport;
 	/** Resumo da Documentation Test Suite, quando ela rodou. */
 	tests?: { total: number; passed: number; failed: number; skipped: number };
+	/** Cobertura documental do Digital Twin. */
+	coverage?: { endpoints: number; minimum: number; passed: boolean };
 }
 
 /**
@@ -118,6 +120,14 @@ export function composePullRequestBody(input: PullRequestInput): string {
 		// que decide se vale abrir os arquivos.
 		parts.push(
 			`**Testes de documentação:** ${failed === 0 ? '✅' : '❌'} ${passed} passaram, ${failed} falharam, ${skipped} pulados`,
+			''
+		);
+	}
+
+	if (input.coverage) {
+		const { endpoints, minimum, passed } = input.coverage;
+		parts.push(
+			`**Cobertura documental:** ${passed ? '✅' : '🔴'} ${endpoints}% dos endpoints (mínimo ${minimum}%)`,
 			''
 		);
 	}

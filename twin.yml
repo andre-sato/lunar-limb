@@ -1,0 +1,28 @@
+# Documentation Digital Twin — configuração.
+#
+# O Twin é derivado das fontes de verdade e não guarda verdade própria. Este
+# arquivo não descreve o produto: ele só diz **o que entra na conta da cobertura**.
+
+# Rotas internas do próprio portal.
+#
+# Elas existem, são implementadas e aparecem no grafo — mas não são API de
+# produto, e cobrá-las na cobertura documental produziria um número que a equipe
+# aprenderia a ignorar. A primeira medição do portal deu 6% justamente por isso:
+# 45 rotas internas do editor e do painel administrativo contra 5 endpoints
+# públicos.
+#
+# O critério é o de publicação: um endpoint declarado numa especificação OpenAPI
+# é público por definição — declarar o contrato **é** publicá-lo — e entra na
+# cobertura mesmo que o caminho case com um padrão abaixo.
+internal:
+  - /api/editor/
+  - /api/admin/
+  - /api/chat/
+  - /api/explorer/
+  - /api/integrations/
+
+coverage:
+  # Mínimo de cobertura de endpoints para o `npm run twin -- coverage --min`.
+  # É a cobertura de endpoints, não a média das quatro fatias: a média dilui
+  # justamente o número que este limite existe para proteger.
+  minimum: 90

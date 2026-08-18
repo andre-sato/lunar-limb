@@ -96,6 +96,13 @@
 
 /* Nota explicativa no topo de um painel — o que o número quer dizer antes de a
    pessoa tirar a própria conclusão dele. */
+.twin-answer {
+	margin: 8px 0 0;
+	padding-left: 18px;
+	font-size: 0.84rem;
+	line-height: 1.7;
+}
+
 /* Health Center */
 .health-basis {
 	margin: 12px 0 0;

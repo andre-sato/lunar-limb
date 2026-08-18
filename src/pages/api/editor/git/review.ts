@@ -16,6 +16,8 @@ import { getContentFs } from '../../../../lib/editor/content-fs';
 import { recordAudit } from '../../../../lib/auth/audit';
 import { runDocumentationTests } from '../../../../lib/doctest/runner';
 import { analyzeImpactOf } from '../../../../lib/impact/engine';
+import { digitalTwin } from '../../../../lib/twin/service';
+import { loadTwinConfig } from '../../../../lib/twin/load';
 
 export const prerender = false;
 
@@ -129,13 +131,51 @@ async function runTests(paths: readonly string[]) {
 	}
 }
 
+/**
+ * Cobertura documental do Digital Twin (§21 do Digital Twin).
+ *
+ * O limite olha a cobertura de **endpoints**, não a média das quatro fatias: a
+ * média dilui justamente o número que este portão existe para proteger, e um
+ * portal pode passar no agregado com metade dos endpoints sem página.
+ */
+async function coverageGate() {
+	try {
+		const [coverage, config] = await Promise.all([digitalTwin.getCoverage(), loadTwinConfig()]);
+		const current = coverage.endpoints.percentage;
+
+		return {
+			endpoints: current,
+			minimum: config.minimumCoverage,
+			// Sem endpoint para medir não há o que reprovar. Tratar "nada a medir"
+			// como violação bloquearia PRs de portais que ainda não têm API.
+			passed: current === null || current >= config.minimumCoverage,
+			undocumented: coverage.endpoints.total - coverage.endpoints.documented,
+			overall: coverage.overall,
+		};
+	} catch (error) {
+		return {
+			endpoints: null,
+			minimum: 0,
+			passed: true,
+			undocumented: 0,
+			overall: null,
+			error: error instanceof Error ? error.message : 'Falha ao medir a cobertura.',
+		};
+	}
+}
+
 export const GET: APIRoute = async ({ url }) => {
 	try {
 		const base = url.searchParams.get('base') || (await detectDefaultBranch());
 		const head = await currentBranch();
 
 		const [diff, paths, remote] = await Promise.all([branchDiff(base), changedPaths(base), getRemote()]);
-		const [gate, impact, tests] = await Promise.all([runGate(paths), analyzeImpactOf({ base }), runTests(paths)]);
+		const [gate, impact, tests, coverage] = await Promise.all([
+			runGate(paths),
+			analyzeImpactOf({ base }),
+			runTests(paths),
+			coverageGate(),
+		]);
 
 		return json({
 			base,
@@ -144,6 +184,7 @@ export const GET: APIRoute = async ({ url }) => {
 			gate,
 			impact,
 			tests,
+			coverage,
 			remote: remote ? { url: remote.url, owner: remote.owner, repo: remote.repo } : null,
 			// A interface precisa saber se o botão cria o PR ou abre o provedor.
 			canCreatePullRequest: Boolean(remote && providerToken()),
@@ -171,7 +212,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
 			return json({ error: 'Não há alterações entre as duas branches.' }, 400);
 		}
 
-		const [gate, impact, tests] = await Promise.all([runGate(paths), analyzeImpactOf({ base }), runTests(paths)]);
+		const [gate, impact, tests, coverage] = await Promise.all([
+			runGate(paths),
+			analyzeImpactOf({ base }),
+			runTests(paths),
+			coverageGate(),
+		]);
 
 		const input = {
 			title,
@@ -183,6 +229,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 			changedFiles: paths,
 			impact,
 			tests: { total: tests.total, passed: tests.passed, failed: tests.failed, skipped: tests.skipped },
+			coverage: coverage.endpoints === null ? undefined : { endpoints: coverage.endpoints, minimum: coverage.minimum, passed: coverage.passed },
 		};
 
 		const result = await createPullRequest(input);
@@ -202,7 +249,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 			},
 		});
 
-		return json({ ...result, gate, impact, tests, body: composePullRequestBody(input) });
+		return json({ ...result, gate, impact, tests, coverage, body: composePullRequestBody(input) });
 	} catch (error) {
 		return json({ error: error instanceof Error ? error.message : 'Falha ao criar o pull request.' }, 500);
 	}
