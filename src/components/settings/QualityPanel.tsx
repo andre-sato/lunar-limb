@@ -15,6 +15,7 @@ interface PageRow {
 	gate: 'pass' | 'warning' | 'fail';
 	counts: { error: number; warning: number; suggestion: number; info: number };
 	categories: Record<string, number>;
+	trust: { status: string; score: number } | null;
 }
 
 interface Report {
@@ -29,8 +30,33 @@ interface Report {
 		gate: 'pass' | 'warning' | 'fail';
 	};
 	minimumScore: number;
+	/**
+	 * Confiança apresentada **ao lado** da nota editorial (§10 de Trust &
+	 * Provenance), como o preparo para IA já era. A nota do linter continua sendo
+	 * exatamente o que era.
+	 */
+	trust: {
+		summary: {
+			documented: number;
+			verified: number;
+			stale: number;
+			unverified: number;
+			invalid: number;
+			averageScore: number;
+			worst: Array<{ path: string; score: number; status: string }>;
+		};
+		freshnessDays: number;
+		dimension: number;
+	};
 	pages: PageRow[];
 }
+
+const TRUST_LABEL: Record<string, string> = {
+	verified: 'Verificado',
+	stale: 'Vencido',
+	unverified: 'Sem verificação',
+	invalid: 'Evidência inválida',
+};
 
 const CATEGORY_LABELS: Record<string, string> = {
 	grammar: 'Gramática',
@@ -114,6 +140,71 @@ export default function QualityPanel() {
 					</p>
 				</div>
 			</div>
+
+			<section className="panel">
+				<h2>Confiança e proveniência</h2>
+				<p className="panel-hint">
+					De onde a informação vem, quando foi verificada e o que a sustenta. Prazo de validade de{' '}
+					{report.trust.freshnessDays} dias. Esta nota é <strong>separada</strong> da nota editorial: uma página
+					bem escrita sem evidência nenhuma não é uma página confiável, e o contrário também vale.
+				</p>
+				<div className="stat-grid">
+					<div className="stat-card">
+						<p className="stat-card-label">Trust Score médio</p>
+						<p className="stat-card-value">{report.trust.dimension.toFixed(1)}</p>
+						<p className="stat-card-hint">{report.trust.summary.averageScore}/100 nas páginas com proveniência</p>
+					</div>
+					<div className="stat-card">
+						<p className="stat-card-label">Com proveniência</p>
+						<p className="stat-card-value">{report.trust.summary.documented}</p>
+						<p className="stat-card-hint">de {summary.analyzed} páginas</p>
+					</div>
+					<div className="stat-card">
+						<p className="stat-card-label">Verificação vencida</p>
+						<p
+							className="stat-card-value"
+							style={{ color: report.trust.summary.stale > 0 ? 'var(--sl-color-orange)' : undefined }}
+						>
+							{report.trust.summary.stale}
+						</p>
+					</div>
+					<div className="stat-card">
+						<p className="stat-card-label">Evidência inválida</p>
+						<p
+							className="stat-card-value"
+							style={{ color: report.trust.summary.invalid > 0 ? 'var(--sl-color-red)' : undefined }}
+						>
+							{report.trust.summary.invalid}
+						</p>
+						<p className="stat-card-hint">a fonte citada não confere</p>
+					</div>
+				</div>
+
+				{report.trust.summary.worst.length > 0 && (
+					<div className="data-table-wrap">
+						<table className="data-table">
+							<thead>
+								<tr>
+									<th>Página</th>
+									<th style={{ width: 160 }}>Estado</th>
+									<th style={{ textAlign: 'right', width: 90 }}>Trust</th>
+								</tr>
+							</thead>
+							<tbody>
+								{report.trust.summary.worst.map((row) => (
+									<tr key={row.path}>
+										<td>
+											<code>{row.path}</code>
+										</td>
+										<td>{TRUST_LABEL[row.status] ?? row.status}</td>
+										<td style={{ textAlign: 'right' }}>{row.score}</td>
+									</tr>
+								))}
+							</tbody>
+						</table>
+					</div>
+				)}
+			</section>
 
 			<section className="panel">
 				<h2>Média por dimensão</h2>

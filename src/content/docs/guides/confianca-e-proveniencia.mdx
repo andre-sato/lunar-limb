@@ -1,0 +1,172 @@
+---
+title: Confiança e proveniência
+description: Como declarar de onde uma informação veio, como o portal verifica a evidência e o que o selo "verificado" quer dizer — e o que ele não quer dizer.
+sidebar:
+  order: 10
+tags: [guia, qualidade, portal]
+owner: Time de Documentação
+---
+
+Uma página pode afirmar "chaves de API expiram em 90 dias" sem que exista, em
+lugar nenhum, o registro de **onde isso veio**, **quem confirmou** e **quando**.
+Enquanto for verdade, ninguém nota. Quando deixar de ser, ninguém descobre.
+
+O princípio desta camada:
+
+**Toda afirmação importante da documentação deveria ter evidência.**
+
+## O que "verificado" quer dizer
+
+Vale começar pelo limite, porque é o que impede o selo de virar conforto falso.
+
+**Verificado significa que a evidência citada existe e confere onde é possível
+comparar** — o endpoint citado existe na especificação, o arquivo e a linha
+citados existem no código, o id de teste existe na suíte.
+
+**Não significa que a frase é verdadeira.** "Chaves expiram em 90 dias" com
+evidência em `src/lib/auth/session.ts:42` fica verificada porque o arquivo e a
+linha existem, não porque alguém provou os 90 dias. O selo dá endereço à
+afirmação; a responsabilidade pelo conteúdo continua com quem escreveu — e é por
+isso que a data e o nome de quem confirmou fazem parte da evidência.
+
+## Declarando proveniência
+
+Duas granularidades. **A página inteira**, pelo frontmatter:
+
+```yaml
+---
+title: Autenticação
+owner: Time de Plataforma
+provenance:
+  - source: portal-api.yaml#/components/securitySchemes
+    verifiedAt: 2026-08-18
+    verifiedBy: Time de Plataforma
+---
+```
+
+E **uma afirmação específica**, por comentário imediatamente antes do parágrafo:
+
+```markdown
+<!-- provenance:
+source: src/lib/auth/session.ts:42
+verifiedAt: 2026-08-18
+verifiedBy: Time de Plataforma
+-->
+
+A sessão expira depois de 30 dias sem uso.
+```
+
+:::caution[Em `.mdx` a forma é outra]
+Markdown trata `<!-- ... -->` como comentário; **MDX não**. Ele tenta ler aquilo
+como JSX e o build falha. Em arquivos `.mdx`, use a forma de comentário JavaScript:
+
+```mdx
+{/* provenance:
+source: DOC-LINK-001
+verifiedAt: 2026-08-18
+*/}
+```
+
+As duas formas são aceitas pelo leitor; o que muda é o que cada compilador
+aceita.
+:::
+
+Duas chaves `source` na mesma anotação declaram duas evidências para a mesma
+afirmação — não é preciso sintaxe de lista.
+
+O `owner` **não** é evidência. Dizer quem responde pela página é informação de
+contato; tratá-lo como afirmação sem data faria toda página com responsável
+declarado aparecer como "não verificada", inclusive as que têm boa evidência.
+
+## Tipos de fonte
+
+O tipo é deduzido pela forma da referência, e pode ser declarado com prefixo
+quando a dedução erraria:
+
+| Fonte | Como escrever | O que é conferido |
+| --- | --- | --- |
+| OpenAPI | `portal-api.yaml#/paths/~1auth~1me/get` | o ponteiro existe na especificação |
+| AsyncAPI | `eventos.yaml#/channels/...` | idem |
+| Código | `src/lib/auth/session.ts:42` | o arquivo existe e tem aquela linha |
+| Teste | `DOC-LINK-001` | o id existe na suíte ou em `trust.yml` |
+| Manual | `confirmado pelo time de Plataforma` | nada automático — o que vale é a data |
+| Gerado | `gerado de portal-api.yaml` | a fonte existe |
+
+O escape do JSON Pointer é o da RFC 6901: `~1` é `/`. Sem isso, todo ponteiro de
+caminho de API seria declarado inexistente.
+
+## Os quatro estados
+
+| | Estado | Quando |
+| --- | --- | --- |
+| ✓ | **Verificado** | a evidência confere e a confirmação está dentro do prazo |
+| ⚠ | **Vencido** | a evidência confere, mas a última confirmação passou do prazo |
+| · | **Não verificado** | declarado e nunca confirmado, ou sem data |
+| ✗ | **Evidência inválida** | a evidência **não** confere — o ponteiro citado não existe |
+
+Duas regras que decidem casos reais:
+
+**Evidência inválida com data de ontem continua inválida.** A data recente não
+conserta nada; ela só documenta que a conferência de ontem não olhou o que devia.
+
+**Evidência que confere mas nunca foi confirmada não é "verificada".** Ninguém
+assinou embaixo — e um selo emitido pelo próprio texto que ele deveria auditar
+não vale nada.
+
+## Prazo de validade
+
+Configurado em `trust.yml`, padrão de 180 dias:
+
+```yaml
+freshness:
+  default: 180d
+owners:
+  api-reference/: Time de Plataforma
+```
+
+Seis meses é o que uma equipe consegue honrar. Prazo curto transforma o portal
+num mar de avisos amarelos que ninguém lê; prazo longo deixa a página envelhecer
+exibindo selo de verificada, o que é pior do que não ter selo.
+
+Uma evidência pode declarar prazo próprio com `freshnessDays`, para o que muda
+mais rápido que o resto.
+
+## Trust Score
+
+Quatro componentes, de 0 a 100: **validade da fonte** (as evidências conferem),
+**cobertura por teste** (quantas afirmações têm teste como evidência), **frescor**
+(quão recentes são as confirmações) e **responsável** (há quem responder).
+
+Página sem afirmação nenhuma recebe **zero**, e isso é a verdade em vez de
+descuido: dar nota cheia à ausência de evidência premiaria exatamente o que esta
+camada existe para corrigir.
+
+O frescor degrada aos poucos, não em penhasco — uma página não passa de excelente
+a péssima entre o dia 179 e o 181.
+
+O Trust aparece **ao lado** do Quality Score, em Settings → Quality, e não dentro
+dele. A nota editorial continua sendo exatamente o que era: misturar as duas faria
+uma página impecavelmente escrita e sem evidência nenhuma parecer pior do que é, e
+uma malescrita com boa proveniência parecer melhor.
+
+## No assistente
+
+A confiança **ajusta** a relevância na busca, sem substituí-la: entre dois trechos
+que respondem igualmente bem, o verificado sobe. Um trecho verificado que não
+responde à pergunta continua não respondendo.
+
+Conteúdo com verificação vencida **não é escondido** — ele é a melhor informação
+que o portal tem sobre o assunto, e omiti-lo faria o assistente dizer "não
+encontrei" quando encontrou. A resposta sai com aviso na frente, não no rodapé:
+quem lê um parágrafo já formou opinião antes de chegar ao fim.
+
+## No MCP
+
+A ferramenta `get_document` devolve um campo `trust` junto do conteúdo, para o
+agente poder preferir a página verificada e avisar quando usou uma vencida.
+
+Ele vem com `checked: "declaracao"`, e isso é deliberado: o leitor do MCP é
+Python e **não** resolve as evidências — ele lê o que a página declara e confere a
+data. Reimplementar a resolução do outro lado criaria uma segunda verdade que
+divergiria da primeira na primeira mudança. Por isso o MCP nunca reporta
+`invalid`: afirmar que uma evidência não confere exige tê-la conferido.

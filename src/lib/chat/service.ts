@@ -20,6 +20,8 @@ import { detectPii, detectSecrets, redactSecrets } from './sanitize';
 import { buildPrompt, NO_CONTEXT_ANSWER, NOT_ENOUGH_CONTEXT_ANSWER } from './prompt';
 import { retrieveDocumentation, toSourceReferences } from './retrieval';
 import { excerptFrom, canUseChat, normalizeQuery, ChatError, MAX_QUERY_CHARS } from './search';
+import { rankByTrust, trustNotice, type TrustLookup } from './trust';
+import type { VerificationStatus } from '../trust/types';
 import { summarize } from './summary';
 import type { ChatModel, ChatUser, Conversation, Excerpt, RetrievedChunk, SourceReference } from './types';
 
@@ -38,6 +40,11 @@ export interface AssistantAnswer {
 	messageId: string;
 	/** Preenchido quando um guardrail interveio. */
 	safety?: { filtered: boolean; reason?: string };
+	/**
+	 * Estado de verificação das fontes usadas (§11 de Trust & Provenance).
+	 * Presente só quando há o que avisar.
+	 */
+	trust?: { status: VerificationStatus; message: string };
 }
 
 export interface AssistantOptions {
@@ -49,6 +56,12 @@ export interface AssistantOptions {
 	excerptChars?: number;
 	/** Filtro de autorização aplicado **antes** do contexto ir ao modelo (§11). */
 	authorize?: (chunk: RetrievedChunk, user: ChatUser) => boolean;
+	/**
+	 * Estado de verificação por página, da camada de Trust & Provenance. Injetável
+	 * para o assistente não passar a depender de disco — e para o teste poder
+	 * descrever um portal com conteúdo vencido sem criar um.
+	 */
+	trustFor?: TrustLookup;
 	onEvent?: (event: { event: string; userId: string; detail?: string }) => void | Promise<void>;
 }
 
@@ -195,11 +208,39 @@ export function createAssistant(options: AssistantOptions = {}) {
 			});
 		}
 
-		const excerpts = chunks
+		// --- confiança reordena, sem esconder nada ---------------------------
+		// Conteúdo com verificação vencida continua sendo a melhor informação que o
+		// portal tem sobre o assunto; omiti-lo faria o assistente dizer "não
+		// encontrei" quando encontrou. Ele desce na ordem e a resposta sai com aviso.
+		const ranked = rankByTrust(chunks, options.trustFor);
+
+		const excerpts = ranked
 			.map((chunk) => excerptFrom(chunk, options.excerptChars ?? 700))
 			.filter((excerpt): excerpt is Excerpt => excerpt !== null);
-		const sources = toSourceReferences(chunks);
-		const confidence = confidenceFrom(chunks);
+		const sources = toSourceReferences(ranked);
+		const confidence = confidenceFrom(ranked);
+		const notice = trustNotice(
+			ranked.map((chunk) => chunk.path),
+			options.trustFor
+		);
+
+		/**
+		 * O aviso de confiança entra **na frente** da resposta, não no fim.
+		 *
+		 * Quem lê um parágrafo já formou opinião antes de chegar ao rodapé; um aviso
+		 * de "isto não foi verificado recentemente" depois do texto chega tarde para
+		 * mudar o que a pessoa vai fazer com a informação.
+		 */
+		const withTrust = (answer: AssistantAnswer): AssistantAnswer =>
+			notice.message && notice.status
+				? {
+						...answer,
+						message: `${notice.message}
+
+${answer.message}`,
+						trust: { status: notice.status, message: notice.message },
+					}
+				: answer;
 
 		if (excerpts.length === 0) {
 			appendTurn(conversation, trimmed, NO_CONTEXT_ANSWER, [], []);
@@ -219,7 +260,7 @@ export function createAssistant(options: AssistantOptions = {}) {
 		if (!generates) {
 			const summary = summarize(excerpts);
 			appendTurn(conversation, trimmed, summary, excerpts, sources);
-			return {
+			return withTrust({
 				message: summary,
 				excerpts,
 				sources,
@@ -228,7 +269,7 @@ export function createAssistant(options: AssistantOptions = {}) {
 				empty: false,
 				conversationId: conversation.id,
 				messageId: randomUUID(),
-			};
+			});
 		}
 
 		// --- confiança baixa: não vale gerar (§8) ----------------------------
@@ -237,7 +278,7 @@ export function createAssistant(options: AssistantOptions = {}) {
 		if (confidence === 'low') {
 			const conservative = `${NOT_ENOUGH_CONTEXT_ANSWER}\n\n${summarize(excerpts)}`;
 			appendTurn(conversation, trimmed, conservative, excerpts, sources);
-			return {
+			return withTrust({
 				message: conservative,
 				excerpts,
 				sources,
@@ -246,7 +287,7 @@ export function createAssistant(options: AssistantOptions = {}) {
 				empty: false,
 				conversationId: conversation.id,
 				messageId: randomUUID(),
-			};
+			});
 		}
 
 		// --- modelo ------------------------------------------------------------
@@ -279,7 +320,7 @@ export function createAssistant(options: AssistantOptions = {}) {
 			// continuam sendo uma resposta útil.
 			const fallback = summarize(excerpts);
 			appendTurn(conversation, trimmed, fallback, excerpts, sources);
-			return {
+			return withTrust({
 				message: fallback,
 				excerpts,
 				sources,
@@ -288,7 +329,7 @@ export function createAssistant(options: AssistantOptions = {}) {
 				empty: false,
 				conversationId: conversation.id,
 				messageId: randomUUID(),
-			};
+			});
 		}
 
 		// --- guardrail de saída e citações (§12) -----------------------------
@@ -331,7 +372,7 @@ export function createAssistant(options: AssistantOptions = {}) {
 
 		appendTurn(conversation, trimmed, text, excerpts, sources);
 
-		return {
+		return withTrust({
 			message: text,
 			excerpts,
 			sources,
@@ -341,7 +382,7 @@ export function createAssistant(options: AssistantOptions = {}) {
 			conversationId: conversation.id,
 			messageId: randomUUID(),
 			safety: output.redacted > 0 ? { filtered: true, reason: 'credenciais removidas' } : undefined,
-		};
+		});
 	}
 
 	return { ask, generates };

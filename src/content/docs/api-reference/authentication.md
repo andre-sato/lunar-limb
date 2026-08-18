@@ -4,7 +4,14 @@ description: Envie credenciais de forma segura em todas as requisições.
 sidebar:
   order: 2
 tags: [api, seguranca, autenticacao]
+owner: Time de Plataforma
 ---
+
+<!-- provenance:
+source: portal-api.yaml#/components/securitySchemes
+verifiedAt: 2026-08-18
+verifiedBy: Time de Plataforma
+-->
 
 Use o cabeçalho `Authorization` para enviar um token de acesso em chamadas à API.
 

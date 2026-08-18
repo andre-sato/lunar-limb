@@ -210,6 +210,22 @@ O diff de API compara a especificação **interpretada**, não o texto: reordena
 
 O Impact Score (0–100) traz **cada fator com os pontos e o motivo** — um número que ninguém consegue conferir é o tipo de métrica que a equipe ignora na terceira vez que discorda da intuição. Sem consequência apurada o score é zero, inclusive o fator de tamanho: um PR que só mexe em `astro.config.mjs` não tem nada a revisar na documentação. No checklist entra só o que se consegue conferir — uma página, uma operação, um termo; "revisar a documentação" não é item de checklist. Guia em [/guides/analise-de-impacto/](src/content/docs/guides/analise-de-impacto.mdx).
 
+## Confiança e proveniência
+
+Toda afirmação importante da documentação deveria ter evidência. Uma página pode dizer "chaves de API expiram em 90 dias" sem que exista em lugar nenhum o registro de onde isso veio, quem confirmou e quando — enquanto for verdade ninguém nota, e quando deixar de ser ninguém descobre.
+
+**O limite do selo, primeiro, porque é o que o impede de virar conforto falso.** "Verificado" quer dizer que a evidência citada **existe e confere** onde é possível comparar: o endpoint existe na especificação, o arquivo e a linha existem no código, o id de teste existe na suíte. **Não** quer dizer que a frase é verdadeira.
+
+A proveniência é declarada no próprio conteúdo, versionada no Git — em banco separado ela divergiria do conteúdo no primeiro `git revert`, e divergindo deixa de ser evidência. Duas granularidades: bloco `provenance:` no frontmatter para a página, comentário antes do parágrafo para a afirmação. Em `.md` o comentário é `<!-- -->`; em `.mdx` é `{/* */}`, porque MDX tenta ler comentário HTML como JSX e o build falha.
+
+Quatro estados. **Verificado** (a evidência confere e a confirmação está no prazo), **vencido** (confere, confirmação passou do prazo), **não verificado** (declarado sem data, ou nunca confirmado), **evidência inválida** (não confere). Duas regras que decidem casos reais: evidência inválida com data de ontem continua inválida — a data só documenta que a conferência não olhou o que devia; e evidência que confere mas nunca foi confirmada não é "verificada", porque ninguém assinou embaixo.
+
+O prazo padrão fica em `trust.yml`: 180 dias, que é o que uma equipe consegue honrar. Prazo curto transforma o portal num mar de avisos amarelos que ninguém lê; prazo longo deixa a página envelhecer exibindo selo de verificada.
+
+O **Trust Score** (0–100) combina validade da fonte, cobertura por teste, frescor e responsável. Página sem afirmação recebe zero — dar nota cheia à ausência de evidência premiaria o que a camada existe para corrigir. Ele aparece **ao lado** do Quality Score em Settings → Quality, nunca dentro: misturar os dois faria uma página impecavelmente escrita e sem evidência parecer pior do que é.
+
+No **assistente**, a confiança ajusta a relevância sem substituí-la, e conteúdo vencido não é escondido — é a melhor informação que o portal tem, e a resposta sai com o aviso na frente, não no rodapé. No **MCP**, `get_document` devolve `trust` com `checked: "declaracao"`: o leitor Python lê o que a página declara e confere a data, mas não resolve evidência, e por isso nunca reporta `invalid`. Guia em [/guides/confianca-e-proveniencia/](src/content/docs/guides/confianca-e-proveniencia.mdx).
+
 ## Feedback de página
 
 No fim de cada página de documentação há um widget **"Esta página foi útil?"** com sim/não e um campo opcional de comentário. A Starlight não traz um componente de feedback nem plugin oficial — o caminho que ela indica é sobrescrever `Footer`, que é o que o projeto faz. As alternativas de mercado são SaaS de terceiros; aqui o retorno dos seus leitores fica no próprio projeto.

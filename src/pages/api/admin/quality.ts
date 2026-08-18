@@ -6,6 +6,8 @@ import { loadConfig } from '../../../lib/linter/config';
 import { CONTENT_ROOTS } from '../../../lib/editor/content-fs';
 import { jsonResponse, requireAuthUser } from '../../../lib/auth/api';
 import type { LintResult } from '../../../lib/linter/types';
+import { getTrustIndex } from '../../../lib/trust/load';
+import { trustDimension } from '../../../lib/trust/score';
 
 export const prerender = false;
 
@@ -48,19 +50,40 @@ export const GET: APIRoute = async ({ locals }) => {
 
 		const summary = summarizeWorkspace(results);
 
+		// Trust entra **ao lado** da nota editorial, não dentro dela (§10). Misturar
+		// as duas faria uma página impecavelmente escrita e sem evidência nenhuma
+		// parecer pior do que é, e o contrário também.
+		const trust = await getTrustIndex({ fresh: true });
+
 		return jsonResponse(
 			{
 				summary,
 				minimumScore: config.qualityGate.minimumScore,
+				trust: {
+					summary: trust.summary,
+					freshnessDays: trust.config.freshnessDays,
+					// A dimensão na escala de 0 a 10, para ficar lado a lado com as outras.
+					dimension: trustDimension({
+						value: trust.summary.averageScore,
+						sourceValidity: 0,
+						testCoverage: 0,
+						freshness: 0,
+						ownership: 0,
+					}),
+				},
 				pages: results
-					.map((result) => ({
-						path: result.path,
-						score: result.score,
-						band: result.band,
-						gate: result.gate,
-						counts: result.counts,
-						categories: result.categories,
-					}))
+					.map((result) => {
+						const page = trust.byPath.get(result.path);
+						return {
+							path: result.path,
+							score: result.score,
+							band: result.band,
+							gate: result.gate,
+							counts: result.counts,
+							categories: result.categories,
+							trust: page && page.claims.length > 0 ? { status: page.status, score: page.score.value } : null,
+						};
+					})
 					.sort((a, b) => a.score - b.score),
 			},
 			200

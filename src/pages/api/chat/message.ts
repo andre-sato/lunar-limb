@@ -8,6 +8,7 @@ import { can } from '../../../lib/auth/permissions';
 import { normalizeLocale } from '../../../lib/chat/retrieval';
 import { ChatError } from '../../../lib/chat/search';
 import { checkRateLimit, getOrCreateConversation } from '../../../lib/chat/store';
+import { getTrustIndex } from '../../../lib/trust/load';
 
 export const prerender = false;
 
@@ -73,6 +74,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
 			? anthropicModel({ apiKey: providerApiKey(), model: config.model, effort: 'low' })
 			: undefined;
 
+		// O índice de confiança é lido uma vez e consultado em memória: ele reordena
+		// os trechos e decide se a resposta sai com aviso de verificação vencida.
+		const trust = await getTrustIndex();
+
 		const assistant = createAssistant({
 			model,
 			maxExcerpts: config.maxExcerpts,
@@ -83,6 +88,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
 			// mesma para todos; o gancho existe para o dia em que tiver, e para o
 			// filtro nunca acontecer depois da geração.
 			authorize: (_, candidate) => can(candidate, 'docs.read'),
+			trustFor: (documentPath) => {
+				const page = trust.byPath.get(documentPath);
+				return page ? { status: page.status, lastVerified: page.lastVerified } : undefined;
+			},
 			onEvent: async (event) => {
 				await recordAudit({
 					actorId: event.userId,

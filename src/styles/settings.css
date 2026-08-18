@@ -94,6 +94,16 @@
 	margin: 0;
 }
 
+/* Nota explicativa no topo de um painel — o que o número quer dizer antes de a
+   pessoa tirar a própria conclusão dele. */
+.panel-hint {
+	font-size: 0.82rem;
+	line-height: 1.6;
+	color: var(--sl-color-gray-2);
+	margin: 0 0 12px;
+	max-width: 62ch;
+}
+
 .stat-card-hint {
 	font-size: 0.76rem;
 	color: var(--sl-color-gray-2);
