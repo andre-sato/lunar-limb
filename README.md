@@ -339,6 +339,32 @@ Também é possível iniciar diretamente o servidor standalone gerado:
 node ./dist/server/entry.mjs
 ```
 
+### Docker
+
+Há um `Dockerfile` de dois estágios (build + runtime) que empacota o portal como imagem Node 22 Alpine. O container roda como usuário não-root (`node`) e espera um volume persistente em `/app/data`, onde ficam usuários, sessões e auditoria.
+
+**Construir e rodar:**
+
+```bash
+docker build -t lunar-limb .
+docker run -d --name lunar-limb \
+  -p 4321:4321 \
+  --env-file .env \
+  -v lunar-limb-data:/app/data \
+  --restart unless-stopped \
+  lunar-limb
+```
+
+O portal fica em `http://localhost:4321`.
+
+**Variáveis de ambiente:** o container lê as mesmas variáveis do `.env` (veja [`.env.sample`](.env.sample)) — `AUTH_SECRET`, `PORTAL_ADMIN_EMAIL`, `PORTAL_ADMIN_PASSWORD`, `SITE_URL`, `PORTAL_DATA_DIR` etc. Com `--env-file .env`, basta preencher o arquivo local.
+
+**Volume de dados:** `data/` é o único estado persistente. Remover o volume (`docker volume rm lunar-limb-data`) apaga usuários e sessões e faz o portal semear um novo admin no primeiro request.
+
+**Perda de senha do admin:** como `users.json` guarda só o hash, a senha não é recuperável. Apague o volume e reinicie com `PORTAL_ADMIN_EMAIL`/`PORTAL_ADMIN_PASSWORD` definidas, ou crie outro admin por `npm run user:create`.
+
+> O seed do admin (`PORTAL_ADMIN_EMAIL`/`PORTAL_ADMIN_PASSWORD`) só roda quando não existe nenhum usuário. Depois que `users.json` é criado, mudar essas variáveis não tem efeito.
+
 ### Limitações atuais (para as próximas fases da especificação)
 
 - O preview de MDX não executa componentes Astro/Starlight reais (incluindo `<ContentBlock>`/`<IncludePage>` fora do resolver dedicado) — mostra um placeholder com nome e props para componentes genéricos.
