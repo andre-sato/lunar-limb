@@ -1,22 +1,43 @@
 /**
- * Desliga a barra lateral: a navegação passou para o topo.
+ * Divide a navegação entre o topo e a lateral.
  *
- * `hasSidebar` é o que faz a Starlight reservar a coluna da esquerda, marcar o
- * `<html>` com `data-has-sidebar` e renderizar o painel. Desligá-lo aqui — no
- * middleware de rota, que é o ponto de extensão documentado para modificar os
- * dados da rota — é diferente de escondê-lo com CSS: a coluna deixa de existir,
- * e o conteúdo ocupa a largura toda sem correção de layout por cima.
+ * O menu do topo lista as **seções** do portal; a barra lateral lista as páginas
+ * **da seção aberta**. É o arranjo do portal da OpenAI usado como referência, e
+ * evita a repetição de mostrar a árvore inteira duas vezes na mesma tela.
  *
- * O `sidebar` continua na rota. Ele é a fonte da navegação do topo — a mesma
- * estrutura derivada das pastas de conteúdo, agora desenhada de outro jeito.
- * Nenhum item de navegação passa a ser escrito à mão.
+ * Este é o ponto de extensão que a Starlight documenta para alterar dados de
+ * rota, e ele roda antes da renderização — por isso dá para mexer em
+ * `hasSidebar`, que decide se a coluna existe no layout. Fazer o mesmo com CSS
+ * deixaria a coluna reservada e vazia.
+ *
+ * A árvore completa é guardada em `locals.topNav` **antes** do estreitamento: o
+ * cabeçalho precisa dela inteira, e a lateral, só do galho atual.
  */
 
 import { defineRouteMiddleware } from '@astrojs/starlight/route-data';
+import { buildTopNav, currentGroupOf, type SidebarEntry } from './top-nav';
 
 export const onRequest = defineRouteMiddleware((context) => {
 	const route = context.locals.starlightRoute;
 	if (!route) return;
 
-	route.hasSidebar = false;
+	const fullSidebar = route.sidebar as SidebarEntry[];
+	context.locals.topNav = buildTopNav(fullSidebar);
+
+	// Página de capa não tem seção para navegar, e a coluna só ocuparia espaço.
+	if (route.entry.data.template === 'splash') {
+		route.hasSidebar = false;
+		return;
+	}
+
+	const group = currentGroupOf(fullSidebar);
+	if (!group) {
+		route.hasSidebar = false;
+		return;
+	}
+
+	// O grupo inteiro, e não só os seus filhos: assim a lateral mostra o nome da
+	// seção no topo, e o leitor sabe onde está sem precisar olhar o menu.
+	route.sidebar = [group] as typeof route.sidebar;
+	route.hasSidebar = true;
 });

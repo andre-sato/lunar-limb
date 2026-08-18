@@ -1,13 +1,32 @@
 ---
+/**
+ * Busca do cabeçalho + assistente de documentação.
+ *
+ * Dois provedores, escolhidos por ambiente (ver `src/config/search.ts`):
+ *
+ * - **Algolia DocSearch**, quando há credenciais. Índice hospedado, tolerante a
+ *   erro de digitação e com busca em todos os idiomas de uma vez.
+ * - **Pagefind**, quando não há. Índice gerado no build, sem serviço externo —
+ *   é o que faz o portal funcionar recém-clonado.
+ *
+ * O componente do Pagefind vem do `starlight-view-modes`, e não da Starlight:
+ * ele reimplementa a busca para reescrever os resultados quando se está no modo
+ * zen. Com o Algolia esse tratamento se perde, porque o widget é do Algolia —
+ * o botão do modo zen continua no seu lugar, mas o atalho de teclado dele, que
+ * é registrado naquele componente, sai junto.
+ *
+ * Por que compor aqui em vez de deixar o plugin assumir o override: o
+ * assistente fica ao lado da busca, e o `Search` é o único ponto onde ele cabe.
+ * O plugin avisa no build que não vai substituir o override — é esperado.
+ */
 import ChatAssistant from './ChatAssistant.astro';
-// `starlight-view-modes` embrulha a busca para poder escondê-la no modo zen.
-// Usar o componente dele aqui, em vez do `Search` padrão, é o que faz os dois
-// conviverem: ele renderiza o padrão por dentro.
 import ViewModesSearch from 'starlight-view-modes/components/Search.astro';
+import DocSearch from '@astrojs/starlight-docsearch/DocSearch.astro';
+import { searchProvider } from '../config/search';
 import { serverFeatures } from '../config/deploy';
 ---
 
 <div class="header-search-actions">
-	<ViewModesSearch {...Astro.props} />
+	{searchProvider === 'algolia' ? <DocSearch {...Astro.props} /> : <ViewModesSearch {...Astro.props} />}
 	{serverFeatures.chat && <ChatAssistant />}
 </div>

@@ -198,10 +198,18 @@ O menu fica no topo, não numa coluna lateral, e é montado a partir da mesma
 vira um item, e as páginas de dentro formam o submenu. Nenhum item é escrito à
 mão — criar uma página basta para ela aparecer.
 
-A coluna lateral é desligada em [route-middleware.ts](src/lib/nav/route-middleware.ts),
-pelo ponto de extensão que a Starlight documenta para modificar dados de rota.
-Desligar `hasSidebar` é diferente de esconder com CSS: a coluna deixa de ser
-reservada, e o conteúdo ocupa a largura toda sem correção de layout por cima.
+A barra lateral continua existindo, mostrando **só a seção aberta** — o arranjo
+do portal da OpenAI usado como referência. O topo diz onde você pode ir; a
+lateral, onde você está. Mostrar a árvore inteira nos dois lugares repetiria a
+mesma informação e gastaria a altura da tela com seções que não estão sendo
+lidas.
+
+O estreitamento acontece em [route-middleware.ts](src/lib/nav/route-middleware.ts),
+pelo ponto de extensão que a Starlight documenta para modificar dados de rota. A
+árvore completa é guardada em `locals.topNav` antes do corte: o cabeçalho precisa
+dela inteira, a lateral só do galho atual. Páginas fora de qualquer seção — a
+capa — não têm lateral, e aí `hasSidebar` é desligado de fato, o que é diferente
+de esconder com CSS: a coluna deixa de ser reservada.
 
 Dois efeitos que vieram junto e precisaram de decisão:
 
@@ -216,6 +224,38 @@ Dois efeitos que vieram junto e precisaram de decisão:
 O menu funciona sem JavaScript: cada submenu é um `<details>`. O script só
 acrescenta o que o HTML não dá — fechar ao clicar fora, fechar com `Esc`
 devolvendo o foco, e manter um submenu aberto por vez.
+
+## Busca
+
+Dois provedores, escolhidos por ambiente:
+
+| Provedor | Quando | Índice |
+| --- | --- | --- |
+| **Pagefind** (padrão) | sem credenciais do Algolia | gerado no build, sem serviço externo |
+| **Algolia DocSearch** | com `ALGOLIA_APP_ID`, `ALGOLIA_SEARCH_API_KEY` e `ALGOLIA_INDEX_NAME` | hospedado no Algolia |
+
+As credenciais são suas e ficam no ambiente, nunca no repositório. Use a chave
+**Search-Only**: ela é pública por natureza, vai para o navegador e só lê o
+índice. A chave de Admin escreve no índice e não deve aparecer no cliente.
+
+É tudo ou nada: com uma variável faltando, o portal fica no Pagefind em vez de
+carregar um widget que falharia na primeira busca.
+
+Três detalhes que essa troca envolve:
+
+- O `Search` é um override nosso, porque o assistente de documentação fica ao
+  lado da busca. Por isso o `starlight-docsearch` avisa no build que não vai
+  substituir o componente — é esperado, e a composição está em
+  [Search.astro](src/components/Search.astro). Remover o override para calar o
+  aviso tiraria o assistente do cabeçalho.
+- O Pagefind continua sendo gerado mesmo com o Algolia ativo: a busca "warp"
+  (`/warp?q=termo`) consulta aquele índice local.
+- Com o Algolia, o componente de busca do `starlight-view-modes` sai de cena. O
+  botão do modo zen continua onde estava, mas o **atalho de teclado** dele é
+  registrado naquele componente e se perde.
+
+O índice do Algolia precisa ser alimentado pelo crawler do DocSearch, que é
+configurado na conta do Algolia — o portal só consulta.
 
 ## Publicação no GitHub Pages
 

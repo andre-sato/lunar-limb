@@ -15,6 +15,8 @@ import starlightOpenAPI from 'starlight-openapi';
 import starlightVersions from 'starlight-versions';
 import { portal } from './src/config/portal';
 import { rehypeBasePath } from './src/lib/deploy/rehype-base-path';
+import starlightDocSearch from '@astrojs/starlight-docsearch';
+import { algoliaCredentials } from './src/config/search';
 
 // `monaco-vim` (Fase 5) importa caminhos internos como
 // `monaco-editor/esm/vs/editor/editor.api`. O campo `exports` do monaco-editor
@@ -97,6 +99,59 @@ function versionPlugins() {
  * O efeito prático do flag está em `src/config/deploy.ts`: os componentes que
  * dependem de servidor não são renderizados.
  */
+/**
+ * Busca pelo Algolia DocSearch (`@astrojs/starlight-docsearch`).
+ *
+ * Registrado só quando as três credenciais estão no ambiente — elas são suas e
+ * não entram no repositório. Sem elas, a busca continua sendo o Pagefind, que
+ * não depende de serviço externo. Ver `src/config/search.ts`.
+ *
+ * O plugin avisa no build que existe um override de `Search` e não o substitui.
+ * É esperado: o override é nosso e compõe o DocSearch com o assistente de
+ * documentação, que fica ao lado da busca. Remover o override para "resolver" o
+ * aviso tiraria o assistente do cabeçalho.
+ *
+ * O Pagefind segue ligado mesmo com o Algolia ativo, porque a busca "warp"
+ * (`/warp?q=termo`) consulta aquele índice. São coisas diferentes: o Algolia é a
+ * interface de busca; o índice local é o que responde ao atalho.
+ */
+function docSearchPlugins() {
+	const credentials = algoliaCredentials();
+	if (!credentials) return [];
+
+	return [
+		starlightDocSearch({
+			appId: credentials.appId,
+			apiKey: credentials.apiKey,
+			indexName: credentials.indexName,
+		}),
+	];
+}
+
+/**
+ * Stub do módulo virtual do DocSearch.
+ *
+ * `DocSearch.astro` importa `virtual:starlight/docsearch-config` no script do
+ * cliente, e esse módulo só existe quando o plugin está registrado. Como o
+ * componente é importado estaticamente pelo nosso `Search.astro`, sem o stub o
+ * build quebraria justamente na configuração mais comum: a que não tem Algolia.
+ */
+function docSearchStub() {
+	if (algoliaCredentials()) return [];
+
+	const id = 'virtual:starlight/docsearch-config';
+	const resolved = `\0${id}`;
+	return [
+		{
+			name: 'docsearch-config-stub',
+			/** @param {string} source */
+			resolveId: (source) => (source === id ? resolved : undefined),
+			/** @param {string} moduleId */
+			load: (moduleId) => (moduleId === resolved ? 'export default {};' : undefined),
+		},
+	];
+}
+
 /**
  * `base` para site de projeto no Pages (`usuario.github.io/repositorio`).
  *
@@ -194,6 +249,7 @@ export default defineConfig({
 				// declaradas. Ver as funções no topo do arquivo.
 				...openApiPlugins(),
 				...versionPlugins(),
+				...docSearchPlugins(),
 			],
 			customCss: ['./src/styles/custom.css'],
 			// Middleware de rota da Starlight: desliga a coluna lateral, já que a
@@ -244,5 +300,6 @@ export default defineConfig({
 	},
 	vite: {
 		resolve: { alias: [monacoEsmAlias] },
+		plugins: [...docSearchStub()],
 	},
 });

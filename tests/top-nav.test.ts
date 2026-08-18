@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildTopNav, sectionsOf, type SidebarEntry } from '../src/lib/nav/top-nav';
+import { buildTopNav, currentGroupOf, sectionsOf, type SidebarEntry } from '../src/lib/nav/top-nav';
 
 function link(label: string, href: string, isCurrent = false): SidebarEntry {
 	return { type: 'link', label, href, isCurrent };
@@ -124,5 +124,36 @@ describe('seções do painel', () => {
 	it('item sem links não tem seções', () => {
 		const nav = buildTopNav([link('Início', '/')]);
 		expect(sectionsOf(nav[0])).toEqual([]);
+	});
+});
+
+describe('seção atual para a barra lateral', () => {
+	it('acha o grupo que contém a página aberta', () => {
+		const atual = currentGroupOf([
+			group('Guias', [link('a', '/a/')]),
+			group('Changelog', [link('b', '/b/', true)]),
+		]);
+		expect(atual?.label).toBe('Changelog');
+	});
+
+	it('acha o grupo mesmo quando a página está num subgrupo', () => {
+		const atual = currentGroupOf([
+			group('Guias', [group('Avançado', [link('webhooks', '/w/', true)])]),
+		]);
+		// O que importa é a seção de primeiro nível: é ela que a lateral mostra.
+		expect(atual?.label).toBe('Guias');
+	});
+
+	it('devolve null quando a página não está em nenhum grupo', () => {
+		// A capa e páginas soltas na raiz não têm seção para navegar.
+		expect(currentGroupOf([link('Início', '/', true), group('Guias', [link('a', '/a/')])])).toBeNull();
+	});
+
+	it('devolve null quando nada está marcado como atual', () => {
+		expect(currentGroupOf([group('Guias', [link('a', '/a/')])])).toBeNull();
+	});
+
+	it('sidebar vazia não tem seção atual', () => {
+		expect(currentGroupOf([])).toBeNull();
 	});
 });

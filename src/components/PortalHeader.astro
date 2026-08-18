@@ -18,10 +18,12 @@ import ThemeSelect from 'virtual:starlight/components/ThemeSelect';
 import config from 'virtual:starlight/user-config';
 import SidebarAccount from './auth/SidebarAccount.astro';
 import { serverFeatures } from '../config/deploy';
-import { buildTopNav, sectionsOf, type SidebarEntry } from '../lib/nav/top-nav';
+import { sectionsOf } from '../lib/nav/top-nav';
 
 const route = Astro.locals.starlightRoute;
-const items = buildTopNav((route?.sidebar ?? []) as SidebarEntry[]);
+// A árvore completa vem do middleware de rota: aqui `route.sidebar` já foi
+// estreitado para a seção aberta, que é o que a coluna da esquerda mostra.
+const items = Astro.locals.topNav ?? [];
 
 // A raiz do idioma atual: o "Home" do menu.
 const homeHref = route?.locale ? `/${route.locale}/` : '/';

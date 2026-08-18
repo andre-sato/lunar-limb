@@ -131,3 +131,28 @@ export function sectionsOf(item: NavItem): { title?: string; links: NavLink[] }[
 
 	return sections;
 }
+
+/**
+ * O grupo de primeiro nível que contém a página aberta.
+ *
+ * É o que a barra lateral passa a mostrar: com o menu no topo cuidando das
+ * seções, a coluna da esquerda serve para navegar **dentro** da seção atual.
+ * Mostrar a árvore inteira nos dois lugares seria repetir a mesma informação e
+ * gastar a altura da tela com seções que o leitor não está lendo.
+ *
+ * Devolve `null` quando a página não pertence a nenhum grupo — a capa, uma
+ * página solta na raiz. Aí não há seção para navegar, e a coluna não aparece.
+ */
+export function currentGroupOf(sidebar: readonly SidebarEntry[]): SidebarGroup | null {
+	for (const entry of sidebar) {
+		if (!isGroup(entry)) continue;
+		if (containsCurrent(entry.entries)) return entry;
+	}
+	return null;
+}
+
+function containsCurrent(entries: readonly SidebarEntry[]): boolean {
+	return entries.some((entry) =>
+		isGroup(entry) ? containsCurrent(entry.entries) : entry.isCurrent
+	);
+}
