@@ -12,6 +12,8 @@
  */
 import Default from '@astrojs/starlight/components/Footer.astro';
 import FeedbackWidget from './FeedbackWidget.astro';
+import GlossaryTooltip from './glossary/GlossaryTooltip.astro';
+import TrustPanel from './trust/TrustPanel.astro';
 import { serverFeatures } from '../config/deploy';
 
 // A página inicial usa hero e não é um documento que se "leia até o fim";
@@ -19,5 +21,10 @@ import { serverFeatures } from '../config/deploy';
 const isSplash = Astro.locals.starlightRoute.entry.data.template === 'splash';
 ---
 
+{/* O que sustenta a página vem antes de perguntar se ela foi útil: a pessoa
+    decide se acredita no texto, e só depois opina sobre ele. */}
+{!isSplash && <TrustPanel />}
 {!isSplash && serverFeatures.feedback && <FeedbackWidget />}
+{/* Uma bolha por página, compartilhada por todos os termos destacados. */}
+<GlossaryTooltip />
 <Default {...Astro.props}><slot /></Default>

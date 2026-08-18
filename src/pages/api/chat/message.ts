@@ -1,10 +1,16 @@
 import type { APIRoute } from 'astro';
 import { jsonResponse, requireAuthUser } from '../../../lib/auth/api';
 import { recordAudit } from '../../../lib/auth/audit';
-import { loadChatConfig } from '../../../lib/chat/config';
+import { canGenerate, loadChatConfig, providerApiKey } from '../../../lib/chat/config';
+import { anthropicModel } from '../../../lib/chat/models';
+import { createAssistant } from '../../../lib/chat/service';
+import { can } from '../../../lib/auth/permissions';
 import { normalizeLocale } from '../../../lib/chat/retrieval';
-import { ChatError, searchDocumentation } from '../../../lib/chat/search';
+import { ChatError } from '../../../lib/chat/search';
 import { checkRateLimit, getOrCreateConversation } from '../../../lib/chat/store';
+import { getTrustIndex } from '../../../lib/trust/load';
+import { recordSearchEvent } from '../../../lib/health/analytics';
+import { loadHealthConfig } from '../../../lib/health/config';
 
 export const prerender = false;
 
@@ -64,11 +70,55 @@ export const POST: APIRoute = async ({ request, locals }) => {
 	}
 
 	try {
-		const answer = await searchDocumentation(conversation, message, user, {
+		// O modelo entra no pipeline só quando há credencial no ambiente e a
+		// redação está ligada. Sem isso, o mesmo pipeline devolve os trechos.
+		const model = canGenerate(config)
+			? anthropicModel({ apiKey: providerApiKey(), model: config.model, effort: 'low' })
+			: undefined;
+
+		// O índice de confiança é lido uma vez e consultado em memória: ele reordena
+		// os trechos e decide se a resposta sai com aviso de verificação vencida.
+		const trust = await getTrustIndex();
+
+		const assistant = createAssistant({
+			model,
 			maxExcerpts: config.maxExcerpts,
 			minScore: config.minScore,
 			excerptChars: config.excerptChars,
+			// A autorização acontece **antes** do contexto ir ao modelo. Hoje o
+			// portal não tem documentação restrita por papel, então a regra é a
+			// mesma para todos; o gancho existe para o dia em que tiver, e para o
+			// filtro nunca acontecer depois da geração.
+			authorize: (_, candidate) => can(candidate, 'docs.read'),
+			trustFor: (documentPath) => {
+				const page = trust.byPath.get(documentPath);
+				return page ? { status: page.status, lastVerified: page.lastVerified } : undefined;
+			},
+			onEvent: async (event) => {
+				await recordAudit({
+					actorId: event.userId,
+					action: 'CHAT_GUARDRAIL',
+					metadata: { event: event.event, detail: event.detail ?? null },
+				});
+			},
 		});
+
+		const answer = await assistant.ask(conversation, message, user);
+
+		// Analytics de busca (§7, §8 de Health & SLO). Contadores sempre; o **texto**
+		// da pergunta só quando quem opera o portal ligou isso explicitamente, e só
+		// para as consultas que ficaram sem resposta. Ver `health/analytics.ts`.
+		const health = await loadHealthConfig();
+		await recordSearchEvent({
+			confidence: answer.confidence,
+			empty: answer.empty,
+			refused: answer.safety?.filtered === true,
+			question: message,
+			storeQuestions: health.storeQuestions,
+		}).catch(() => {
+			// Falha ao registrar métrica não pode derrubar a resposta de quem perguntou.
+		});
+
 		return jsonResponse({ ...answer, remaining: limit.remaining }, 200);
 	} catch (error) {
 		if (error instanceof ChatError) {

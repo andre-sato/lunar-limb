@@ -1,0 +1,322 @@
+/*
+ * Estilos do API Explorer.
+ *
+ * Arquivo próprio, importado pela página que usa o componente: o Explorer não
+ * aparece na maioria das páginas, e carregar o estilo dele em todas seria peso
+ * sem uso.
+ */
+
+.explorer {
+	margin: 1.5rem 0;
+	padding: 1rem;
+	border: 1px solid var(--sl-color-gray-5);
+	border-radius: 0.6rem;
+	background: var(--sl-color-black);
+}
+
+.explorer__header {
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
+	flex-wrap: wrap;
+}
+
+.explorer__method {
+	padding: 0.15rem 0.5rem;
+	border-radius: 0.3rem;
+	font-size: var(--sl-text-xs);
+	font-weight: 700;
+	letter-spacing: 0.04em;
+	background: var(--sl-color-gray-6);
+	color: var(--sl-color-white);
+}
+
+.explorer__method--get { background: #1f4d6b; }
+.explorer__method--post { background: #1f5c3a; }
+.explorer__method--put,
+.explorer__method--patch { background: #6b4b1f; }
+.explorer__method--delete { background: #6b2424; }
+
+.explorer__path {
+	font-size: var(--sl-text-base);
+	font-weight: 600;
+}
+
+.explorer__deprecated {
+	font-size: var(--sl-text-xs);
+	padding: 0.05rem 0.4rem;
+	border-radius: 999px;
+	background: var(--sl-color-red);
+	color: var(--sl-color-white);
+}
+
+.explorer__summary {
+	margin: 0.4rem 0 1rem;
+	color: var(--sl-color-gray-2);
+}
+
+.explorer__group {
+	margin: 1rem 0;
+	padding: 0.75rem;
+	border: 1px solid var(--sl-color-gray-5);
+	border-radius: 0.4rem;
+}
+
+.explorer__group legend {
+	padding-inline: 0.4rem;
+	font-size: var(--sl-text-xs);
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	color: var(--sl-color-gray-3);
+}
+
+.explorer__field {
+	display: grid;
+	grid-template-columns: minmax(8rem, 14rem) 1fr;
+	gap: 0.6rem;
+	align-items: center;
+	margin-bottom: 0.5rem;
+	font-size: var(--sl-text-sm);
+}
+
+.explorer__field > span {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 0.35rem;
+}
+
+.explorer__required {
+	font-style: normal;
+	font-size: var(--sl-text-xs);
+	color: var(--sl-color-red);
+}
+
+.explorer__where {
+	font-style: normal;
+	font-size: var(--sl-text-xs);
+	padding: 0 0.3rem;
+	border-radius: 999px;
+	background: var(--sl-color-gray-6);
+	color: var(--sl-color-gray-3);
+}
+
+.explorer input,
+.explorer select,
+.explorer textarea {
+	width: 100%;
+	padding: 0.35rem 0.5rem;
+	border: 1px solid var(--sl-color-gray-5);
+	border-radius: 0.3rem;
+	background: var(--sl-color-gray-7, var(--sl-color-black));
+	color: var(--sl-color-white);
+	font: inherit;
+	font-size: var(--sl-text-sm);
+}
+
+.explorer textarea {
+	font-family: var(--sl-font-mono);
+	resize: vertical;
+}
+
+.explorer__hint {
+	margin: 0.3rem 0 0;
+	font-size: var(--sl-text-xs);
+	color: var(--sl-color-gray-3);
+}
+
+.explorer__request {
+	margin: 0.75rem 0;
+	padding: 0.5rem 0.6rem;
+	border-radius: 0.35rem;
+	background: var(--sl-color-gray-6);
+	overflow-x: auto;
+}
+
+.explorer__request code {
+	white-space: nowrap;
+	font-size: var(--sl-text-sm);
+}
+
+.explorer__actions {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	flex-wrap: wrap;
+}
+
+.explorer__send {
+	padding: 0.4rem 1rem;
+	border: 0;
+	border-radius: 0.35rem;
+	background: var(--sl-color-accent);
+	color: var(--sl-color-white);
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.explorer__send:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+.explorer__error {
+	margin-top: 0.75rem;
+	padding: 0.5rem 0.7rem;
+	border-inline-start: 3px solid var(--sl-color-red);
+	color: var(--sl-color-gray-2);
+	font-size: var(--sl-text-sm);
+}
+
+.explorer__response {
+	margin-top: 1rem;
+	border-top: 1px solid var(--sl-color-gray-5);
+	padding-top: 0.75rem;
+}
+
+.explorer__response header,
+.explorer__snippets header {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	flex-wrap: wrap;
+	margin-bottom: 0.5rem;
+}
+
+.explorer__status {
+	padding: 0.1rem 0.45rem;
+	border-radius: 0.3rem;
+	font-weight: 600;
+	font-size: var(--sl-text-sm);
+	background: var(--sl-color-gray-6);
+}
+
+.explorer__status--2 { color: #6ddb9a; }
+.explorer__status--3 { color: #9ab8e0; }
+.explorer__status--4 { color: #e0b45c; }
+.explorer__status--5 { color: #e88b8b; }
+
+.explorer__meta {
+	font-size: var(--sl-text-xs);
+	color: var(--sl-color-gray-3);
+}
+
+.explorer__toggle,
+.explorer__tabs {
+	display: flex;
+	gap: 0.2rem;
+	margin-inline-start: auto;
+}
+
+.explorer__tabs {
+	margin-inline-start: 0;
+}
+
+.explorer__toggle button,
+.explorer__tabs button,
+.explorer__copy {
+	padding: 0.2rem 0.55rem;
+	border: 1px solid var(--sl-color-gray-5);
+	border-radius: 0.3rem;
+	background: transparent;
+	color: var(--sl-color-gray-2);
+	font-size: var(--sl-text-xs);
+	cursor: pointer;
+}
+
+.explorer__toggle button.is-active,
+.explorer__tabs button.is-active {
+	background: var(--sl-color-gray-6);
+	color: var(--sl-color-white);
+}
+
+.explorer__copy {
+	margin-inline-start: auto;
+}
+
+.explorer__body,
+.explorer__snippets pre {
+	max-height: 22rem;
+	overflow: auto;
+	padding: 0.6rem 0.75rem;
+	border-radius: 0.35rem;
+	background: var(--sl-color-gray-6);
+	font-size: var(--sl-text-sm);
+}
+
+.explorer__headers {
+	margin-top: 0.5rem;
+	font-size: var(--sl-text-sm);
+}
+
+.explorer__headers dl {
+	display: grid;
+	grid-template-columns: auto 1fr;
+	gap: 0.15rem 0.75rem;
+	margin: 0.4rem 0 0;
+}
+
+.explorer__headers dl > div {
+	display: contents;
+}
+
+.explorer__headers dt {
+	color: var(--sl-color-gray-3);
+}
+
+.explorer__headers dd {
+	margin: 0;
+	overflow-wrap: anywhere;
+}
+
+.explorer__snippets {
+	margin-top: 1rem;
+}
+
+.explorer__history {
+	margin-top: 1rem;
+	border-top: 1px solid var(--sl-color-gray-5);
+	padding-top: 0.6rem;
+}
+
+.explorer__history h4 {
+	margin: 0 0 0.4rem;
+	font-size: var(--sl-text-xs);
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	color: var(--sl-color-gray-3);
+}
+
+.explorer__history ul {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: grid;
+	gap: 0.25rem;
+	font-size: var(--sl-text-xs);
+}
+
+.explorer__history li {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.explorer__history code {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.explorer__history time {
+	margin-inline-start: auto;
+	color: var(--sl-color-gray-3);
+}
+
+@media (max-width: 50rem) {
+	.explorer__field {
+		grid-template-columns: 1fr;
+		gap: 0.2rem;
+	}
+}

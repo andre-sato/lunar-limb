@@ -26,6 +26,11 @@ export const collections = {
 				 * projeto, e não um extra tolerado pelo schema.
 				 */
 				translationPending: z.boolean().optional(),
+				/**
+				 * `false` desliga o destaque de termos do glossário nesta página
+				 * (§16). O padrão é ligado.
+				 */
+				glossary: z.boolean().optional(),
 			}),
 		}),
 	}),
@@ -38,6 +43,27 @@ export const collections = {
 		schema: z.object({
 			title: z.string().optional(),
 			description: z.string().optional(),
+		}),
+	}),
+	/**
+	 * Glossário: a terminologia canônica do portal (§4, §42).
+	 *
+	 * Arquivos versionados pelo Git, não banco — é o que dá revisão em pull
+	 * request, histórico e rollback. O schema valida no build; a leitura para o
+	 * linter, que roda fora do Astro, está em `src/lib/glossary/loader.ts`.
+	 */
+	glossary: defineCollection({
+		loader: glob({ pattern: '**/*.{md,mdx}', base: './src/content/glossary' }),
+		schema: z.object({
+			id: z.string().optional(),
+			term: z.string(),
+			aliases: z.union([z.string(), z.array(z.string())]).optional(),
+			deprecated: z.union([z.string(), z.array(z.string())]).optional(),
+			enabled: z.boolean().default(true),
+			caseSensitive: z.boolean().default(false),
+			matchWholeWord: z.boolean().default(true),
+			createdAt: z.string().optional(),
+			updatedAt: z.string().optional(),
 		}),
 	}),
 	i18n: defineCollection({

@@ -1,11 +1,15 @@
 /**
- * Configuração da busca na documentação.
+ * Configuração do assistente de documentação.
  *
- * Sem provedor, sem modelo, sem chave de API — e por isso sem nada a esconder:
- * toda a configuração pode ser devolvida à tela de administração como está.
- * Enquanto havia um modelo, este arquivo carregava uma credencial e o cuidado
- * inteiro de nunca deixá-la sair por uma rota; a simplificação apagou essa
- * classe de risco em vez de mitigá-la.
+ * A credencial do modelo **não mora aqui**. Ela vem do ambiente
+ * (`ANTHROPIC_API_KEY`), pelo mesmo motivo do Algolia e do GitHub: um segredo
+ * gravado em arquivo de configuração acaba num backup, num log ou numa resposta
+ * de API. O que este arquivo guarda é o que pode ser lido por quem administra —
+ * modelo escolhido, limites, se está ligado.
+ *
+ * Sem credencial no ambiente, o assistente responde com os trechos da
+ * documentação. Não é modo degradado: é a configuração padrão do portal, e a
+ * única que não pode inventar nada.
  */
 
 import { readJson, withFileLock, writeJson } from '../auth/store';
@@ -23,6 +27,13 @@ export interface ChatConfig {
 	excerptChars: number;
 	/** Consultas por usuário por hora. */
 	rateLimitPerHour: number;
+	/**
+	 * Modelo usado quando há credencial no ambiente. Sem credencial, o campo
+	 * fica guardado e sem efeito — trocar de modelo não liga o assistente.
+	 */
+	model: string;
+	/** `false` mantém a busca e desliga a redação, mesmo com credencial. */
+	generation: boolean;
 }
 
 export const DEFAULT_CHAT_CONFIG: ChatConfig = {
@@ -31,6 +42,8 @@ export const DEFAULT_CHAT_CONFIG: ChatConfig = {
 	minScore: 0.2,
 	excerptChars: 700,
 	rateLimitPerHour: 120,
+	model: 'claude-opus-5',
+	generation: true,
 };
 
 interface IntegrationsFile {
@@ -54,6 +67,8 @@ function coerce(raw: Partial<ChatConfig> | undefined): ChatConfig {
 		rateLimitPerHour: Math.round(
 			clamp(base.rateLimitPerHour, 1, 5000, DEFAULT_CHAT_CONFIG.rateLimitPerHour)
 		),
+		model: typeof base.model === 'string' && base.model.trim() !== '' ? base.model.trim() : DEFAULT_CHAT_CONFIG.model,
+		generation: base.generation !== false,
 	};
 }
 
@@ -69,4 +84,19 @@ export async function saveChatConfig(patch: Partial<ChatConfig>): Promise<ChatCo
 		await writeJson(FILE, { ...file, chat: next });
 		return next;
 	});
+}
+
+/**
+ * A credencial do provedor, lida do ambiente.
+ *
+ * Exportada como função e não como constante para o valor ser lido no momento
+ * do uso: um servidor que ganha a variável sem reiniciar passa a redigir.
+ */
+export function providerApiKey(): string {
+	return (process.env.ANTHROPIC_API_KEY ?? '').trim();
+}
+
+/** `true` quando o assistente pode redigir: credencial no ambiente e geração ligada. */
+export function canGenerate(config: ChatConfig): boolean {
+	return config.generation && providerApiKey() !== '';
 }

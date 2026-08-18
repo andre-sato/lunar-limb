@@ -1,0 +1,28 @@
+# Documentation Trust & Provenance — configuração (§8).
+#
+# Este arquivo diz por quanto tempo uma verificação vale e quem responde por cada
+# parte da documentação. Ele é versionado no Git de propósito: proveniência que
+# vive só em banco divergiria do conteúdo no primeiro `git revert`, e divergindo
+# ela deixa de ser evidência.
+
+freshness:
+  # Prazo padrão de validade de uma verificação.
+  #
+  # Seis meses é o que uma equipe consegue honrar. Prazo curto transforma o portal
+  # num mar de avisos amarelos que ninguém lê; prazo longo deixa a página
+  # envelhecer exibindo selo de verificada, que é pior que não ter selo.
+  default: 180d
+
+# Responsável por prefixo de caminho, quando a página não declara `owner` no
+# frontmatter. O prefixo mais específico ganha.
+owners:
+  api-reference/: Time de Plataforma
+  guides/: Time de Documentação
+
+# Ids de teste que podem servir de evidência além das regras da Documentation
+# Test Suite (que são lidas automaticamente de `src/lib/doctest/checks.ts`).
+#
+# Um id que não esteja aqui nem na suíte aparece como evidência **inválida** — e
+# tem de aparecer: uma referência a teste inexistente é pior que nenhuma, porque
+# tem a aparência de rigor.
+tests: []

@@ -1,0 +1,130 @@
+---
+/**
+ * Página de um termo (§20, §21, §22).
+ *
+ * "Usado em" é **derivado**: as páginas são varridas na hora de gerar, e a lista
+ * não fica guardada no GlossDef (§43). Guardá-la ali criaria duas verdades — o
+ * arquivo diria uma coisa e o conteúdo, outra, no dia seguinte à primeira
+ * edição.
+ */
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+import { getCollection } from 'astro:content';
+import { loadGlossary } from '../../lib/glossary/loader';
+import { buildGlossaryIndex, findMatches } from '../../lib/glossary/index-build';
+import { toPlainText } from '../../lib/glossary/remark-glossary';
+import type { GlossDef } from '../../lib/glossary/types';
+
+export const prerender = true;
+
+export async function getStaticPaths() {
+	const definitions = await loadGlossary();
+	const index = buildGlossaryIndex(definitions);
+	const docs = await getCollection('docs');
+
+	/** id do termo → páginas onde ele aparece. */
+	const usage = new Map<string, Array<{ title: string; url: string }>>();
+
+	for (const entry of docs) {
+		// A página que desliga o glossário não conta como ocorrência: ali o termo
+		// não é destacado, e listá-la levaria o leitor a procurar o que não existe.
+		if ((entry.data as { glossary?: boolean }).glossary === false) continue;
+
+		const body = entry.body ?? '';
+		for (const match of findMatches(body, index)) {
+			const pages = usage.get(match.definitionId) ?? [];
+			const url = `/${entry.id}/`.replace(/\/+/g, '/');
+			if (!pages.some((page) => page.url === url)) {
+				pages.push({ title: entry.data.title, url });
+			}
+			usage.set(match.definitionId, pages);
+		}
+	}
+
+	return definitions.map((definition) => ({
+		params: { id: definition.id },
+		props: { definition, usedIn: usage.get(definition.id) ?? [] },
+	}));
+}
+
+interface Props {
+	definition: GlossDef;
+	usedIn: Array<{ title: string; url: string }>;
+}
+
+const { definition, usedIn } = Astro.props;
+---
+
+<StarlightPage
+	frontmatter={{
+		title: definition.term,
+		description: toPlainText(definition.definition, 160),
+		tableOfContents: false,
+		// A definição já está destacada por ser a própria página do termo;
+		// destacá-la de novo dentro dela seria uma tooltip que se explica.
+		glossary: false,
+	}}
+>
+	<p class="glossary-definition">{definition.definition}</p>
+
+	<dl class="glossary-meta">
+		{definition.aliases.length > 0 && (
+			<>
+				<dt>Também escrito</dt>
+				<dd>{definition.aliases.join(', ')}</dd>
+			</>
+		)}
+		{definition.deprecated.length > 0 && (
+			<>
+				<dt>Formas desaconselhadas</dt>
+				<dd>{definition.deprecated.join(', ')} — prefira <strong>{definition.term}</strong>.</dd>
+			</>
+		)}
+		<dt>Destaque automático</dt>
+		<dd>{definition.enabled ? 'ligado' : 'desligado'}</dd>
+		<dt>Identificador</dt>
+		<dd><code>{definition.id}</code></dd>
+	</dl>
+
+	<h2>Onde aparece</h2>
+
+	{usedIn.length === 0 ? (
+		<p>
+			Nenhuma página usa este termo hoje. Um termo sem ocorrências não está
+			errado — pode ser novo, ou específico de conteúdo ainda não escrito.
+		</p>
+	) : (
+		<>
+			<p>{usedIn.length === 1 ? '1 página usa este termo:' : `${usedIn.length} páginas usam este termo:`}</p>
+			<ul>
+				{usedIn.map((page) => (
+					<li><a href={page.url}>{page.title}</a></li>
+				))}
+			</ul>
+		</>
+	)}
+
+	<p><a href="/glossary/">← Todos os termos</a></p>
+</StarlightPage>
+
+<style>
+	.glossary-definition {
+		font-size: var(--sl-text-lg);
+	}
+
+	.glossary-meta {
+		display: grid;
+		grid-template-columns: auto 1fr;
+		gap: 0.3rem 1rem;
+		margin-block: 1.5rem;
+		font-size: var(--sl-text-sm);
+	}
+
+	.glossary-meta dt {
+		font-weight: 600;
+		color: var(--sl-color-gray-2);
+	}
+
+	.glossary-meta dd {
+		margin: 0;
+	}
+</style>

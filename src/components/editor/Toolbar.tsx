@@ -11,6 +11,7 @@ import {
 	Scissors,
 	Network,
 	GitBranch,
+	GitPullRequest,
 	Search,
 	SlidersHorizontal,
 	Terminal,
@@ -32,6 +33,9 @@ interface ToolbarProps {
 	onExtractReusable: () => void;
 	/** Fase 4: abre o Content Graph (Ctrl/Cmd + Shift + G). */
 	onOpenGraph: () => void;
+	onOpenGit: () => void;
+	/** Branch atual, mostrada ao lado do botão. */
+	branch?: string;
 	/** Fase 4: total de problemas de referência no projeto, para o badge. */
 	problemCount?: number;
 	/** Fase 5 */
@@ -65,6 +69,8 @@ export default function Toolbar({
 	onInsertReusable,
 	onExtractReusable,
 	onOpenGraph,
+	onOpenGit,
+	branch,
 	problemCount = 0,
 	onInsertConditional,
 	onOpenVariables,
@@ -159,6 +165,15 @@ export default function Toolbar({
 				{hasActiveFile && (
 					<span className={`save-status save-status--${saveStatus}`}>{statusLabel[saveStatus]}</span>
 				)}
+				<button
+					type="button"
+					className="icon-btn icon-btn--labelled"
+					onClick={onOpenGit}
+					title="Branch, alterações e pull request"
+				>
+					<GitPullRequest size={16} />
+					{branch && <span className="toolbar-branch">{branch}</span>}
+				</button>
 				<button
 					type="button"
 					className="icon-btn"

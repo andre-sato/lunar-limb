@@ -22,3 +22,6 @@ pnpm-debug.log*
 
 # identidade: hashes de senha, tokens de sessao, chave HMAC e auditoria
 data/
+
+# Instâncias de verificação (PORTAL_DATA_DIR temporário).
+.verify-*/

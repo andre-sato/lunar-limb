@@ -16,6 +16,8 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { lintDocument, summarizeWorkspace } from '../src/lib/linter/lint';
 import { loadConfig } from '../src/lib/linter/config';
+import { getGlossaryIndex } from '../src/lib/glossary/loader';
+import { setGlossaryIndex } from '../src/lib/linter/rules/glossary';
 import { getContentGraph } from '../src/lib/editor/content-graph';
 import type { LintResult } from '../src/lib/linter/types';
 
@@ -180,6 +182,10 @@ async function main(): Promise<number> {
 	let config;
 	try {
 		config = await loadConfig(options.profile ?? 'default');
+
+		// O glossário é a fonte da terminologia; as regras de consistência o
+		// consomem (§30). Carregado uma vez, antes da primeira página.
+		setGlossaryIndex(await getGlossaryIndex({ fresh: true }));
 	} catch (error) {
 		console.error(`Erro de configuração: ${(error as Error).message}`);
 		return EXIT_CONFIG_ERROR;

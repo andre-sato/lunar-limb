@@ -1,0 +1,71 @@
+---
+title: Experimente a API
+description: Monte a chamada, envie e veja a resposta sem sair da página — os formulários vêm da própria especificação OpenAPI.
+sidebar:
+  order: 5
+tags: [api, guia]
+owner: Time de Plataforma
+provenance:
+  - source: portal-api.yaml#/paths
+    verifiedAt: 2026-08-18
+    verifiedBy: Time de Plataforma
+---
+
+import TryIt from '../../../components/api-explorer/TryIt.astro';
+import '../../../styles/api-explorer.css';
+
+Os formulários desta página não foram escritos à mão. Cada campo vem de
+`src/schemas/portal-api.yaml`,
+a mesma especificação que gera a referência — mudar a especificação muda os dois.
+
+:::note[A API é a do próprio portal]
+Os endpoints abaixo existem e respondem: são os que a interface do portal usa.
+Preferimos isso a inventar uma API de exemplo, que demonstraria a ferramenta e
+mentiria sobre o produto.
+
+Quase todos exigem sessão. Como o Explorer roda no mesmo domínio, o cookie
+acompanha a chamada quando você está autenticado — não é preciso preencher
+credencial nenhuma.
+:::
+
+## Quem está autenticado
+
+O caminho mais curto para ver a ferramenta funcionando. Autenticado, responde
+`200` com o seu usuário; sem sessão, `401`.
+
+<TryIt schema="portal-api.yaml" operation="getCurrentUser" />
+
+## Buscar na documentação
+
+O mesmo mecanismo do assistente da barra lateral, agora com o corpo da
+requisição visível. Edite a pergunta e envie.
+
+<TryIt schema="portal-api.yaml" operation="searchDocumentation" />
+
+## Analisar um texto
+
+Cole um Markdown no corpo e receba a nota, o veredito do quality gate e os
+apontamentos com linha e coluna. É o linter do portal exposto como API.
+
+<TryIt schema="portal-api.yaml" operation="lintContent" />
+
+## O que acontece por trás
+
+A chamada não sai do seu navegador direto para a API: ela passa por um proxy do
+portal, porque a maioria das APIs não aceita chamadas de outro domínio.
+
+Esse proxy é estreito de propósito. Ele só alcança os servidores **declarados na
+especificação**, que é um arquivo versionado no repositório: liberar um destino
+novo exige editar o arquivo e passar por revisão, não mudar um parâmetro da
+chamada. Endereços de rede interna são recusados mesmo que alguém os declare, e
+um redirecionamento para outro host não é seguido.
+
+## Sobre a sua credencial
+
+Quando um endpoint pede credencial, ela fica **apenas nesta aba**: não é salva,
+não entra no histórico de chamadas recentes e não aparece nos exemplos de
+código, onde é substituída por um marcador. Recarregar a página a apaga.
+
+Os exemplos de código são gerados a partir da mesma requisição que o botão
+**Enviar** monta. Se os dois divergissem, o exemplo viraria uma armadilha:
+funcionaria na tela e falharia no terminal de quem copiou.

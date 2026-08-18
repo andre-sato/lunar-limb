@@ -11,8 +11,17 @@ import { textRules } from './text';
 import { structureRules } from './structure';
 import { assetRules } from './assets';
 import { qualityRules } from './quality';
+import { glossaryRules } from './glossary';
 
-export const ALL_RULES: readonly LintRule[] = [...textRules, ...structureRules, ...assetRules, ...qualityRules];
+// As regras do glossário entram na categoria `consistency` junto das demais, e
+// não como um grupo próprio: terminologia inconsistente é consistência (§30.1).
+export const ALL_RULES: readonly LintRule[] = [
+	...textRules,
+	...structureRules,
+	...assetRules,
+	...qualityRules,
+	...glossaryRules,
+];
 
 export function ruleById(id: string): LintRule | undefined {
 	return ALL_RULES.find((rule) => rule.id === id);

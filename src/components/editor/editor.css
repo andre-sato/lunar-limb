@@ -2202,3 +2202,221 @@ body {
 	clip: rect(0 0 0 0);
 	white-space: nowrap;
 }
+
+
+/* ---- Workflow de Git ---------------------------------------------------- */
+
+.icon-btn--labelled {
+	width: auto;
+	gap: 0.35rem;
+	padding-inline: 0.5rem;
+}
+
+.toolbar-branch {
+	font-size: 0.72rem;
+	max-width: 12rem;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.git-section {
+	padding: 0.75rem 1rem;
+	border-top: 1px solid var(--editor-border);
+}
+
+.git-section h3 {
+	margin: 0 0 0.5rem;
+	font-size: 0.8rem;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	color: var(--editor-text-dim);
+}
+
+.git-current {
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
+	flex-wrap: wrap;
+	margin-bottom: 0.5rem;
+}
+
+.git-warning,
+.git-impact {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.3rem;
+	font-size: 0.78rem;
+	color: var(--editor-warning, #d79b3b);
+}
+
+.reference-impact-preview {
+	padding: 0.4rem 0.75rem 0.6rem;
+	border-top: 1px solid var(--editor-border, #2a2d33);
+	font-size: 0.76rem;
+	line-height: 1.6;
+}
+
+.reference-impact-head {
+	margin: 0 0 0.3rem;
+	font-weight: 600;
+}
+
+.reference-impact-list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.reference-impact-reason,
+.reference-impact-empty,
+.reference-impact-inline {
+	color: var(--editor-text-muted, #8a8f98);
+}
+
+.reference-impact-error {
+	color: var(--editor-error, #d9534f);
+	font-size: 0.76rem;
+}
+
+.git-impact-items {
+	margin: 0.5rem 0 0;
+	padding: 0;
+	list-style: none;
+	font-size: 0.78rem;
+	line-height: 1.6;
+}
+
+.git-impact-mark {
+	font-size: 0.7rem;
+}
+
+.git-impact-reason,
+.git-impact-via {
+	color: var(--editor-text-muted, #8a8f98);
+}
+
+.git-impact-more {
+	color: var(--editor-text-muted, #8a8f98);
+	font-style: italic;
+}
+
+.git-checklist {
+	margin-top: 0.6rem;
+	font-size: 0.78rem;
+}
+
+.git-checklist summary {
+	cursor: pointer;
+	color: var(--editor-text-muted, #8a8f98);
+}
+
+.git-checklist ul {
+	margin: 0.4rem 0 0;
+	padding-left: 1rem;
+	line-height: 1.6;
+}
+
+.git-test-failures {
+	margin: 0.5rem 0 0;
+	padding-left: 1rem;
+	list-style: disc;
+	font-size: 0.78rem;
+	line-height: 1.5;
+	color: var(--editor-text-muted, #8a8f98);
+}
+
+.git-test-failures code {
+	font-size: 0.74rem;
+	color: var(--editor-text, inherit);
+}
+
+/* O caminho do arquivo fica em fonte monoespaçada: é para ser copiado. */
+.git-test-where {
+	font-family: var(--editor-font-mono, ui-monospace, monospace);
+	font-size: 0.72rem;
+	opacity: 0.85;
+}
+
+.git-row {
+	display: flex;
+	gap: 0.5rem;
+	align-items: center;
+	margin-bottom: 0.5rem;
+}
+
+.git-row input,
+.git-row select,
+.git-row textarea {
+	flex: 1;
+	min-width: 0;
+	padding: 0.35rem 0.5rem;
+	border: 1px solid var(--editor-border);
+	border-radius: 0.3rem;
+	background: var(--editor-bg);
+	color: var(--editor-text);
+	font: inherit;
+}
+
+.git-files {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: grid;
+	gap: 0.2rem;
+	max-height: 14rem;
+	overflow-y: auto;
+}
+
+.git-files li {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	font-size: 0.8rem;
+}
+
+.git-files code {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.git-counts {
+	margin-inline-start: auto;
+	white-space: nowrap;
+}
+
+.git-change {
+	flex: none;
+	min-width: 5.5rem;
+	font-size: 0.7rem;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: var(--editor-text-dim);
+}
+
+.git-change--added { color: #4ea36b; }
+.git-change--removed { color: #d05c5c; }
+.git-change--renamed { color: #6f9bd6; }
+
+.git-add { color: #4ea36b; }
+.git-del { color: #d05c5c; }
+
+.git-score {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+	font-size: 1rem;
+	font-weight: 600;
+}
+
+.git-score--ok { color: #4ea36b; }
+.git-score--bad { color: #d79b3b; }
+
+.git-empty,
+.git-hint,
+.git-summary {
+	font-size: 0.8rem;
+	color: var(--editor-text-dim);
+	margin: 0 0 0.4rem;
+}

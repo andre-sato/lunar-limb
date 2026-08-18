@@ -20,6 +20,7 @@ from typing import Any
 from ..models import Reference
 from ..observability import METRICS, emit
 from ..search.hybrid import IndexUnavailable, JsonDocumentIndex
+from ..trust import read_trust
 from .schemas import (
     FindReferencesInput,
     GetDocumentInput,
@@ -136,10 +137,15 @@ class DocumentationTools:
         cleaned = neutralize(content)
         emit("tool_completed", tool="get_document", path=payload.path)
 
+        # Confiança junto do conteúdo (§12): sem isso o agente não tem como
+        # preferir a página verificada nem avisar que usou uma vencida.
+        trust = read_trust(content)
+
         return {
             "path": meta.path,
             "title": meta.title,
             "content": cleaned.content,
+            "trust": trust.as_dict(),
             "metadata": {
                 "repository": meta.repository,
                 "language": meta.language,

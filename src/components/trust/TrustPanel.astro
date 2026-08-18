@@ -1,0 +1,158 @@
+---
+/**
+ * O que sustenta esta página (§13).
+ *
+ * Fica no fim da página, junto do "esta página foi útil?": é onde a pessoa está
+ * quando decide se acredita no que acabou de ler. No topo, o selo compacto já diz
+ * o estado; aqui ficam as evidências, o responsável e a data.
+ *
+ * O painel só aparece quando há proveniência declarada. Um bloco dizendo "sem
+ * evidência" em toda página que ainda não foi anotada não informaria nada e
+ * treinaria o leitor a ignorar a área inteira — inclusive nas páginas onde ela
+ * tem conteúdo.
+ */
+import { trustForPage } from '../../lib/trust/load';
+import { SOURCE_TYPE_LABEL, STATUS_LABEL, STATUS_MARK } from '../../lib/trust/types';
+
+const entryFilePath = Astro.locals.starlightRoute.entry.filePath;
+const contentRoot = 'src/content/docs/';
+const normalized = entryFilePath?.replaceAll('\\', '/');
+const relativePath = normalized?.startsWith(contentRoot) ? normalized.slice(contentRoot.length) : undefined;
+
+const trust = relativePath ? await trustForPage(relativePath) : undefined;
+const show = trust && trust.claims.length > 0;
+
+const formatDate = (iso?: string) => {
+	if (!iso) return undefined;
+	const date = new Date(iso);
+	if (Number.isNaN(date.getTime())) return iso;
+	// `timeZone: 'UTC'` porque `2026-08-18` é interpretado como meia-noite UTC:
+	// formatar no fuso local mostrava dia 17 para quem está a oeste de Greenwich,
+	// e uma data de verificação que aparece um dia antes do que foi escrito
+	// desmente exatamente o registro que ela deveria sustentar.
+	return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' });
+};
+---
+
+{
+	show && (
+		<section class={`trust-panel trust-panel--${trust.status}`} aria-labelledby="trust-panel-title">
+			<div class="trust-panel-head">
+				<h2 id="trust-panel-title">
+					<span class="trust-mark" aria-hidden="true">
+						{STATUS_MARK[trust.status]}
+					</span>
+					{STATUS_LABEL[trust.status]}
+				</h2>
+				<span class="trust-score" title="Trust Score: validade da fonte, cobertura por teste, frescor e responsável">
+					{trust.score.value}/100
+				</span>
+			</div>
+
+			{trust.lastVerified && <p class="trust-meta">Última verificação: {formatDate(trust.lastVerified)}</p>}
+			{trust.owner && <p class="trust-meta">Responsável: {trust.owner}</p>}
+
+			<details class="trust-evidence">
+				<summary>Evidências ({trust.claims.flatMap((claim) => claim.evidence).length})</summary>
+				<ul>
+					{trust.claims.flatMap((claim) =>
+						claim.evidence.map((item) => (
+							<li>
+								<span class="trust-mark" aria-hidden="true">
+									{STATUS_MARK[item.status]}
+								</span>
+								<strong>{SOURCE_TYPE_LABEL[item.provenance.sourceType]}</strong>{' '}
+								<code>{item.provenance.source}</code>
+								<span class="trust-detail"> {item.detail}</span>
+							</li>
+						))
+					)}
+				</ul>
+			</details>
+
+			{/* O limite do selo, dito na própria página e não em letra pequena:
+			    verificado quer dizer que a evidência confere, não que a frase é
+			    verdadeira. Confundir os dois é o que transforma o selo em conforto
+			    falso. */}
+			<p class="trust-disclaimer">
+				"Verificado" significa que a evidência citada existe e confere — não que a afirmação foi provada.
+			</p>
+		</section>
+	)
+}
+
+<style>
+	.trust-panel {
+		margin-top: 2rem;
+		padding: 0.9rem 1rem;
+		border: 1px solid var(--sl-color-gray-5);
+		border-left: 3px solid var(--sl-color-gray-3);
+		border-radius: 0.4rem;
+		background: var(--sl-color-gray-7, transparent);
+		font-size: var(--sl-text-sm);
+	}
+
+	.trust-panel--verified {
+		border-left-color: var(--sl-color-green);
+	}
+
+	.trust-panel--stale {
+		border-left-color: var(--sl-color-orange);
+	}
+
+	.trust-panel--invalid {
+		border-left-color: var(--sl-color-red);
+	}
+
+	.trust-panel-head {
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: 1rem;
+	}
+
+	.trust-panel h2 {
+		margin: 0;
+		font-size: var(--sl-text-base);
+		font-weight: 600;
+	}
+
+	.trust-score {
+		font-variant-numeric: tabular-nums;
+		color: var(--sl-color-gray-2);
+	}
+
+	.trust-meta {
+		margin: 0.3rem 0 0;
+		color: var(--sl-color-gray-2);
+	}
+
+	.trust-evidence {
+		margin-top: 0.6rem;
+	}
+
+	.trust-evidence summary {
+		cursor: pointer;
+		color: var(--sl-color-gray-2);
+	}
+
+	.trust-evidence ul {
+		margin: 0.4rem 0 0;
+		padding-left: 1.1rem;
+		line-height: 1.7;
+	}
+
+	.trust-detail,
+	.trust-disclaimer {
+		color: var(--sl-color-gray-2);
+	}
+
+	.trust-disclaimer {
+		margin: 0.7rem 0 0;
+		font-size: var(--sl-text-xs);
+	}
+
+	.trust-mark {
+		font-weight: 700;
+	}
+</style>

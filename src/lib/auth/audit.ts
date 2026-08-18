@@ -33,7 +33,21 @@ export type AuditAction =
 	// linguagem não há injeção de prompt nem saída a bloquear, e uma consulta
 	// que não encontra nada é resultado normal, não incidente. O conteúdo da
 	// busca nunca entra no log.
-	| 'CHAT_RATE_LIMITED';
+	| 'CHAT_RATE_LIMITED'
+	// Um guardrail que interveio: entrada recusada, contexto filtrado, citação
+	// inventada, saída bloqueada. O evento registra o tipo, nunca o conteúdo.
+	| 'CHAT_GUARDRAIL'
+	// Health Center: alerta disparado à mão e apagamento do texto das perguntas
+	// guardadas. As duas falam para fora ou destroem dado, e por isso ficam no log.
+	| 'HEALTH_ALERT_SENT'
+	| 'HEALTH_QUESTIONS_FORGOTTEN'
+	// Workflow de Git: estas escrevem no repositório, e quem trocou de branch
+	// mudou o que todo o editor mostra.
+	| 'BRANCH_CREATED'
+	| 'BRANCH_SWITCHED'
+	| 'BRANCH_RENAMED'
+	| 'BRANCH_DELETED'
+	| 'PULL_REQUEST_PREPARED';
 
 export interface AuditEvent {
 	id: string;

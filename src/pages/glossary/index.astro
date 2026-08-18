@@ -1,0 +1,159 @@
+---
+/**
+ * Índice do glossário (§19).
+ *
+ * Lista os termos agrupados pela primeira letra, com busca que filtra no
+ * cliente. A busca é local porque a lista inteira já está na página: pedir ao
+ * servidor a cada tecla seria mais lento que filtrar o que está na tela.
+ */
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+import { loadGlossary } from '../../lib/glossary/loader';
+import { toPlainText } from '../../lib/glossary/remark-glossary';
+
+export const prerender = true;
+
+const definitions = (await loadGlossary()).sort((left, right) =>
+	left.term.localeCompare(right.term, 'pt-BR', { sensitivity: 'base' })
+);
+
+/** Agrupa pela inicial, sem acento — `Ãgil` e `Agil` na mesma letra. */
+const groups = new Map<string, typeof definitions>();
+for (const definition of definitions) {
+	const letter = definition.term
+		.normalize('NFD')
+		.replace(/[̀-ͯ]/g, '')
+		.charAt(0)
+		.toUpperCase();
+	const list = groups.get(letter) ?? [];
+	list.push(definition);
+	groups.set(letter, list);
+}
+---
+
+<StarlightPage
+	frontmatter={{
+		title: 'Glossário',
+		description: 'Terminologia canônica do portal: siglas, termos técnicos e nomenclatura interna.',
+		tableOfContents: false,
+	}}
+>
+	<p>
+		{definitions.length} termos. Eles são destacados automaticamente nas páginas da
+		documentação, e a mesma lista alimenta a verificação de consistência do linter.
+	</p>
+
+	<input
+		type="search"
+		class="glossary-search"
+		placeholder="Buscar termo…"
+		aria-label="Buscar termo no glossário"
+		data-glossary-search
+	/>
+
+	<p class="glossary-empty" data-glossary-empty hidden>Nenhum termo corresponde à busca.</p>
+
+	{[...groups.entries()].map(([letter, entries]) => (
+		<section class="glossary-group" data-glossary-group>
+			<h2>{letter}</h2>
+			<dl>
+				{entries.map((definition) => (
+					<div
+						class="glossary-entry"
+						data-glossary-entry
+						data-search={[definition.term, ...definition.aliases].join(' ').toLowerCase()}
+					>
+						<dt>
+							<a href={`/glossary/${definition.id}/`}>{definition.term}</a>
+							{!definition.enabled && <span class="glossary-flag">destaque desligado</span>}
+						</dt>
+						<dd>
+							{toPlainText(definition.definition, 200)}
+							{definition.aliases.length > 0 && (
+								<span class="glossary-aliases">Também: {definition.aliases.join(', ')}</span>
+							)}
+						</dd>
+					</div>
+				))}
+			</dl>
+		</section>
+	))}
+</StarlightPage>
+
+<script>
+	const search = document.querySelector<HTMLInputElement>('[data-glossary-search]');
+	const empty = document.querySelector<HTMLElement>('[data-glossary-empty]');
+
+	search?.addEventListener('input', () => {
+		const query = search.value.trim().toLowerCase();
+		let visible = 0;
+
+		for (const entry of document.querySelectorAll<HTMLElement>('[data-glossary-entry]')) {
+			const matches = query === '' || (entry.dataset.search ?? '').includes(query);
+			entry.hidden = !matches;
+			if (matches) visible++;
+		}
+
+		// Uma letra sem termos visíveis vira um título solto; some com ela.
+		for (const group of document.querySelectorAll<HTMLElement>('[data-glossary-group]')) {
+			const anyVisible = [...group.querySelectorAll<HTMLElement>('[data-glossary-entry]')].some(
+				(entry) => !entry.hidden
+			);
+			group.hidden = !anyVisible;
+		}
+
+		if (empty) empty.hidden = visible > 0;
+	});
+</script>
+
+<style>
+	.glossary-search {
+		width: 100%;
+		padding: 0.5rem 0.7rem;
+		margin-block: 1rem;
+		border: 1px solid var(--sl-color-gray-5);
+		border-radius: 0.4rem;
+		background: var(--sl-color-black);
+		color: var(--sl-color-white);
+		font-size: var(--sl-text-base);
+	}
+
+	.glossary-group h2 {
+		font-size: var(--sl-text-lg);
+		margin-block: 1.5rem 0.5rem;
+		padding-block-end: 0.3rem;
+		border-block-end: 1px solid var(--sl-color-gray-5);
+	}
+
+	.glossary-group dl {
+		margin: 0;
+		display: grid;
+		gap: 0.75rem;
+	}
+
+	.glossary-entry dt {
+		font-weight: 600;
+	}
+
+	.glossary-entry dd {
+		margin: 0.15rem 0 0;
+		color: var(--sl-color-gray-2);
+		font-size: var(--sl-text-sm);
+	}
+
+	.glossary-aliases {
+		display: block;
+		margin-top: 0.2rem;
+		font-size: var(--sl-text-xs);
+		color: var(--sl-color-gray-3);
+	}
+
+	.glossary-flag {
+		margin-inline-start: 0.5rem;
+		font-size: var(--sl-text-xs);
+		font-weight: 400;
+		padding: 0.05rem 0.4rem;
+		border-radius: 999px;
+		background: var(--sl-color-gray-6);
+		color: var(--sl-color-gray-2);
+	}
+</style>

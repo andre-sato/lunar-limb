@@ -1,0 +1,67 @@
+---
+/**
+ * Ponte entre a especificação e o Explorer (§2, §3).
+ *
+ * O componente lê o OpenAPI no servidor, encontra a operação pedida e entrega o
+ * modelo pronto para a ilha React. Assim a página não carrega o documento
+ * inteiro para o navegador, e a interface recebe só a operação que vai mostrar.
+ *
+ * Uso na documentação:
+ *
+ *     <TryIt schema="portal-api.yaml" operation="listBranches" />
+ */
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
+import { parseOpenApi } from '../../lib/api-explorer/model';
+import ApiExplorer from './ApiExplorer';
+
+interface Props {
+	/** Nome do arquivo em `src/schemas/`. */
+	schema: string;
+	/** `operationId` da operação. */
+	operation: string;
+}
+
+const { schema, operation } = Astro.props;
+
+let error: string | null = null;
+let model = null;
+
+try {
+	const raw = await readFile(path.resolve(process.cwd(), 'src/schemas', schema), 'utf-8');
+	model = parseOpenApi(raw);
+} catch (caught) {
+	error = caught instanceof Error ? caught.message : 'Não foi possível ler a especificação.';
+}
+
+const found = model?.operations.find((candidate) => candidate.id === operation) ?? null;
+
+// Erro visível na página, e não silêncio: um Explorer que some sem explicação
+// faz a pessoa procurar o problema no lugar errado.
+if (model && !found) {
+	error = `A operação "${operation}" não existe em ${schema}.`;
+}
+---
+
+{error ? (
+	<div class="explorer-error">
+		<strong>API Explorer indisponível.</strong> {error}
+	</div>
+) : (
+	<ApiExplorer
+		client:visible
+		operation={found!}
+		servers={model!.servers}
+		schemes={model!.securitySchemes}
+	/>
+)}
+
+<style>
+	.explorer-error {
+		margin: 1rem 0;
+		padding: 0.75rem 1rem;
+		border: 1px solid var(--sl-color-red);
+		border-radius: 0.5rem;
+		font-size: var(--sl-text-sm);
+	}
+</style>

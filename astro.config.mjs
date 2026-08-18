@@ -16,6 +16,10 @@ import { portal } from './src/config/portal';
 import { rehypeBasePath } from './src/lib/deploy/rehype-base-path';
 import starlightDocSearch from '@astrojs/starlight-docsearch';
 import { algoliaCredentials } from './src/config/search';
+import { getGlossaryIndex } from './src/lib/glossary/loader';
+import { describeConflicts } from './src/lib/glossary/index-build';
+import { remarkGlossary } from './src/lib/glossary/remark-glossary';
+import { loadRegistry } from './src/lib/versions/load';
 
 // `monaco-vim` (Fase 5) importa caminhos internos como
 // `monaco-editor/esm/vs/editor/editor.api`. O campo `exports` do monaco-editor
@@ -73,17 +77,23 @@ function openApiPlugins() {
  * ativar.
  */
 function versionPlugins() {
-	const file = fileURLToPath(new URL('./versions.json', import.meta.url));
-	if (!existsSync(file)) return [];
+	// O registro é a fonte: o plugin recebe o que está declarado em
+	// `versions.yml`, em vez de existir um segundo arquivo dizendo outra coisa.
+	// Um erro no registro **derruba** o build de propósito — um seletor que leva
+	// a 404 é pior que um build vermelho.
+	const registry = loadRegistry();
 
-	try {
-		const declared = JSON.parse(readFileSync(file, 'utf-8'));
-		if (!Array.isArray(declared) || declared.length === 0) return [];
-		return [starlightVersions({ versions: declared.map((slug) => ({ slug: String(slug) })) })];
-	} catch {
-		// `versions.json` inválido não deve derrubar o build do portal inteiro.
-		return [];
-	}
+	// A atual é a raiz do site; o plugin cuida das outras. Com só a atual
+	// declarada não há nada a versionar — e o plugin recusa lista vazia, o que
+	// derrubaria o build de quem acabou de começar a usar o registro.
+	const versioned = registry.selectable.filter((version) => version.id !== registry.current?.id);
+	if (versioned.length === 0) return [];
+
+	return [
+		starlightVersions({
+			versions: versioned.map((version) => ({ slug: version.id, label: version.label })),
+		}),
+	];
 }
 
 /**
@@ -156,6 +166,23 @@ function docSearchStub() {
  *
  * Vazio para site de usuário/organização ou domínio próprio, onde a raiz é `/`.
  */
+/**
+ * Glossário: índice carregado uma vez, no build (§28).
+ *
+ * Montar o índice por página custaria uma leitura de disco por arquivo. Aqui ele
+ * é montado uma vez e o transformer recebe a referência pronta.
+ *
+ * Forma disputada por duas definições vira aviso no build (§18): em silêncio,
+ * uma das duas simplesmente nunca apareceria, e ninguém descobriria olhando a
+ * página.
+ */
+const glossaryIndex = await getGlossaryIndex({ fresh: true });
+for (const conflict of describeConflicts(glossaryIndex)) {
+	console.warn(`
+[glossário] ${conflict}
+`);
+}
+
 const basePath = (process.env.PAGES_BASE || '/').trim();
 const normalizedBase = basePath === '' || basePath === '/' ? '/' : `/${basePath.replace(/^\/+|\/+$/g, '')}/`;
 
@@ -247,6 +274,8 @@ export default defineConfig({
 						'/tags',
 						'/tags/**',
 						'/atualizacoes',
+						'/glossary',
+						'/glossary/**',
 						'/warp',
 						'/warp.xml',
 					],
@@ -319,6 +348,7 @@ export default defineConfig({
 		}),
 	],
 	markdown: {
+		remarkPlugins: [[remarkGlossary, { index: glossaryIndex }]],
 		// Só entra em cena quando o site é servido sob um subcaminho: a Astro
 		// reescreve os links que ela gera, mas não os escritos à mão no Markdown.
 		rehypePlugins: normalizedBase === '/' ? [] : [[rehypeBasePath, { base: normalizedBase }]],

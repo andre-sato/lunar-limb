@@ -19,6 +19,8 @@ dependencies = [
     "rich>=13.7",
     "python-dotenv>=1.0",
     "httpx>=0.27",
+    # As especificacoes e o frontmatter do portal sao YAML.
+    "pyyaml>=6.0",
 ]
 
 [project.optional-dependencies]

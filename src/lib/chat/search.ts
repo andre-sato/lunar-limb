@@ -20,7 +20,14 @@ import { trimConversation } from './store';
 import type { ChatUser, Conversation, Excerpt, RetrievedChunk, SearchAnswer } from './types';
 
 /** Teto da consulta. Uma pergunta de busca não tem por que ser um texto longo. */
-export const MAX_QUERY_CHARS = 500;
+/**
+ * Teto da pergunta.
+ *
+ * Era 500 quando a busca só casava palavras: uma consulta lexical não melhora
+ * com mais texto. Com o assistente redigindo, a pergunta carrega contexto — o
+ * que a pessoa tentou, o erro que recebeu — e cortar isso empobrece a resposta.
+ */
+export const MAX_QUERY_CHARS = 2000;
 
 export class ChatError extends Error {
 	constructor(

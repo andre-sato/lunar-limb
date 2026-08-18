@@ -93,10 +93,29 @@ async def connected(config: Config) -> AsyncIterator[DocumentationClient]:
 
 
 class TestToolsOverMCP:
-    async def test_as_quatro_tools_estao_expostas(self, indexed: Config):
+    async def test_a_superficie_de_tools_esta_exposta(self, indexed: Config):
+        # A lista inteira, e nao um subconjunto: adicionar uma tool sem pensar
+        # na superficie exposta a um agente e como adicionar um endpoint publico
+        # sem revisar. Este teste obriga a decisao a ser explicita.
         async with connected(indexed) as client:
-            tools = await client.list_tools()
-            assert set(tools) == {"search_docs", "get_document", "list_documents", "find_references"}
+            assert set(await client.list_tools()) == {
+                # Documentacao
+                "search_docs",
+                "get_document",
+                "get_page",
+                "get_section",
+                "list_documents",
+                "find_references",
+                # Glossario
+                "get_glossary_term",
+                "search_glossary",
+                # API
+                "search_api",
+                "get_api_endpoint",
+                # Changelog e qualidade
+                "get_changelog",
+                "check_documentation",
+            }
 
     async def test_search_docs_encontra_o_documento_certo(self, indexed: Config):
         async with connected(indexed) as client:

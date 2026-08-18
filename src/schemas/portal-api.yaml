@@ -1,0 +1,191 @@
+openapi: 3.1.0
+
+info:
+  title: API do portal
+  version: '1.0.0'
+  description: |
+    Endpoints do próprio portal, usados pela interface.
+
+    Esta especificação existe por dois motivos: documentar o que o portal expõe
+    e dar ao API Explorer uma API **real** para chamar. Uma especificação de
+    exemplo com endpoints inventados demonstraria a ferramenta e mentiria sobre
+    o produto.
+
+    Quase tudo aqui exige sessão. O Explorer roda no mesmo domínio, então o
+    cookie de sessão acompanha a chamada quando você está autenticado.
+
+servers:
+  - url: /api
+    description: O próprio portal
+
+paths:
+  /auth/me:
+    get:
+      operationId: getCurrentUser
+      summary: Quem está autenticado
+      description: Devolve o usuário da sessão atual, ou 401 quando não há sessão.
+      tags: [autenticação]
+      responses:
+        '200':
+          description: Sessão válida
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    type: object
+                    properties:
+                      id: { type: string }
+                      email: { type: string }
+                      role: { type: string, enum: [viewer, editor, admin] }
+        '401':
+          description: Sem sessão
+
+  /chat/message:
+    post:
+      operationId: searchDocumentation
+      summary: Busca conversacional na documentação
+      description: |
+        Recebe uma pergunta em linguagem natural e devolve um resumo extrativo,
+        os trechos encontrados e os links das páginas. Não há modelo de
+        linguagem: o resumo cita a documentação.
+      tags: [documentação]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [message]
+              properties:
+                message:
+                  type: string
+                  description: A pergunta, em português, inglês ou espanhol.
+                  example: como autenticar na API
+                conversationId:
+                  type: string
+                  description: Continua uma conversa existente.
+      responses:
+        '200':
+          description: Resposta com trechos e fontes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+                  excerpts: { type: array, items: { type: object } }
+                  sources: { type: array, items: { type: object } }
+        '401':
+          description: Sem sessão
+        '429':
+          description: Limite de uso atingido
+
+  /editor/git/branches:
+    get:
+      operationId: listBranches
+      summary: Branches do repositório
+      description: Lista as branches locais, indicando a atual e a padrão.
+      tags: [workflow]
+      responses:
+        '200':
+          description: Lista de branches
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  current: { type: string }
+                  defaultBranch: { type: string }
+                  branches:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name: { type: string }
+                        ahead: { type: integer }
+                        behind: { type: integer }
+        '401':
+          description: Sem sessão
+        '403':
+          description: Sem a permissão `editor.access`
+
+  /editor/lint:
+    post:
+      operationId: lintContent
+      summary: Analisa um texto Markdown
+      description: |
+        Roda o linter sobre o conteúdo enviado e devolve a nota, o veredito do
+        quality gate e os apontamentos com linha e coluna.
+      tags: [qualidade]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content]
+              properties:
+                content:
+                  type: string
+                  description: O Markdown a analisar, com frontmatter.
+                  example: "---\ntitle: Teste\ndescription: Uma página curta para ver o linter responder.\n---\n\nTexto de exemplo com uma frase inteira para o analisador medir.\n"
+                path:
+                  type: string
+                  description: Caminho relativo, usado para regras por tipo de página.
+      responses:
+        '200':
+          description: Resultado da análise
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  score: { type: number }
+                  gate: { type: string, enum: [pass, warning, fail] }
+                  findings: { type: array, items: { type: object } }
+        '401':
+          description: Sem sessão
+
+  /feedback:
+    post:
+      operationId: sendFeedback
+      summary: Registra o feedback de uma página
+      description: Guarda o voto de utilidade de uma página da documentação.
+      tags: [documentação]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [path, vote]
+              properties:
+                path:
+                  type: string
+                  description: Caminho da página avaliada.
+                  example: /guides/getting-started/
+                vote:
+                  type: string
+                  enum: [up, down]
+      responses:
+        '200':
+          description: Registrado
+        '400':
+          description: Corpo inválido
+
+security:
+  - sessionCookie: []
+
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: portal_session
+      description: |
+        Cookie de sessão do portal, definido em `POST /api/auth/login`. Como o
+        Explorer roda no mesmo domínio, o navegador o envia sozinho — não é
+        preciso preencher nada aqui quando você já está autenticado.

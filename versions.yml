@@ -1,0 +1,21 @@
+# Registro de versões da documentação.
+#
+# Este arquivo é a fonte única sobre quais versões existem: o seletor, o aviso
+# de versão obsoleta, o plugin de versionamento e — à medida que a integração
+# avançar — o linter, o assistente e o MCP leem daqui.
+#
+# Estados possíveis, na ordem do ciclo de vida:
+#
+#   draft       ainda sendo escrita, fora do seletor
+#   current     a versão que o portal mostra por padrão (só pode haver uma)
+#   maintained  recebe correções
+#   deprecated  não recebe mais; mostra aviso
+#   archived    permanece no ar para consulta, fora do seletor
+#
+# Uma versão vem de uma `branch` ou de uma `tag`, nunca das duas.
+
+versions:
+  - id: v1
+    label: Versão 1
+    status: current
+    branch: master
