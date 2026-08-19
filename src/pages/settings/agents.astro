@@ -1,0 +1,14 @@
+---
+import SettingsLayout from '../../layouts/SettingsLayout.astro';
+import AgentsPanel from '../../components/settings/AgentsPanel';
+
+export const prerender = false;
+---
+
+<SettingsLayout
+	title="Agents"
+	description="Agentes de documentação: pesquisa, rascunho, validação — e aprovação humana antes de qualquer publicação."
+	active="agents"
+>
+	<AgentsPanel client:load />
+</SettingsLayout>

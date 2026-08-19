@@ -276,7 +276,11 @@ async function lastCommitFor(file: string): Promise<{ date: string; subject: str
 		const { stdout } = await run('git', ['log', '-1', '--format=%ad%x1f%s', '--date=short', '--', file], {
 			cwd: process.cwd(),
 		});
-		const [date, subject] = stdout.trim().split('');
+		// `\x1f` escrito como escape, e não como o byte literal: um separador
+		// invisível no código-fonte some em qualquer ferramenta que normalize o
+		// arquivo, e o resultado foi um `split` em string vazia — que devolveu
+		// caractere a caractere e produziu a data "2" com o assunto "0".
+		const [date, subject] = stdout.trim().split('\x1f');
 		return date ? { date, subject: subject ?? '' } : undefined;
 	} catch {
 		return undefined;

@@ -48,6 +48,7 @@ Arquivos Markdown e MDX dentro de `src/content/docs/` são publicados automatica
 | `npm run twin` | Digital Twin: cobertura, não documentados, obsoletos, impacto. |
 | `npm run contract` | Contract Testing: o exemplo representa o contrato de verdade? |
 | `npm run gaps` | Gap Mining: o que as pessoas procuram e não encontram. |
+| `npm run agent` | Agentes de documentação: pesquisa, rascunho, validação. |
 | `npm run docs:asyncapi` | Gera páginas de referência a partir de especificações AsyncAPI. |
 | `npm run user:create` | Cria um usuário do portal (ver *Usuários e controle de acesso*). |
 
@@ -299,6 +300,20 @@ Seis tipos, cada um levando a uma ação diferente: falta documentação, incomp
 Rodar contra o portal expôs dois erros de medição que só aparecem com dados reais. **Cobertura não é relevância de busca**: o BM25 normaliza pelo melhor resultado, então "como rotacionar a chave de API" — assunto sobre o qual não existe uma linha aqui — foi classificada como *difícil de achar* com 100% de cobertura; agora o que se mede é a presença dos termos da pergunta nas páginas. E o agrupamento precisava de **dois** conjuntos de termos: a interseção admite variações no grupo, mas medir cobertura por ela reduzia "rotacionar a chave de api" a `chave, api`, que o portal documenta.
 
 A privacidade segue a decisão anterior: texto das perguntas desligado por padrão, e mesmo ligado só a pergunta **sem resposta**, sem quem perguntou, truncada e com credenciais redigidas. Desligado, a camada funciona com os sinais estruturais e diz na primeira linha que está trabalhando com menos. Guia em [/guides/lacunas-de-documentacao/](src/content/docs/guides/lacunas-de-documentacao.mdx).
+
+## Agentes de documentação
+
+O objetivo **não é outro chatbot**. Um agente genérico produz "aqui está uma documentação sobre autenticação" e não garante que a implementação foi consultada, que a API está correta nem que os exemplos funcionam. Aqui, cinco agentes especializados usam as ferramentas que o portal já tem — Digital Twin, Content Graph, glossário, linter, testes, contratos, proveniência — e produzem mudanças **verificáveis**.
+
+**Quatro dos cinco funcionam sem provedor nenhum.** Sem chave, o Writer não inventa prosa: produz um rascunho estruturado com o que se sabe, de onde veio e onde falta escrever, e a execução segue por revisão, testes e auditoria normalmente.
+
+**Nada é publicado automaticamente**, mesmo com todos os testes verdes — e aprovar não publica: o conteúdo continua no workspace isolado até ser aplicado. Três condições param a execução antes do fim: fontes que discordam (escolher uma em silêncio propagaria o conflito), pesquisa sem evidência (preencher com suposição é o que a camada existe para evitar) e regressão de saúde.
+
+Os guardrails da §25 são **código executável**, não instrução de prompt: allowlist de ferramentas por agente (só o Writer escreve, e só no workspace; nenhum agente tem execução de comando), caminhos restritos a `src/content/` em `.md`/`.mdx` com `data/`, `.env`, `src/lib/auth/` e configuração recusados até para leitura, e travessia de diretório rejeitada em vez de normalizada.
+
+O último guardrail nasceu de um defeito real: a primeira execução contra o portal **substituiu a página de autenticação inteira por um esqueleto** — e passou por revisão, testes e auditoria, porque esqueleto bem formado é Markdown válido. Saíram duas correções: o Writer sem modelo passou a ser aditivo sobre página existente, e o orquestrador ganhou um guardrail de descarte que vale para qualquer origem do texto, inclusive um modelo.
+
+Conteúdo recuperado é tratado como **dado, nunca instrução** — pela mesma sanitização que o assistente usa, porque duas defesas com regras diferentes significam que a mais fraca é a que vale. E não há memória autônoma persistente: o estado pertence à execução e morre com ela. Guia em [/guides/agentes-de-documentacao/](src/content/docs/guides/agentes-de-documentacao.mdx).
 
 ## Feedback de página
 

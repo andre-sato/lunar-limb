@@ -25,7 +25,7 @@ import { research } from './researcher';
 import { write } from './writer';
 import { audit, review, test } from './validators';
 import { AgentWorkspace } from './workspace';
-import { PolicyViolation, refuse } from './policy';
+import { checkContentRemoval, PolicyViolation, refuse } from './policy';
 import { saveRun } from './store';
 import {
 	DEFAULT_ORCHESTRATOR_CONFIG,
@@ -159,6 +159,18 @@ export async function runTask(task: DocumentationTask, options: RunOptions): Pro
 
 		if (run.changes.length > config.maxFiles) {
 			return stop('blocked', `A execução tentou alterar ${run.changes.length} arquivos; o teto é ${config.maxFiles}.`);
+		}
+
+		// Descarte de conteúdo existente (§25). Vale para qualquer origem do texto:
+		// um modelo também pode devolver uma página inteira nova no lugar de uma boa.
+		for (const change of run.changes) {
+			const removal = checkContentRemoval(change.before, change.after);
+			if (!removal.allowed) {
+				run.steps.push(
+					finish(step('orchestrator', 'Guardrail de remoção'), 'blocked', { output: { path: change.path } })
+				);
+				return stop('blocked', `\`${change.path}\`: ${removal.reason}`);
+			}
 		}
 
 		run.steps[run.steps.length - 1] = finish(entry, 'completed', {

@@ -181,6 +181,48 @@ export function checkReadPath(target: string): PathCheck {
 	return { allowed: true };
 }
 
+/**
+ * Uma alteração está removendo conteúdo?
+ *
+ * A §25 proíbe "remover conteúdo sem autorização", e a leitura ingênua disso é
+ * "não apagar arquivo". Mas substituir uma página inteira por outro texto remove
+ * o conteúdo do mesmo jeito — só que passa despercebido no meio de um diff.
+ *
+ * Este guardrail existe porque a primeira execução real contra o portal fez
+ * exatamente isso: o Writer, sem modelo configurado, trocou uma página de
+ * autenticação completa por um esqueleto de rascunho. Todos os testes passaram,
+ * a revisão passou, e o resultado teria apagado conteúdo bom se alguém aprovasse
+ * sem ler.
+ *
+ * O limite é sobre **quanto do original sobreviveu**, não sobre o tamanho do
+ * texto novo: um agente pode legitimamente reescrever uma página inteira com
+ * conteúdo melhor, e nesse caso as linhas originais reaparecem reformuladas. O
+ * que se recusa é o descarte.
+ */
+export function checkContentRemoval(before: string | undefined, after: string, threshold = 0.5): PathCheck {
+	if (before === undefined || before.trim() === '') return { allowed: true };
+
+	const originalLines = before
+		.split('\n')
+		.map((line) => line.trim())
+		.filter((line) => line.length > 20);
+
+	if (originalLines.length === 0) return { allowed: true };
+
+	const survivors = originalLines.filter((line) => after.includes(line)).length;
+	const kept = survivors / originalLines.length;
+
+	if (kept >= threshold) return { allowed: true };
+
+	return {
+		allowed: false,
+		reason:
+			`A alteração descarta ${Math.round((1 - kept) * 100)}% do conteúdo existente ` +
+			'(sobrevivem ' +
+			`${survivors} de ${originalLines.length} linhas). Remover conteúdo exige autorização humana explícita.`,
+	};
+}
+
 // ---------------------------------------------------------------------------
 // Operações proibidas (§25)
 // ---------------------------------------------------------------------------

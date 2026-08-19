@@ -136,8 +136,8 @@ async function recentCommits(limit = 30): Promise<Array<{ commit: string; subjec
 		let current: { commit: string; subject: string; files: string[] } | null = null;
 
 		for (const line of stdout.split(/\r?\n/)) {
-			if (line.includes('')) {
-				const [commit, subject] = line.split('');
+			if (line.includes('\x1f')) {
+				const [commit, subject] = line.split('\x1f');
 				current = { commit, subject, files: [] };
 				commits.push(current);
 				continue;

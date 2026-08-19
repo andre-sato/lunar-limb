@@ -84,6 +84,7 @@ function tokenize(text: string): string[] {
 // ---------------------------------------------------------------------------
 
 const PLACEHOLDER = '<!-- ESCREVER: sem evidência suficiente para redigir este trecho -->';
+const MDX_PLACEHOLDER = '{/* ESCREVER: sem evidência suficiente para redigir este trecho */}';
 
 /**
  * O rascunho sem modelo.
@@ -146,6 +147,63 @@ function capitalize(text: string): string {
 
 // ---------------------------------------------------------------------------
 // Redação
+/**
+ * Acrescenta o que a pesquisa descobriu ao fim da página, sem tocar no que existe.
+ *
+ * A seção é claramente marcada como rascunho de agente. Ela não se mistura ao
+ * texto publicado, e quem revisa decide o que aproveitar — o que é o oposto de
+ * uma reescrita silenciosa no meio do documento.
+ */
+export function appendEvidenceSection(
+	existing: string,
+	task: DocumentationTask,
+	research: ResearchResult,
+	reusable: ReadonlyArray<{ id: string; title?: string }>,
+	format: 'md' | 'mdx' = 'md'
+): string {
+	// Markdown e MDX não comentam do mesmo jeito: `<!-- -->` é comentário em `.md`
+	// e derruba o build em `.mdx`, e `{/* */}` aparece como texto literal em `.md`.
+	// A camada de proveniência aprendeu isso quebrando o build; aqui já nasce certo.
+	const note = 'RASCUNHO DE AGENTE — revise, aproveite o que servir e apague esta seção.';
+	const comment = format === 'mdx' ? `{/* ${note} */}` : `<!-- ${note} -->`;
+
+	const lines: string[] = [
+		existing.trimEnd(),
+		'',
+		comment,
+		'',
+		'## Apurado pelo agente',
+		'',
+		`Tarefa: ${task.instruction}`,
+		'',
+	];
+
+	const strong = research.facts.filter((fact) => fact.confidence >= 0.8);
+
+	if (strong.length > 0) {
+		lines.push('Fatos com fonte:', '');
+		for (const fact of strong) lines.push(`- ${fact.fact} _(${fact.source})_`);
+		lines.push('');
+	}
+
+	if (reusable.length > 0) {
+		lines.push(
+			'Blocos reutilizáveis que já cobrem parte do assunto — prefira incluí-los a repetir o texto:',
+			'',
+			...reusable.map((block) => `- \`${block.id}\`${block.title ? ` — ${block.title}` : ''}`),
+			''
+		);
+	}
+
+	if (research.unknowns.length > 0) {
+		lines.push('Perguntas que a pesquisa não respondeu:', '', ...research.unknowns.map((unknown) => `- ${unknown}`), '');
+	}
+
+	lines.push(format === 'mdx' ? MDX_PLACEHOLDER : PLACEHOLDER);
+
+	return lines.join('\n') + '\n';
+}
+
 // ---------------------------------------------------------------------------
 
 export async function write(
@@ -189,6 +247,15 @@ export async function write(
 			// rascunho estruturado que uma execução perdida.
 			content = draftFromEvidence(task, research, reusable, glossaryTerms);
 		}
+	} else if (existing) {
+		// Sem modelo e com página existente, o rascunho é **aditivo**.
+		//
+		// A primeira execução real trocou uma página de autenticação completa por um
+		// esqueleto — e passou por revisão e testes, porque um esqueleto bem formado
+		// é markdown válido. Um agente que não consegue redigir não tem por que
+		// descartar o que já estava escrito; ele acrescenta o que descobriu, marcado,
+		// e deixa a redação para quem revisa.
+		content = appendEvidenceSection(existing, task, research, reusable, relative.endsWith('.mdx') ? 'mdx' : 'md');
 	} else {
 		content = draftFromEvidence(task, research, reusable, glossaryTerms);
 	}
