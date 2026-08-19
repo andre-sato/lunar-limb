@@ -23,6 +23,7 @@
 		"governance": "tsx scripts/governance.ts",
 		"analytics": "tsx scripts/analytics.ts",
 		"ai:eval": "tsx scripts/ai-eval.ts",
+		"graph": "tsx scripts/graph.ts",
 		"docs:asyncapi": "tsx scripts/asyncapi-to-docs.ts",
 		"build:pages": "tsx scripts/build-pages.ts",
 		"user:create": "tsx scripts/create-user.ts"

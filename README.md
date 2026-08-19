@@ -54,6 +54,7 @@ Arquivos Markdown e MDX dentro de `src/content/docs/` são publicados automatica
 | `npm run governance` | Governança: donos, revisões pendentes, aprovações e auditoria. |
 | `npm run analytics` | Observabilidade de leitura: busca, jornadas, abandono e lacunas comportamentais. |
 | `npm run ai:eval` | Avaliação do assistente: conjuntos de perguntas, métricas verificáveis e regressão. |
+| `npm run graph` | Knowledge Graph: consulta, impacto e frescor. |
 | `npm run docs:asyncapi` | Gera páginas de referência a partir de especificações AsyncAPI. |
 | `npm run user:create` | Cria um usuário do portal (ver *Usuários e controle de acesso*). |
 
@@ -372,6 +373,14 @@ Mede o assistente contra conjuntos de perguntas versionados em `evals/`. A camad
 Métrica que não se aplica fica fora da média, nunca entra como zero. Sem `ANTHROPIC_API_KEY` a corrida mede recuperação, não resposta gerada, e os casos adversariais aparecem como não avaliáveis — sem modelo os guardrails não rodam, e reprová-los ali seria alarme falso.
 
 Em `npm run ai:eval` e em Settings → AI Evaluation.
+
+## Knowledge Graph
+
+Estende o Digital Twin com time, release, lacuna e contrato — **não** é um segundo grafo: duas estruturas com as mesmas entidades divergiriam na primeira semana.
+
+Nem toda aresta propaga impacto. Se um endpoint muda, as páginas que o documentam são afetadas; a especificação que o define não é. Quando uma camada não carrega, o grafo é montado sem ela e declara a degradação, porque um grafo sem a governança responde "ninguém é dono disto" com a mesma confiança de um completo.
+
+Em `npm run graph` e em Settings → Knowledge Graph.
 
 ## Feedback de página
 

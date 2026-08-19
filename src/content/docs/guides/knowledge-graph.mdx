@@ -1,0 +1,78 @@
+---
+title: Knowledge Graph
+description: Código, APIs, documentação, times, lacunas e contratos navegáveis como conhecimento relacionado — e por que ele não é um segundo grafo.
+sidebar:
+  order: 23
+tags: [guia, qualidade, portal]
+owner: Time de Documentação
+audiences: [developer, product]
+governance:
+  owner:
+    type: team
+    id: documentation
+  review:
+    interval: 180d
+    at: 2026-08-19
+    by: mestre
+---
+
+Três perguntas que só um grafo responde:
+
+- Que documentos são afetados se eu alterar este endpoint?
+- Que APIs não têm documentação?
+- Que páginas dependem deste schema?
+
+## Não é um segundo grafo
+
+A decisão mais importante desta camada é o que ela **não** faz.
+
+O [Digital Twin](/guides/digital-twin/) já indexa página, endpoint, schema, código, exemplo, termo de glossário, teste e versão — com a distinção entre relação declarada e derivada. Construir um grafo paralelo com as mesmas entidades criaria duas respostas para a mesma pergunta, e elas divergiriam na primeira semana.
+
+O Knowledge Graph **estende** o Twin com as entidades que ele não conhece porque elas não vêm do conteúdo nem do código:
+
+| Entidade | De onde vem |
+| --- | --- |
+| Time | Governança |
+| Release | Tags do Git |
+| Lacuna | Gap Mining |
+| Contrato | Contract Testing |
+
+E acrescenta três relações: `owned-by`, `changed-in`, `affected-by`.
+
+O grafo é **derivado**. Se ele discordar do repositório, quem está errado é o grafo — não há nada editável nele, e nenhum comando escreve.
+
+## Nem toda aresta propaga impacto
+
+Se um endpoint muda, as páginas que o **documentam** são afetadas. A especificação que o **define** não é.
+
+Tratar o grafo como não direcionado faria uma mudança num endpoint “afetar” todos os endpoints da mesma especificação — exatamente o erro que o [Documentation-to-Code Loop](/guides/vinculo-com-o-codigo/) cometeu ao marcar arquivo inteiro em vez de linha.
+
+```bash
+npm run graph -- impact "endpoint:GET /api/auth/me"
+```
+
+Cada resultado traz a distância em saltos e o caminho percorrido, em relações. Quando a busca para no limite de profundidade, ela diz isso em vez de deixar parecer que acabou.
+
+## Consultar
+
+```bash
+npm run graph -- query "autenticacao"
+```
+
+Casa por nome, arquivo de origem e identificador, com nome exato antes de casamento parcial. Não há busca semântica aqui de propósito: o grafo responde perguntas **estruturais**, e quem responde em linguagem natural é o assistente, com a busca do portal. Misturar os dois faria o grafo devolver resultados plausíveis e não verificáveis.
+
+## Frescor, e degradação honesta
+
+```bash
+npm run graph -- status
+```
+
+Estados: `fresh`, `stale`, `rebuilding`, `failed`.
+
+Cada camada é opcional. Quando uma falha — a governança não carrega, o repositório não tem tags — o grafo é montado sem ela e o estado **registra a degradação**, porque um grafo montado sem a governança responde “ninguém é dono disto” com a mesma confiança de um grafo completo, e essa é a resposta errada mais fácil de acreditar.
+
+Degradação vence idade: um grafo montado há dez segundos sem a governança continua incompleto, e chamá-lo de `fresh` esconderia isso.
+
+## A tela é uma tabela
+
+Settings → Knowledge Graph mostra busca e tabela, não um desenho. Um grafo de duzentos nós é bonito na captura de tela e inútil para achar o que muda se este endpoint mudar — a mesma escolha do painel do Digital Twin, pelo mesmo motivo.

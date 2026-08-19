@@ -1,0 +1,14 @@
+---
+import SettingsLayout from '../../layouts/SettingsLayout.astro';
+import GraphPanel from '../../components/settings/GraphPanel';
+
+export const prerender = false;
+---
+
+<SettingsLayout
+	title="Knowledge Graph"
+	description="Código, APIs, documentação, times, lacunas e contratos como conhecimento relacionado — e o que muda se isto mudar."
+	active="graph"
+>
+	<GraphPanel client:load />
+</SettingsLayout>
