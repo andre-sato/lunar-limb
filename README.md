@@ -63,140 +63,70 @@ Arquivos Markdown e MDX dentro de `src/content/docs/` são publicados automatica
 
 > **Comece pelo [Manual completo](src/content/docs/guides/manual.mdx)** (publicado em `/guides/manual/`): recursos do portal e do editor, atalhos de teclado, fluxos de trabalho e casos de uso, com diagramas.
 
-## Editor de documentação (`/editor`)
+## Recursos
 
-Além do site publicado, o projeto inclui um editor Markdown/MDX interno em **`/editor`**, feito com Monaco (o mesmo editor do VS Code) e React. Ele lê e grava diretamente os arquivos `.md`/`.mdx` em `src/content/docs` através das rotas de API em `src/pages/api/editor/`.
+Cada recurso tem um guia próprio no portal publicado. As seções abaixo dão o
+resumo e o link.
 
-**Fase 1 — Editor básico:**
-- Editor Monaco com syntax highlighting, multi-cursor, Find/Replace e atalhos padrão (tudo nativo do Monaco).
-- Preview em tempo real, com debounce.
-- File Explorer sobre `src/content/docs/`, cobrindo as três localidades (raiz `pt-BR`, `en/`, `es/`).
-- Criar página (gera o frontmatter mínimo exigido pelo Starlight), excluir página (com confirmação).
-- Autosave com debounce de 1s, indicador de estado (`Não salvo` / `Salvando…` / `Salvo` / `Erro`), aviso ao fechar a aba com alterações pendentes.
-- Split view / apenas editor / apenas preview, modo Zen (`F11`), tema claro/escuro.
+Para ver todos operando ao mesmo tempo sobre um produto fictício, veja a
+**[vitrine de recursos](src/content/docs/exemplos/index.mdx)** (publicada em `/exemplos/`).
 
-**Fase 2 — Markdown/MDX:**
-- **MDX de verdade:** arquivos `.mdx` são parseados com `remark-mdx` (JSX, `{expressões}`, `import`/`export`) em vez de tratados como Markdown puro. Componentes JSX (`<Aside>`, `<Tabs>` etc.) aparecem no preview como uma caixa com o nome/props do componente, com o conteúdo interno (Markdown) renderizado normalmente — o editor **não executa** componentes React/Astro reais (isso exigiria rodar o pipeline de build do Astro dentro da rota de preview).
-- **Frontmatter visual:** painel recolhível acima do editor com os campos `title`, `description`, `sidebar.label` e `sidebar.order`. Qualquer outro campo do frontmatter (customizado ou não coberto pelo formulário) é preservado intacto ao editar pelos campos visuais.
-- **Imagens:** caminhos relativos de imagem (`![](../assets/foo.png)`) são resolvidos a partir da pasta do arquivo aberto e servidos por `GET /api/editor/asset`, escopado a `src/`. Imagens que não existem ficam com uma borda tracejada no preview em vez de um ícone quebrado do navegador.
-- **Validação/erro de sintaxe:** erros de parsing do Markdown/MDX (JSX mal formado, YAML inválido no frontmatter, etc.) aparecem tanto no preview quanto como marcador vermelho na linha correspondente do Monaco, com o motivo do erro.
-- GFM completo (tabelas, task lists, strikethrough, autolinks) — já coberto desde a Fase 1 via `remark-gfm`.
+### Autoria
 
-**Fase 3 — Reuso de conteúdo:**
-- **Conteúdo reutilizável de verdade, não só no editor.** `src/content/snippets/*.md|mdx` é uma nova collection (registrada em `src/content.config.ts`). Um bloco é referenciado com `<ContentBlock id="..." />`; uma página inteira, com `<IncludePage id="..." />`. Esses componentes existem em `src/components/content/` e usam `getEntry`/`render` do `astro:content` — funcionam no **site publicado de verdade**, não são um truque só do preview.
-- **Resolver no preview.** `src/lib/editor/remark-resolve-reusable.ts` é a contraparte do preview: ao encontrar `<ContentBlock>`/`<IncludePage>`, resolve e insere o conteúdo referenciado inline (recursivamente, então um bloco pode incluir outro), com detecção de referência circular e de id inexistente — ambos aparecem como um aviso inline no preview em vez de derrubar a página inteira.
-- **Só funciona em `.mdx`.** `<ContentBlock>`/`<IncludePage>` são JSX — arquivos `.md` puros não têm esse conceito. O editor bloqueia Inserir/Extrair em páginas `.md` com uma mensagem explicando isso; crie a página como `.mdx` (checkbox no modal de nova página) para usar reuso de conteúdo.
-- **Insert Reusable Content** (ícone de peça de quebra-cabeça na toolbar): busca por título/id entre blocos e páginas existentes, insere a tag e — se ainda não existir — adiciona automaticamente a linha `import ContentBlock from '.../ContentBlock.astro'` no topo do arquivo. O autor nunca precisa saber que isso é necessário.
-- **Extract → Reusable Content** (ícone de tesoura): pega a seleção atual no Monaco, cria `src/content/snippets/<id>.md` com ela, e substitui a seleção por `<ContentBlock id="..." />` (com o import, se preciso).
-- **Painel de referências:** abaixo do frontmatter, mostra o que a página atual usa e por quantas páginas ela é usada (clicável, navega direto).
-- **Impact analysis ao excluir:** apagar um bloco/página referenciado por outras mostra quem depende dele antes de confirmar, em vez de quebrar silenciosamente.
-- **File Explorer** agora tem duas árvores empilhadas: "Documentação" e "Conteúdo reutilizável".
+_Escrever, revisar e reaproveitar conteúdo._
 
-**Fase 4 — Content Graph bidirecional:**
-- **Grafo de dependências de verdade.** `src/lib/editor/graph-model.ts` (algoritmos puros) + `src/lib/editor/content-graph.ts` (leitura do filesystem) montam um índice de nós (arquivos) e arestas (cada `<ContentBlock>`/`<IncludePage>`, com linha e coluna). O índice é **derivado**: os arquivos continuam sendo a fonte de verdade, nada é persistido em banco.
-- **Painel de referências nos dois sentidos.** Acima do editor: *Esta página usa* (com o número da linha de cada tag — clicar leva o cursor até lá) e *Usado por N páginas* (clicar abre a página consumidora). Quando o arquivo aberto é consumido por outros, o painel abre com o aviso de impacto antes de você digitar.
-- **Impact analysis com efeito indireto.** Se A usa B e B usa o bloco que você está editando, A também aparece — separado em *diretas* e *indiretas*. Vale para o painel e para o aviso de exclusão.
-- **Detecção de ciclo antes da inserção.** O modal *Inserir conteúdo reutilizável* desabilita, com o motivo, qualquer item cuja inserção fecharia um laço. Na Fase 3 isso só aparecia quando o preview quebrava.
-- **Problems panel.** Referências quebradas e circulares do arquivo aberto aparecem no rodapé do editor com a linha exata; clicar leva o cursor até ela. Também há badge na toolbar e na status bar.
-- **Content Graph (`Ctrl/Cmd + Shift + G`).** Visão global: todos os blocos e páginas que participam do grafo, ordenados por uso, expansíveis para ver *usa* / *usado por* / impacto total; e uma aba de problemas do projeto inteiro — incluindo **conteúdo órfão** (bloco que ninguém consome) e **id duplicado** (`x.md` e `x.mdx` lado a lado).
-- **Decoração no Monaco.** Linhas que trazem conteúdo de outro arquivo ganham faixa lateral e hover explicando a origem — dá para distinguir conteúdo local de conteúdo reutilizado sem ler a tag.
-- **Testes automatizados** (`npm test`, Vitest): 38 testes cobrindo extração de referências, backlinks, impacto transitivo, ciclos, referências quebradas, ids duplicados e conteúdo órfão — incluindo o caso `A → B, C → B, D → C` da especificação e um teste de integração que monta um repositório de conteúdo em diretório temporário.
-- **Exemplos reais no projeto:** `src/content/snippets/{authentication-warning,rate-limit,api-essentials}.*` e a página [Conteúdo reutilizável](src/content/docs/guides/conteudo-reutilizavel.mdx), que documenta a sintaxe **e** a usa (inclusive reuso aninhado: `api-essentials` compõe os outros dois).
-- Arquitetura detalhada em [docs/content-graph.md](docs/content-graph.md).
+#### Editor de documentação
 
-**Fase 5 — Autoria avançada:**
-- **Command Palette.** `Ctrl/Cmd + P` abre arquivo por nome; `Ctrl/Cmd + Shift + P` lista comandos (digitar `>` alterna entre os dois modos, como no VS Code). 16 comandos, agrupados por Arquivo / Buscar / Inserir / Conteúdo / Ver.
-- **Busca global** (`Ctrl/Cmd + Shift + F`): varre docs e snippets, agrupa por arquivo, destaca a ocorrência e marca o que veio do frontmatter. Clicar leva o cursor à linha exata.
-- **Detach:** converte `<ContentBlock id="…" />` de volta em texto local, com confirmação explícita — a página deixa de acompanhar o conteúdo canônico.
-- **Git awareness (somente leitura):** badges `M`/`A`/`D`/`U`/`R` no File Explorer e branch + estado do arquivo na status bar. O editor nunca faz commit, stage ou checkout.
-- **Vim keybindings:** botão `VIM` na toolbar, com barra de status própria. `monaco-vim` é carregado sob demanda — quem não usa não paga o download. A preferência fica no `localStorage`.
-- **Atalhos de formatação:** `Ctrl/Cmd + B` negrito, `Ctrl/Cmd + I` itálico, `Ctrl/Cmd + K` link — envolvem a seleção ou inserem um placeholder. Zen mode também responde a `Ctrl/Cmd + Shift + Z`, além de `F11`.
+Um editor Markdown/MDX completo em `/editor`, com Monaco, preview em tempo real, reuso de conteúdo, grafo de dependências bidirecional, paleta de comandos e consciência de Git. Ele lê e grava os arquivos de `src/content/docs` diretamente — não há banco de dados no meio.
 
-**Fase 5 — extras:**
+Detalhes em **[Editor de documentação](/guides/editor/)**.
 
-1. **Novo arquivo nasce `.mdx`.** O checkbox do modal de nova página já vem marcado, e `Extract → Reusable Content` também passou a criar snippets `.mdx` — isso remove a limitação da Fase 3 em que um snippet precisava ser renomeado à mão para poder reutilizar outro bloco.
+#### Linter e Quality Score
 
-2. **Condicionais no texto.** Variáveis definidas em `src/config/content-variables.json` (booleanas ou string) controlam o que aparece:
+Um revisor editorial automatizado que aponta problemas com id estável e calcula uma nota de 0 a 10 por dimensão. O style guide fica versionado em Git, e a nota não é `10 − nº de erros`: cada dimensão é pontuada isoladamente e o dano é normalizado por tamanho.
 
-   ```mdx
-   <If flag="beta">Só com a flag `beta` ligada.</If>
-   <If flag="beta" not>Só com ela desligada.</If>
-   <If flag="plano" equals="enterprise">Só no plano enterprise.</If>
-   ```
+Detalhes em **[Linter e Quality Score](/guides/linter-e-quality-score/)**.
 
-   Há uma tela para gerenciá-las (`Ctrl/Cmd + Shift + V`), mas o JSON continua versionado em Git e editável à mão. **No site publicado o trecho oculto não vai para o HTML** — não fica escondido por CSS. No preview do editor, ao contrário, ele vira um marcador cinza dizendo qual condição falhou, porque quem escreve precisa ver que há conteúdo condicional ali. Uma variável inexistente **esconde** o trecho (e o editor avisa), para nada vazar por um nome digitado errado.
+#### Navegação
 
-3. **`visible` no frontmatter.** `visible: false` mantém a página publicada e acessível por URL, mas fora da navegação e da busca. `showIf: <variável>` faz o mesmo condicionado a uma variável (com `!` para inverter). Ambos são traduzidos para `sidebar.hidden` e `pagefind: false` — mecanismos nativos da Starlight, sem renderer proprietário. **Não é controle de acesso**: para esconder de fato o conteúdo, use `<If>`, que não emite o HTML.
+Sidebar por diretório, breadcrumbs, paginação, índice da página e navegação por tags — tudo derivado da estrutura de arquivos, sem um índice paralelo para manter sincronizado.
 
-   Arquitetura detalhada em [docs/conteudo-condicional.md](docs/conteudo-condicional.md).
+Detalhes em **[Navegação](/guides/navegacao/)**.
 
-**Como rodar:**
+#### Documentação adaptativa
 
-```bash
-npm install
-npm run dev
-```
+Uma fonte de verdade, várias experiências: a mesma página serve a quem programa, a quem atende cliente e a quem opera, **sem duplicar arquivo** — `authentication-developer.md` e `authentication-support.md` divergem no terceiro mês e ninguém percebe qual está certo.
 
-Depois abra `http://localhost:4321/editor/`.
+**O limite vem antes da funcionalidade.** Personalização de documentação erra sempre escondendo, então aqui nada é removido: o conteúdo de outra audiência fica recolhido num `<details>` com rótulo, dentro do documento, alcançável por teclado, anunciado por leitor de tela e encontrável pelo Ctrl+F. Vale igual para navegação e recomendações — elas reordenam e destacam, nunca tiram item da lista. É diferente do `<If>` que já existe: aquele resolve em build e **apaga** o trecho, que é o certo para conteúdo interno; aqui o objetivo é publicar tudo e mudar só a ênfase.
 
-## Usuários e controle de acesso
+As audiências (`developer`, `support`, `product`, `operations`, `ai-agent`) são declaradas no frontmatter, e o conteúdo específico usa `:::audience{type="support"}`. O bloco nasce **aberto**: sem JavaScript a página aparece inteira, porque adaptação é melhoria progressiva. Audiência escrita errada no atributo não faz o texto sumir — perder conteúdo por erro de digitação seria a pior falha possível desta camada.
 
-O portal tem três grupos. A leitura da documentação é pública; editar e administrar exigem entrar.
+Quem lê escolhe o perfil na barra lateral; nada é inferido por comportamento, porque adivinhar o papel de alguém e reorganizar a documentação sobre o palpite erra em silêncio. `?audience=support` no link tem precedência sobre o cookie, para "veja isto na visão de suporte" funcionar para quem já tem preferência salva. Sem contexto, a documentação é a de sempre.
 
-| | viewer | editor | admin |
-| --- | :-: | :-: | :-: |
-| Ler e pesquisar a documentação | ✓ | ✓ | ✓ |
-| Ver "Editar esta página" e abrir o editor | | ✓ | ✓ |
-| Criar, editar e excluir páginas | | ✓ | ✓ |
-| Acessar Settings, gerenciar usuários e papéis | | | ✓ |
+No fim da página, **Você também pode precisar de**, montada do Content Graph, das tags e do contexto — cada item dizendo por que apareceu, e restrita ao mesmo idioma. No **assistente**, o contexto entra como enquadramento (recorte e tom), nunca como permissão: a autorização continua acontecendo antes, e nenhuma informação necessária é omitida por parecer de outro perfil. No **MCP**, `search_docs` aceita `audience` e `version`, descarta só o que foi escrito explicitamente para outro público e **recusa** audiência desconhecida em vez de ignorá-la. As analytics registram a distribuição por perfil — contadores, nada mais — e alimentam o Health Center. Guia em [/guides/documentacao-adaptativa/](src/content/docs/guides/documentacao-adaptativa.mdx).
 
-**Primeiro acesso.** Sem nenhum usuário cadastrado, o primeiro request cria um administrador e imprime a senha **uma única vez** no console do servidor. Para definir as credenciais você mesmo:
+#### Busca
 
-```bash
-PORTAL_ADMIN_EMAIL=voce@empresa.com PORTAL_ADMIN_PASSWORD=uma-senha-longa npm run dev
-```
+Busca local com Pagefind por padrão, Algolia DocSearch opcional, e a busca "warp drive" que cai direto no melhor resultado.
 
-**Usuário mestre.** Esta instalação já tem um admin chamado **Mestre**, com o e-mail `mestre@lunar-limb.local`, criado para abrir o `/settings`. A senha foi gerada e exibida uma única vez no console: no disco existe só o hash, e não há como o portal mostrá-la novamente. Perdida a senha, ou outro admin a redefine em Settings → Users, ou se cria um novo usuário.
+Detalhes em **[Busca](/guides/busca/)**.
 
-Para criar usuários pela linha de comando:
+#### Versionamento da documentação
 
-```bash
-npm run user:create -- --email pessoa@empresa.com --name "Nome" --role editor
-```
+Versões da documentação com seletor, aviso de versão antiga e congelamento. A versão é um diretório de conteúdo, não um branch — o que permite ler duas versões lado a lado.
 
-`--role` aceita `viewer`, `editor` ou `admin` (padrão `admin`). Sem `--password`, a senha é gerada e mostrada uma vez — preferível a passá-la como argumento, que fica no histórico do shell. Toda senha gerada por nós entra marcada como provisória, e o login devolve `mustChangePassword`; a troca é feita em Settings → Users. O portal **não** bloqueia a navegação até que ela aconteça: o aviso é informativo.
+Detalhes em **[Versionamento da documentação](/guides/versionamento/)**.
 
-O comando existe porque criar o primeiro admin pela tela exigiria já ser admin. Ele não amplia privilégio nenhum — quem tem o sistema de arquivos do servidor já tem controle total.
+#### Glossário
 
-Em produção, defina também `AUTH_SECRET` (≥ 32 caracteres). Sem ela, uma chave é gerada em `data/secret`, o que funciona localmente mas não sobrevive a várias réplicas. `PORTAL_DATA_DIR` move o diretório de dados — útil para subir uma instância de verificação sem tocar nos usuários reais.
+Os termos ficam em `src/content/glossary/`, um arquivo Markdown por termo, versionados pelo Git.
+Um termo cadastrado é destacado automaticamente nas páginas, explicado numa bolha, listado em
+`/glossary` e **usado pelo linter** para avaliar consistência de terminologia — o glossário é a
+fonte, e o linter é consumidor dela.
 
-**Onde ficam os dados.** Usuários, sessões e auditoria vivem em `data/*.json`, que é **ignorado pelo Git** — hash de senha, token de sessão e chave HMAC não vão para o repositório. O conteúdo continua sendo Markdown/MDX versionado: usuários não são conteúdo.
+Guia de uso: **[Mantenha o glossário](/guides/glossario/)**. Arquitetura: [docs/glossario.md](docs/glossario.md).
 
-**Como a autorização é aplicada.** O código pergunta por capacidade (`can(user, 'users.update')`), nunca por nome de grupo, e um único middleware protege `/editor/*`, `/settings/*` e as APIs. O botão "Editar esta página" é uma *server island*: a página é estática, mas o botão é renderizado sob demanda no servidor — um viewer nunca recebe esse HTML. Ainda assim, quem barra o acesso é o middleware, não o botão escondido.
-
-Arquitetura detalhada, incluindo as proteções contra escalação de privilégio e remoção do último admin, em [docs/controle-de-acesso.md](docs/controle-de-acesso.md).
-
-## Documentation Linter e Quality Score
-
-O editor traz um revisor editorial automatizado: analisa cada página, aponta problemas com id estável (`STRUCTURE-001`, `TECH-MKT-001`, …) e calcula uma **nota de 0 a 10** com detalhamento por dimensão — gramática, clareza, concisão, estrutura, technical writing, consistência, acionabilidade, terminologia e legibilidade.
-
-Os problemas aparecem no painel abaixo do editor e sublinhados no Monaco. Correção rápida existe só quando é mecânica; sugestões subjetivas não alteram o texto sozinhas.
-
-A nota **não** é `10 − nº de erros`: cada dimensão é pontuada isoladamente, e o dano é normalizado por tamanho, para uma página longa não ser punida por ser longa. Calibração contra o conteúdo real: 8,9–10,0. Contra um documento escrito de propósito com TODO, linguagem promocional e link sem destino: 4,8.
-
-O style guide fica em `styles/default.yaml`, versionado em Git — limiares, termos proibidos, terminologia canônica, acrônimos conhecidos, severidade e peso por regra. Profiles adicionais herdam com `extends`, e uma página escolhe o seu pelo frontmatter. Regras podem ser silenciadas por linha, por bloco ou por página, e todo silenciamento é registrado.
-
-Na linha de comando e em CI:
-
-```bash
-npm run docs:lint
-```
-
-`--changed` analisa só o que mudou **mais as páginas consumidoras** dos blocos alterados, usando o Content Graph. Saída `0` aprovado, `1` gate reprovado, `2` configuração, `3` execução.
-
-**Settings → Quality** traz a visão do workspace: nota média, média por dimensão e problemas mais frequentes. Regras e arquitetura em [docs/linter.md](docs/linter.md).
-
-## Testes de documentação
+#### Testes de documentação
 
 O linter pergunta "isto está bem escrito?". A suíte de testes pergunta "isto **funciona**?" — e é a pergunta que o linter nunca responde. Um link para uma página inexistente passa em qualquer regra de estilo; um exemplo de resposta que não bate mais com o schema está impecavelmente redigido.
 
@@ -212,7 +142,21 @@ As regras: `DOC-LINK-001` link interno para página inexistente, `DOC-LINK-002` 
 
 Teste pulado não reprova e também não conta como passado: aparece no relatório com o motivo. A tela de revisão do editor roda o perfil `standard` sobre os arquivos do PR, mostra as falhas com arquivo e linha, e as leva para o corpo do pull request. Quando a suíte não consegue rodar, a tela diz isso — não "aprovado". Guia em [/guides/testes-de-documentacao/](src/content/docs/guides/testes-de-documentacao.mdx).
 
-## Análise de impacto
+#### Contratos de documentação
+
+A Documentation Test Suite pergunta "este exemplo **funciona**?". Esta camada pergunta "este exemplo representa o **contrato** de verdade?". O caso que separa as duas: a API exige `amount` e `currency`, a documentação mostra só `amount` — o exemplo até roda, e está incompleto em relação ao contrato.
+
+Verifica método, caminho, parâmetros, códigos de status, autenticação, requisição, resposta e exemplos de código. A comparação com o schema corre nos **dois sentidos**, e o segundo é o que quase nenhuma ferramenta faz: campo que o exemplo mostra e o contrato não tem. É assim que documentação envelhece sem quebrar — ela continua exibindo um campo que a API removeu, e todo teste de execução continua passando. Numa requisição, campo a mais é aviso; numa resposta é quebra, porque a página está prometendo ao leitor um dado que não vem.
+
+A associação página↔contrato vem do **Digital Twin** (§25: esta camada não mantém grafo próprio), com `contract:` no frontmatter quando a inferência não basta. Contrato sem página fica **desconhecido**, nunca válido: ele não está certo, está sem documentação — e contá-lo como válido inflaria o score com endpoints que ninguém documentou. No score, `unknown` fica fora da conta e `warning` conta como verificado sem contar como bom.
+
+No merge, **só `invalid` bloqueia** (`failOnBreaking` em `contracts.yml`). Travar merge por aviso leva a equipe a desligar o portão inteiro. Para APIs sem OpenAPI completo há baseline declarável, que é o caminho de adoção gradual.
+
+Rodar contra o portal expôs um defeito que nenhum teste sintético pegaria: em JavaScript `$` não casa antes de `
+` e `.` não consome `
+`, então a extração de cabeçalhos HTTP devolvia lista vazia em **todo** arquivo de um checkout no Windows — que é como este repositório está. Guia em [/guides/contratos-de-documentacao/](src/content/docs/guides/contratos-de-documentacao.mdx).
+
+#### Análise de impacto
 
 O Content Graph responde "quem usa o quê" — informação. O Impact Engine responde "se eu mudar isso, o que preciso revisar?" — decisão. Ele aparece no editor (painel de referências, botão **Impacto**, sob demanda e antes de salvar) e na revisão do PR, cujo corpo passa a trazer contagem por severidade, Impact Score, escopo estimado, quebras de contrato de API e checklist.
 
@@ -224,7 +168,7 @@ O diff de API compara a especificação **interpretada**, não o texto: reordena
 
 O Impact Score (0–100) traz **cada fator com os pontos e o motivo** — um número que ninguém consegue conferir é o tipo de métrica que a equipe ignora na terceira vez que discorda da intuição. Sem consequência apurada o score é zero, inclusive o fator de tamanho: um PR que só mexe em `astro.config.mjs` não tem nada a revisar na documentação. No checklist entra só o que se consegue conferir — uma página, uma operação, um termo; "revisar a documentação" não é item de checklist. Guia em [/guides/analise-de-impacto/](src/content/docs/guides/analise-de-impacto.mdx).
 
-## Confiança e proveniência
+#### Confiança e proveniência
 
 Toda afirmação importante da documentação deveria ter evidência. Uma página pode dizer "chaves de API expiram em 90 dias" sem que exista em lugar nenhum o registro de onde isso veio, quem confirmou e quando — enquanto for verdade ninguém nota, e quando deixar de ser ninguém descobre.
 
@@ -240,7 +184,7 @@ O **Trust Score** (0–100) combina validade da fonte, cobertura por teste, fres
 
 No **assistente**, a confiança ajusta a relevância sem substituí-la, e conteúdo vencido não é escondido — é a melhor informação que o portal tem, e a resposta sai com o aviso na frente, não no rodapé. No **MCP**, `get_document` devolve `trust` com `checked: "declaracao"`: o leitor Python lê o que a página declara e confere a data, mas não resolve evidência, e por isso nunca reporta `invalid`. Guia em [/guides/confianca-e-proveniencia/](src/content/docs/guides/confianca-e-proveniencia.mdx).
 
-## Observabilidade e SLOs
+#### Observabilidade e SLOs
 
 O linter mede escrita, a suíte mede comportamento, o Impact Engine mede consequência, o Trust mede evidência, o Twin mede cobertura, o Contract mede fidelidade ao contrato. Nenhum deles responde à pergunta de segunda-feira: **a documentação está saudável, e o que fazemos primeiro?** É o que **Settings → Health** e `npm run docs:health` montam.
 
@@ -258,19 +202,25 @@ O **snapshot** é a única coisa que esta camada persiste, porque histórico nã
 
 `npm run docs:health -- check` serve ao CI (sai com 1 em SLO violado; risco não reprova, senão a equipe afrouxa os alvos até tudo ficar verde), e o PR mostra `antes → depois` — dizendo quando não há base de comparação, em vez de exibir `-0`. Guia em [/guides/observabilidade/](src/content/docs/guides/observabilidade.mdx).
 
-## Documentação adaptativa
+#### Avaliação de IA
 
-Uma fonte de verdade, várias experiências: a mesma página serve a quem programa, a quem atende cliente e a quem opera, **sem duplicar arquivo** — `authentication-developer.md` e `authentication-support.md` divergem no terceiro mês e ninguém percebe qual está certo.
+Mede o assistente contra conjuntos de perguntas versionados em `evals/`. A camada separa **verificável** de **inferido** e só mede o primeiro: citação aponta para página que existe, página esperada foi citada, termo exigido apareceu. Por isso a métrica se chama "termos presentes", não "correção" — uma resposta pode conter todas as palavras e estar errada.
 
-**O limite vem antes da funcionalidade.** Personalização de documentação erra sempre escondendo, então aqui nada é removido: o conteúdo de outra audiência fica recolhido num `<details>` com rótulo, dentro do documento, alcançável por teclado, anunciado por leitor de tela e encontrável pelo Ctrl+F. Vale igual para navegação e recomendações — elas reordenam e destacam, nunca tiram item da lista. É diferente do `<If>` que já existe: aquele resolve em build e **apaga** o trecho, que é o certo para conteúdo interno; aqui o objetivo é publicar tudo e mudar só a ênfase.
+Métrica que não se aplica fica fora da média, nunca entra como zero. Sem `ANTHROPIC_API_KEY` a corrida mede recuperação, não resposta gerada, e os casos adversariais aparecem como não avaliáveis — sem modelo os guardrails não rodam, e reprová-los ali seria alarme falso.
 
-As audiências (`developer`, `support`, `product`, `operations`, `ai-agent`) são declaradas no frontmatter, e o conteúdo específico usa `:::audience{type="support"}`. O bloco nasce **aberto**: sem JavaScript a página aparece inteira, porque adaptação é melhoria progressiva. Audiência escrita errada no atributo não faz o texto sumir — perder conteúdo por erro de digitação seria a pior falha possível desta camada.
+Em `npm run ai:eval` e em Settings → AI Evaluation.
 
-Quem lê escolhe o perfil na barra lateral; nada é inferido por comportamento, porque adivinhar o papel de alguém e reorganizar a documentação sobre o palpite erra em silêncio. `?audience=support` no link tem precedência sobre o cookie, para "veja isto na visão de suporte" funcionar para quem já tem preferência salva. Sem contexto, a documentação é a de sempre.
+Detalhes em **[Avaliação de IA](/guides/avaliacao-de-ia/)**.
 
-No fim da página, **Você também pode precisar de**, montada do Content Graph, das tags e do contexto — cada item dizendo por que apareceu, e restrita ao mesmo idioma. No **assistente**, o contexto entra como enquadramento (recorte e tom), nunca como permissão: a autorização continua acontecendo antes, e nenhuma informação necessária é omitida por parecer de outro perfil. No **MCP**, `search_docs` aceita `audience` e `version`, descarta só o que foi escrito explicitamente para outro público e **recusa** audiência desconhecida em vez de ignorá-la. As analytics registram a distribuição por perfil — contadores, nada mais — e alimentam o Health Center. Guia em [/guides/documentacao-adaptativa/](src/content/docs/guides/documentacao-adaptativa.mdx).
+### Qualidade e verificação
 
-## Digital Twin
+_Descobrir o que está errado antes de quem lê descobrir._
+
+### O produto como fonte
+
+_A especificação e o código dirigindo a documentação, os testes e o SDK._
+
+#### Digital Twin
 
 O Content Graph responde "quem usa o quê" dentro da documentação. O Twin sobe um nível e responde sobre o **produto**: o que está documentado, o que a documentação descreve e não existe mais, e o que quebra se um endpoint mudar.
 
@@ -284,59 +234,7 @@ Medir o portal expôs dois defeitos de modelagem que só aparecem com dados reai
 
 `npm run twin -- coverage --min 90` serve ao CI (sai com 1 abaixo do mínimo, 0 quando não há o que medir), e a cobertura entra no corpo do PR. **Settings → Intelligence** traz tudo em tabela — um grafo de centenas de nós é bonito na captura de tela e inútil para achar o endpoint que ninguém documentou. Guia em [/guides/digital-twin/](src/content/docs/guides/digital-twin.mdx).
 
-## Contratos de documentação
-
-A Documentation Test Suite pergunta "este exemplo **funciona**?". Esta camada pergunta "este exemplo representa o **contrato** de verdade?". O caso que separa as duas: a API exige `amount` e `currency`, a documentação mostra só `amount` — o exemplo até roda, e está incompleto em relação ao contrato.
-
-Verifica método, caminho, parâmetros, códigos de status, autenticação, requisição, resposta e exemplos de código. A comparação com o schema corre nos **dois sentidos**, e o segundo é o que quase nenhuma ferramenta faz: campo que o exemplo mostra e o contrato não tem. É assim que documentação envelhece sem quebrar — ela continua exibindo um campo que a API removeu, e todo teste de execução continua passando. Numa requisição, campo a mais é aviso; numa resposta é quebra, porque a página está prometendo ao leitor um dado que não vem.
-
-A associação página↔contrato vem do **Digital Twin** (§25: esta camada não mantém grafo próprio), com `contract:` no frontmatter quando a inferência não basta. Contrato sem página fica **desconhecido**, nunca válido: ele não está certo, está sem documentação — e contá-lo como válido inflaria o score com endpoints que ninguém documentou. No score, `unknown` fica fora da conta e `warning` conta como verificado sem contar como bom.
-
-No merge, **só `invalid` bloqueia** (`failOnBreaking` em `contracts.yml`). Travar merge por aviso leva a equipe a desligar o portão inteiro. Para APIs sem OpenAPI completo há baseline declarável, que é o caminho de adoção gradual.
-
-Rodar contra o portal expôs um defeito que nenhum teste sintético pegaria: em JavaScript `$` não casa antes de `
-` e `.` não consome `
-`, então a extração de cabeçalhos HTTP devolvia lista vazia em **todo** arquivo de um checkout no Windows — que é como este repositório está. Guia em [/guides/contratos-de-documentacao/](src/content/docs/guides/contratos-de-documentacao.mdx).
-
-## Lacunas de documentação
-
-Saber que uma página teve dez mil acessos não diz o que falta. Esta camada pergunta **que informação as pessoas procuram e não encontram**, cruzando busca, assistente, MCP, feedback, contratos e o Digital Twin num backlog priorizado — em Settings → Gaps e em `npm run gaps`.
-
-**Publicar não é resolver**, e é a regra que dá sentido ao resto. `start` registra o sinal de hoje como linha de base; depois de publicar, `resolve` compara — e **recusa** se as consultas e as respostas sem lastro não caíram pelo menos dois terços. Não se exige queda a zero: a pergunta continua sendo feita mesmo quando a resposta existe.
-
-Seis tipos, cada um levando a uma ação diferente: falta documentação, incompleta, desatualizada (quando o Twin ou o Contract acusam divergência), pouco clara, difícil de achar (mexer na navegação, não no texto) e contraditória. O score combina demanda, falha do assistente, cobertura baixa, insatisfação e contrato quebrado — este último pesando muito, porque documentação que diverge do produto é **pior** que ausente: ela leva a pessoa a errar com confiança.
-
-Rodar contra o portal expôs dois erros de medição que só aparecem com dados reais. **Cobertura não é relevância de busca**: o BM25 normaliza pelo melhor resultado, então "como rotacionar a chave de API" — assunto sobre o qual não existe uma linha aqui — foi classificada como *difícil de achar* com 100% de cobertura; agora o que se mede é a presença dos termos da pergunta nas páginas. E o agrupamento precisava de **dois** conjuntos de termos: a interseção admite variações no grupo, mas medir cobertura por ela reduzia "rotacionar a chave de api" a `chave, api`, que o portal documenta.
-
-A privacidade segue a decisão anterior: texto das perguntas desligado por padrão, e mesmo ligado só a pergunta **sem resposta**, sem quem perguntou, truncada e com credenciais redigidas. Desligado, a camada funciona com os sinais estruturais e diz na primeira linha que está trabalhando com menos. Guia em [/guides/lacunas-de-documentacao/](src/content/docs/guides/lacunas-de-documentacao.mdx).
-
-## Agentes de documentação
-
-O objetivo **não é outro chatbot**. Um agente genérico produz "aqui está uma documentação sobre autenticação" e não garante que a implementação foi consultada, que a API está correta nem que os exemplos funcionam. Aqui, cinco agentes especializados usam as ferramentas que o portal já tem — Digital Twin, Content Graph, glossário, linter, testes, contratos, proveniência — e produzem mudanças **verificáveis**.
-
-**Quatro dos cinco funcionam sem provedor nenhum.** Sem chave, o Writer não inventa prosa: produz um rascunho estruturado com o que se sabe, de onde veio e onde falta escrever, e a execução segue por revisão, testes e auditoria normalmente.
-
-**Nada é publicado automaticamente**, mesmo com todos os testes verdes — e aprovar não publica: o conteúdo continua no workspace isolado até ser aplicado. Três condições param a execução antes do fim: fontes que discordam (escolher uma em silêncio propagaria o conflito), pesquisa sem evidência (preencher com suposição é o que a camada existe para evitar) e regressão de saúde.
-
-Os guardrails da §25 são **código executável**, não instrução de prompt: allowlist de ferramentas por agente (só o Writer escreve, e só no workspace; nenhum agente tem execução de comando), caminhos restritos a `src/content/` em `.md`/`.mdx` com `data/`, `.env`, `src/lib/auth/` e configuração recusados até para leitura, e travessia de diretório rejeitada em vez de normalizada.
-
-O último guardrail nasceu de um defeito real: a primeira execução contra o portal **substituiu a página de autenticação inteira por um esqueleto** — e passou por revisão, testes e auditoria, porque esqueleto bem formado é Markdown válido. Saíram duas correções: o Writer sem modelo passou a ser aditivo sobre página existente, e o orquestrador ganhou um guardrail de descarte que vale para qualquer origem do texto, inclusive um modelo.
-
-Conteúdo recuperado é tratado como **dado, nunca instrução** — pela mesma sanitização que o assistente usa, porque duas defesas com regras diferentes significam que a mais fraca é a que vale. E não há memória autônoma persistente: o estado pertence à execução e morre com ela. Guia em [/guides/agentes-de-documentacao/](src/content/docs/guides/agentes-de-documentacao.mdx).
-
-## Time Machine
-
-Quatro perguntas que só o histórico responde: como esta página evoluiu, como o portal estava em maio, o que mudou de **comportamento** entre dois pontos, e o que aquele commit afetou. Em `npm run history` e em Settings → History.
-
-**O Git continua sendo a fonte.** Esta camada é indexação, não cópia: cada consulta reconstrói do repositório. É mais lento e sempre certo — um índice persistido divergiria no primeiro `rebase`, e passariam a existir duas respostas para "como esta página estava em maio", uma errada e nenhuma marcada como tal. Nada aqui escreve, faz checkout ou muda de branch; a leitura é por `git show`.
-
-**O que não dá para reconstruir vem ausente, não estimado.** Páginas, palavras, termos e endpoints saem do conteúdo daquele commit e são exatos. O Health Score **não** é recalculado: ele dependia de testes e contratos avaliados com as ferramentas daquela época. A primeira versão aceitava uma medição de até sete dias de distância, e uma comparação entre 12 e 18 de agosto exibiu o mesmo número nas duas pontas — a medição de hoje apresentada como se descrevesse o passado, com delta zero convidando à conclusão de que nada mudou.
-
-O **semantic diff** responde "o que passou a ser verdade que antes não era": `30 dias → 90 dias`, `client_id → client_id + client_secret`. Cada achado carrega confiança — lista `required:` é estrutura declarada e vale 0,95; assunto de número inferido das palavras vizinhas vale 0,7. O limite está dito: reescrita em prosa que inverte um sentido passa despercebida, e por isso o diff textual continua ao lado em vez de ser substituído.
-
-**Restore não altera a branch.** Snapshot → workspace isolado → diff → validação → PR, sem atalho. Restaurar é operação perigosa disfarçada de simples: conteúdo antigo pode estar antigo por um bom motivo, e uma reversão com um clique apagaria a razão junto. Guia em [/guides/time-machine/](src/content/docs/guides/time-machine.mdx).
-
-## Vínculo com o código
+#### Vínculo com o código
 
 Uma página declara, no frontmatter, quais entidades do produto ela documenta:
 
@@ -351,33 +249,9 @@ A partir daí a CI cobra: entidade pública alterada sem página vinculada bloqu
 
 O vínculo vive na documentação, nunca no código: o produto não deve depender de Markdown. Em `npm run docs:code` e em Settings → Code Loop.
 
-## Governança
+Detalhes em **[Vínculo com o código](/guides/vinculo-com-o-codigo/)**.
 
-Cada página declara dono, revisor e intervalo de revisão no frontmatter; o `governance.yml` preenche o resto por regra de caminho, e a regra mais específica vence.
-
-"Revisada" é o que alguém declarou, nunca a data do último commit — corrigir uma vírgula não reinicia o relógio de uma página que ninguém leu. E vencida (foi revisada, o intervalo passou) é contada à parte de nunca revisada (entrou no regime, nunca teve revisão): somar as duas acusaria a equipe de atraso no primeiro dia de qualquer regime.
-
-Em `npm run governance` e em Settings → Governance.
-
-## Observabilidade de leitura
-
-Mede se a documentação **resolve o problema de quem chegou**, não se ela está tecnicamente correta — e as duas notas ficam lado a lado, nunca somadas.
-
-Nada identifica uma pessoa: sem IP, sem id de usuário, sem cookie, sem user-agent. O que existe é uma sessão efêmera do navegador que some quando a aba fecha. Do Not Track, Global Privacy Control e a escolha do leitor desligam a coleta; o texto das buscas é desligado por padrão; uma linha só aparece com 3+ sessões distintas.
-
-Os nomes das métricas carregam os seus limites: "clique em resultado", não "taxa de sucesso" — clicar é o mais longe que a instrumentação enxerga.
-
-Em `npm run analytics` e em Settings → Observability.
-
-## Avaliação de IA
-
-Mede o assistente contra conjuntos de perguntas versionados em `evals/`. A camada separa **verificável** de **inferido** e só mede o primeiro: citação aponta para página que existe, página esperada foi citada, termo exigido apareceu. Por isso a métrica se chama "termos presentes", não "correção" — uma resposta pode conter todas as palavras e estar errada.
-
-Métrica que não se aplica fica fora da média, nunca entra como zero. Sem `ANTHROPIC_API_KEY` a corrida mede recuperação, não resposta gerada, e os casos adversariais aparecem como não avaliáveis — sem modelo os guardrails não rodam, e reprová-los ali seria alarme falso.
-
-Em `npm run ai:eval` e em Settings → AI Evaluation.
-
-## Knowledge Graph
+#### Knowledge Graph
 
 Estende o Digital Twin com time, release, lacuna e contrato — **não** é um segundo grafo: duas estruturas com as mesmas entidades divergiriam na primeira semana.
 
@@ -385,25 +259,9 @@ Nem toda aresta propaga impacto. Se um endpoint muda, as páginas que o document
 
 Em `npm run graph` e em Settings → Knowledge Graph.
 
-## Organização e múltiplos repositórios
+Detalhes em **[Knowledge Graph](/guides/knowledge-graph/)**.
 
-Registra repositórios, produtos e times em `organization.yml` e agrega o que dá para agregar sem mentir.
-
-O portal **não busca repositório da rede**: registrado por `url`, ele é listado e não lido — clonar e ler conteúdo arbitrário a cada coleta é decisão de quem opera. A profundidade da leitura é declarada por repositório, e o que não foi medido fica fora da média: contá-lo como zero faria registrar um repositório baixar a nota da organização.
-
-Em `npm run org` e em Settings → Organization.
-
-## Self-healing
-
-Detectar → diagnosticar → propor → validar → revisar → PR. Nunca `detectar → corrigir`.
-
-Nada é escrito fora do workspace isolado dos agentes, nada é publicado sem aprovação humana, e nenhum nível de autonomia faz merge. O diagnóstico recusa sem fonte autoritativa; quando fontes autoritativas discordam, o ciclo declara conflito e para, em vez de escolher uma — documentação errada com ar de certeza é pior que a lacuna.
-
-Validação que não roda vale "não verificado", nunca "aprovado".
-
-Em `npm run heal` e em Settings → Self-Healing.
-
-## SDK
+#### SDK
 
 Gera um cliente TypeScript a partir da **mesma** especificação que já move a documentação, os contratos e o Digital Twin:
 
@@ -417,555 +275,174 @@ O pacote gerado não tem dependência de execução. Onde a especificação não
 
 O diff deriva do contrato, não da comparação textual dos arquivos gerados. Em `npm run sdk` e no portão de revisão de PR.
 
-## Feedback de página
+Detalhes em **[SDK](/guides/sdk/)**.
 
-No fim de cada página de documentação há um widget **"Esta página foi útil?"** com sim/não e um campo opcional de comentário. A Starlight não traz um componente de feedback nem plugin oficial — o caminho que ela indica é sobrescrever `Footer`, que é o que o projeto faz. As alternativas de mercado são SaaS de terceiros; aqui o retorno dos seus leitores fica no próprio projeto.
+#### API Explorer
 
-O envio é **anônimo**: sem login, sem cookie, sem identificador de visitante. Grava-se caminho, voto, idioma e o comentário; o IP serve só ao limite de envio e não é armazenado.
+Um console de requisições embutido, derivado da mesma especificação OpenAPI que move os contratos, o Digital Twin e o SDK. Nenhum endpoint é redigido de novo para ele.
 
-As respostas ficam em **Settings → Feedback**: proporção de "útil", comentários recentes e **onde mexer primeiro** — páginas com maioria negativa e pelo menos 3 votos, para uma reclamação isolada não mandar o time reescrever conteúdo.
+Detalhes em **[API Explorer](/guides/api-explorer/)**.
 
-Com a integração do Do11y ligada, o mesmo clique também vira um evento `feedback` no Supabase. Detalhes em [docs/feedback-de-pagina.md](docs/feedback-de-pagina.md).
-
-## Navegação
+#### Referência de API a partir de especificação
 
-O menu fica no topo, não numa coluna lateral, e é montado a partir da mesma
-árvore que a Starlight gera das pastas de conteúdo: cada pasta de primeiro nível
-vira um item, e as páginas de dentro formam o submenu. Nenhum item é escrito à
-mão — criar uma página basta para ela aparecer.
+Páginas de referência geradas a partir de OpenAPI e AsyncAPI. O portal exige que a especificação se declare — um arquivo AsyncAPI aceito em silêncio por um gerador de OpenAPI produz uma página que parece certa e está errada.
 
-A barra lateral continua existindo, mostrando **só a seção aberta** — o arranjo
-do portal da OpenAI usado como referência. O topo diz onde você pode ir; a
-lateral, onde você está. Mostrar a árvore inteira nos dois lugares repetiria a
-mesma informação e gastaria a altura da tela com seções que não estão sendo
-lidas.
-
-O estreitamento acontece em [route-middleware.ts](src/lib/nav/route-middleware.ts),
-pelo ponto de extensão que a Starlight documenta para modificar dados de rota. A
-árvore completa é guardada em `locals.topNav` antes do corte: o cabeçalho precisa
-dela inteira, a lateral só do galho atual. Páginas fora de qualquer seção — a
-capa — não têm lateral, e aí `hasSidebar` é desligado de fato, o que é diferente
-de esconder com CSS: a coluna deixa de ser reservada.
+Detalhes em **[Referência de API a partir de especificação](/guides/referencia-de-api/)**.
 
-Dois efeitos que vieram junto e precisaram de decisão:
+### Operação
 
-- **Profundidade.** A lateral aninhava sem limite; um menu suspenso dentro de
-  outro é difícil de operar com mouse e pior com teclado. A árvore é achatada em
-  dois níveis, e o subgrupo vira um título dentro do painel. A lógica está em
-  [top-nav.ts](src/lib/nav/top-nav.ts), separada do componente para ser testável.
-- **Medida de leitura.** Sem barra lateral, a Starlight aplica a medida larga que
-  reserva para páginas de capa — 1080px de linha na documentação. O CSS do
-  projeto devolve a medida normal às páginas sem hero.
+_Quem é dono do quê, o que os leitores fazem e onde estão os buracos._
 
-O menu funciona sem JavaScript: cada submenu é um `<details>`. O script só
-acrescenta o que o HTML não dá — fechar ao clicar fora, fechar com `Esc`
-devolvendo o foco, e manter um submenu aberto por vez.
+#### Governança
 
-## Assistente de documentação
+Cada página declara dono, revisor e intervalo de revisão no frontmatter; o `governance.yml` preenche o resto por regra de caminho, e a regra mais específica vence.
 
-O mesmo pipeline atende os dois modos, e o modelo é a **última** etapa, não a
-espinha:
+"Revisada" é o que alguém declarou, nunca a data do último commit — corrigir uma vírgula não reinicia o relógio de uma página que ninguém leu. E vencida (foi revisada, o intervalo passou) é contada à parte de nunca revisada (entrou no regime, nunca teve revisão): somar as duas acusaria a equipe de atraso no primeiro dia de qualquer regime.
 
-```text
-entrada → guardrails → recuperação → autorização → contexto → modelo
-        → guardrails de saída → validação de citação → resposta
-```
+Em `npm run governance` e em Settings → Governance.
 
-Sem `ANTHROPIC_API_KEY` no ambiente, a etapa do modelo não roda e a resposta são
-os trechos com um resumo extrativo. Não é modo degradado: é a configuração
-padrão, e a única **imune por construção** a alucinação e a injeção indireta,
-porque não há nada a instruir.
+Detalhes em **[Governança](/guides/governanca/)**.
 
-### As decisões que valem registro
+#### Observabilidade de leitura
 
-**A autorização vem antes do contexto.** Filtrar depois da geração significaria
-que o modelo já leu o que a pessoa não pode ver — e uma resposta filtrada ainda
-vazaria pela forma como foi escrita. O gancho `authorize` roda sobre os trechos
-recuperados, antes de qualquer coisa chegar ao prompt.
+Mede se a documentação **resolve o problema de quem chegou**, não se ela está tecnicamente correta — e as duas notas ficam lado a lado, nunca somadas.
 
-**Confiança baixa não gera.** Gerar a partir de evidência fraca é exatamente
-onde um assistente inventa. Abaixo do limiar, o pipeline devolve os trechos e
-diz que não encontrou o suficiente — os trechos continuam ali para quem quiser
-julgar sozinho.
+Nada identifica uma pessoa: sem IP, sem id de usuário, sem cookie, sem user-agent. O que existe é uma sessão efêmera do navegador que some quando a aba fecha. Do Not Track, Global Privacy Control e a escolha do leitor desligam a coleta; o texto das buscas é desligado por padrão; uma linha só aparece com 3+ sessões distintas.
 
-**Citação inventada derruba o texto.** Se a resposta cita uma página que não
-entrou no contexto, o texto gerado é descartado e os trechos assumem. Uma
-citação falsa é pior que nenhuma: dá aparência de fundamento a uma frase que não
-tem.
+Os nomes das métricas carregam os seus limites: "clique em resultado", não "taxa de sucesso" — clicar é o mais longe que a instrumentação enxerga.
 
-**A credencial vive no ambiente.** Não em `integrations.json`, pelo mesmo motivo
-do Algolia e do GitHub: segredo em arquivo de configuração acaba num backup, num
-log ou numa resposta de API.
+Em `npm run analytics` e em Settings → Observability.
 
-**Falha do provedor não vira resposta inventada.** Cai nos trechos, que
-continuam sendo uma resposta útil.
-
-Cada intervenção de guardrail vira evento de auditoria com o tipo, nunca com o
-conteúdo da conversa.
+Detalhes em **[Observabilidade de leitura](/guides/observabilidade-de-leitura/)**.
 
-### O que ficou de fora
+#### Lacunas de documentação
 
-Sugestões de pergunta por página (§14) e o botão "perguntar sobre esta página"
-(§15) não foram implementados. O resumo de conversa longa continua sendo o
-recorte das mensagens recentes, não um resumo gerado.
+Saber que uma página teve dez mil acessos não diz o que falta. Esta camada pergunta **que informação as pessoas procuram e não encontram**, cruzando busca, assistente, MCP, feedback, contratos e o Digital Twin num backlog priorizado — em Settings → Gaps e em `npm run gaps`.
 
-## Versionamento
+**Publicar não é resolver**, e é a regra que dá sentido ao resto. `start` registra o sinal de hoje como linha de base; depois de publicar, `resolve` compara — e **recusa** se as consultas e as respostas sem lastro não caíram pelo menos dois terços. Não se exige queda a zero: a pergunta continua sendo feita mesmo quando a resposta existe.
 
-`versions.yml` é o registro: quais versões existem, em que estado cada uma está
-e de que branch ou tag cada uma vem.
+Seis tipos, cada um levando a uma ação diferente: falta documentação, incompleta, desatualizada (quando o Twin ou o Contract acusam divergência), pouco clara, difícil de achar (mexer na navegação, não no texto) e contraditória. O score combina demanda, falha do assistente, cobertura baixa, insatisfação e contrato quebrado — este último pesando muito, porque documentação que diverge do produto é **pior** que ausente: ela leva a pessoa a errar com confiança.
 
-```yaml
-versions:
-  - id: v2
-    label: Versão 2
-    status: current
-    branch: master
-  - id: v1
-    label: Versão 1
-    status: deprecated
-    branch: docs/v1
-    supersededBy: v2
-```
-
-O ciclo de vida vai de `draft` a `archived`, passando por `current`,
-`maintained` e `deprecated`. Só pode haver **uma** versão `current` — duas
-versões "atuais" é uma pergunta sem resposta para quem chega. `draft` e
-`archived` ficam fora do seletor sem sair do registro.
-
-Um registro inválido **derruba o build**, de propósito: id que não serve para
-URL, duas versões atuais, sucessora inexistente, branch e tag na mesma versão.
-Um seletor que leva a 404 é pior que um build vermelho.
-
-A versão `current` é a raiz do site e não recebe prefixo — `/guides/auth/` é
-sempre a atual, e `/v1/guides/auth/` é a antiga. A URL curta é a que se
-compartilha, e ela deve continuar apontando para o que vale hoje.
-
-Uma versão `deprecated`, `archived` ou `draft` mostra um aviso no topo da
-página, com link para a sucessora quando existe.
-
-### O que está feito e o que não está
-
-Feito: o registro com validação e ciclo de vida, a resolução de versão a partir
-da URL, o aviso de versão obsoleta, o redirecionamento opcional, e o
-`starlight-versions` alimentado pelo registro em vez de um segundo arquivo.
-
-**Não feito**, e a spec pede: Content Graph, glossário, linter, API Reference,
-assistente e MCP ainda não recebem a versão — eles operam sobre o conteúdo atual.
-Também não existem a comparação entre versões nem a interface de criação. O
-snapshot de conteúdo por versão é do `starlight-versions` e depende do comando
-dele; o registro já está pronto para alimentá-lo.
-
-## Documentação legível por máquina
-
-O portal publica três coisas para agentes, IDEs e sistemas RAG, todas derivadas
-do conteúdo — nenhuma escrita à mão:
-
-| Saída | O quê |
-| --- | --- |
-| `/llms.txt` | Índice: seções, páginas, glossário, operações da API e blocos reutilizáveis com quantas páginas os usam |
-| `/llms-full.txt` | O conteúdo inteiro. `LLMS_FULL=false` desliga |
-| `/md/<caminho>.md` | Markdown limpo de cada página |
-
-O Markdown limpo tira o maquinário do MDX — imports, tags de componente,
-sintaxe de aside — e **preserva o texto que estava dentro** desses componentes:
-descartá-lo entregaria uma versão incompleta da página.
-
-O prefixo é `/md/` e não `.md` no caminho original porque a Starlight já é dona
-das rotas de documentação, e duas URLs para a mesma página confundem buscador.
-
-### MCP
-
-O servidor em `mcp-docs/` expõe 12 tools. Além das quatro de documentação que já
-existiam, entraram:
-
-| Tool | Fonte |
-| --- | --- |
-| `get_page`, `get_section` | páginas do portal |
-| `get_glossary_term`, `search_glossary` | `src/content/glossary/` |
-| `search_api`, `get_api_endpoint` | `src/schemas/*.yaml` |
-| `get_changelog` | `src/content/docs/changelog/` |
-| `check_documentation` | o linter do portal |
+Rodar contra o portal expôs dois erros de medição que só aparecem com dados reais. **Cobertura não é relevância de busca**: o BM25 normaliza pelo melhor resultado, então "como rotacionar a chave de API" — assunto sobre o qual não existe uma linha aqui — foi classificada como *difícil de achar* com 100% de cobertura; agora o que se mede é a presença dos termos da pergunta nas páginas. E o agrupamento precisava de **dois** conjuntos de termos: a interseção admite variações no grupo, mas medir cobertura por ela reduzia "rotacionar a chave de api" a `chave, api`, que o portal documenta.
 
-Cada uma **lê** a fonte que já tem dono; nenhuma guarda cópia. Todo texto passa
-pelo mesmo tratamento das tools de documentação: uma página com "ignore as
-instruções anteriores" volta como texto marcado, não como comando.
+A privacidade segue a decisão anterior: texto das perguntas desligado por padrão, e mesmo ligado só a pergunta **sem resposta**, sem quem perguntou, truncada e com credenciais redigidas. Desligado, a camada funciona com os sinais estruturais e diz na primeira linha que está trabalhando com menos. Guia em [/guides/lacunas-de-documentacao/](src/content/docs/guides/lacunas-de-documentacao.mdx).
 
-`check_documentation` é a única que inicia um processo — ela chama a CLI do
-linter, porque reimplementá-lo em Python criaria duas verdades sobre o que é uma
-boa página. Comando fixo, argumentos em lista, sem shell, caminho validado antes.
+#### Feedback de página
 
-**O que ainda não existe:** o MCP não aplica o RBAC do portal (§11 da spec) nem
-registra identidade de cliente na auditoria (§13). Em modo stdio o servidor roda
-como o processo de quem o iniciou e não tem noção de usuário; ligar isso exige o
-modo remoto com token mapeado para um usuário do portal. Até lá, o servidor
-enxerga tudo o que o sistema de arquivos enxerga.
+Um widget de utilidade no rodapé de cada página. Ele guarda o voto e o caminho, e nada sobre quem votou.
 
-## API Explorer
+Detalhes em **[Feedback de página](/guides/feedback/)**.
 
-A referência de API deixou de ser só leitura: em [`/api-reference/explorer/`](src/content/docs/api-reference/explorer.mdx)
-dá para preencher parâmetros, enviar a chamada e ver a resposta.
-
-Os formulários vêm da especificação OpenAPI em `src/schemas/`. Nenhum campo é
-escrito à mão — trocar a especificação muda o Explorer e a referência juntos.
-
-| Arquivo | Papel |
-| --- | --- |
-| `src/lib/api-explorer/model.ts` | Lê o OpenAPI e produz as operações |
-| `src/lib/api-explorer/request.ts` | Monta o pedido a partir do formulário |
-| `src/lib/api-explorer/snippets.ts` | Gera cURL, JavaScript, Python e Go |
-| `src/lib/api-explorer/proxy-policy.ts` | Decide o que o proxy pode buscar |
-| `src/pages/api/explorer/request.ts` | O proxy |
-
-### O proxy é a parte que precisa de cuidado
-
-O "Try it" precisa de um proxy porque a maioria das APIs não aceita chamadas de
-outro domínio. E um proxy que aceita qualquer URL **é** um SSRF: o servidor do
-portal viraria intermediário para tudo que ele alcança, rede interna inclusive.
-
-A regra é a mais estreita que ainda serve: **só os servidores declarados na
-especificação**, que é arquivo versionado. Liberar um destino novo exige editar
-o arquivo e passar por revisão, não mudar um parâmetro. Além disso: esquema
-diferente de HTTP é recusado, credencial embutida na URL é recusada, endereço de
-rede interna é recusado mesmo se declarado, e redirecionamento não é seguido.
-
-### Credenciais
-
-Ficam apenas no estado do componente: não vão para `localStorage`, não entram no
-histórico de chamadas e não aparecem nos exemplos de código, onde um marcador as
-substitui. O log do proxy redige cabeçalhos de credencial pelo nome.
-
-Os exemplos são gerados a partir da **mesma** função que monta o envio. Se
-divergissem, o exemplo copiado falharia no terminal depois de funcionar na tela.
-
-### A API de demonstração é real
-
-`src/schemas/portal-api.yaml` descreve endpoints do próprio portal — os que a
-interface usa. Uma especificação de exemplo com endpoints inventados
-demonstraria a ferramenta e mentiria sobre o produto.
-
-## Workflow de Git
-
-O editor deixou de apenas *mostrar* o estado do Git e passou a operá-lo: criar
-branch, ver o diff, rodar o portão de qualidade e preparar o pull request, sem
-sair da tela onde o texto foi escrito.
-
-| Camada | Onde | O quê |
-| --- | --- | --- |
-| Branches | `src/lib/git/workflow.ts` | listar, criar, trocar, renomear, apagar |
-| Diff | `src/lib/git/diff.ts` | leitura do diff unificado, com renomeação e binário |
-| Pull request | `src/lib/git/pull-request.ts` | portão de qualidade, impacto no conteúdo, criação |
-| Interface | `src/components/editor/GitWorkflowModal.tsx` | o painel no editor |
-
-### Três decisões
+#### Organização e múltiplos repositórios
 
-**Nada passa por shell.** Todo comando usa `execFile` com lista de argumentos.
-Um nome de branch vindo da interface é dado, não instrução — sem shell,
-`; rm -rf` é apenas um nome inválido. A validação de nome existe para dar erro
-claro, e segue as regras do Git sem inventar restrições próprias.
-
-**O diff inclui o que ainda não foi commitado.** Quem escreve no editor tem
-alterações salvas em arquivo e não commitadas; um diff que as escondesse
-mostraria uma revisão diferente da que existe no disco.
-
-**A revisão e o merge acontecem no provedor.** O portão de qualidade é nosso e
-roda local; o pull request vive no GitHub, que é onde a equipe já revisa código.
-Reimplementar revisão aqui seria um GitHub pior e desconectado.
+Registra repositórios, produtos e times em `organization.yml` e agrega o que dá para agregar sem mentir.
 
-### O que o PR informa antes de alguém abrir os arquivos
+O portal **não busca repositório da rede**: registrado por `url`, ele é listado e não lido — clonar e ler conteúdo arbitrário a cada coleta é decisão de quem opera. A profundidade da leitura é declarada por repositório, e o que não foi medido fica fora da média: contá-lo como zero faria registrar um repositório baixar a nota da organização.
 
-Nota do linter (a **menor** das páginas alteradas, não a média — uma página ruim
-entre dez boas continua ruim), lista dos arquivos por tipo, e o **impacto no
-Content Graph**: as páginas que mudam porque um bloco reutilizável mudou e que,
-por isso, **não aparecem no diff**.
+Em `npm run org` e em Settings → Organization.
 
-### Credencial
+Detalhes em **[Organização e múltiplos repositórios](/guides/organizacao/)**.
 
-`GITHUB_TOKEN` no ambiente permite criar o PR direto. Sem ele, o botão abre a
-tela de comparação do provedor com título, descrição e resumo já preenchidos —
-o trabalho de preparação não se perde por falta de token.
+#### Analytics da documentação (Do11y)
 
-## Glossário
+Integração opcional com o Do11y para analytics de documentação. Desligada por padrão, e configurada por ambiente — nenhuma credencial vai para o repositório.
 
-Os termos ficam em `src/content/glossary/`, um arquivo Markdown por termo,
-versionados pelo Git. Um termo cadastrado é destacado automaticamente nas
-páginas, explicado numa bolha, listado em [`/glossary`](src/pages/glossary/) e
-**usado pelo linter** para avaliar consistência de terminologia.
-
-O guia de uso é [Mantenha o glossário](src/content/docs/guides/glossario.mdx). O
-que segue é a arquitetura.
+Detalhes em **[Analytics da documentação (Do11y)](/guides/analytics-do11y/)**.
 
-### O glossário é a fonte, o linter é consumidor
+### Automação
 
-```text
-        GlossDefs (src/content/glossary/*.md)
-                     │
-              Glossary Index
-                     │
-        ┌────────────┴────────────┐
-        ▼                         ▼
-   Transformer                  Linter
-   (destaque)              (Consistência)
-```
+_O que o portal faz sozinho — e onde ele para para pedir aprovação._
 
-Não existe uma nota "glossário" no linter: terminologia inconsistente **é**
-consistência, e separá-la em duas notas esconderia o problema.
+#### Agentes de documentação
 
-| Arquivo | Papel |
-| --- | --- |
-| `src/lib/glossary/types.ts` | O modelo, compartilhado pelos dois consumidores |
-| `src/lib/glossary/index-build.ts` | Índice e busca de ocorrências |
-| `src/lib/glossary/loader.ts` | Leitura do disco, com cache |
-| `src/lib/glossary/remark-glossary.ts` | Transformer sobre o AST |
-| `src/lib/linter/rules/glossary.ts` | Regras `CONSISTENCY-002` a `005` |
+O objetivo **não é outro chatbot**. Um agente genérico produz "aqui está uma documentação sobre autenticação" e não garante que a implementação foi consultada, que a API está correta nem que os exemplos funcionam. Aqui, cinco agentes especializados usam as ferramentas que o portal já tem — Digital Twin, Content Graph, glossário, linter, testes, contratos, proveniência — e produzem mudanças **verificáveis**.
 
-### Três decisões que valem registro
+**Quatro dos cinco funcionam sem provedor nenhum.** Sem chave, o Writer não inventa prosa: produz um rascunho estruturado com o que se sabe, de onde veio e onde falta escrever, e a execução segue por revisão, testes e auditoria normalmente.
 
-**O destaque acontece no AST, não no HTML.** Uma expressão regular sobre o HTML
-final não distingue `OAuth` dentro de um `<code>`, de um `<a>` ou de um `<h2>` —
-e ignorar esses três é requisito. No AST cada nó já diz o que é.
+**Nada é publicado automaticamente**, mesmo com todos os testes verdes — e aprovar não publica: o conteúdo continua no workspace isolado até ser aplicado. Três condições param a execução antes do fim: fontes que discordam (escolher uma em silêncio propagaria o conflito), pesquisa sem evidência (preencher com suposição é o que a camada existe para evitar) e regressão de saúde.
 
-**Uma varredura, não uma por termo.** O índice ordena as formas da mais longa
-para a mais curta, e cada posição do texto é testada uma vez. A ordem *é* a
-regra de desempate: `API Gateway` vem antes de `API`, então a busca encontra a
-maior primeiro. Com 100 termos isso é imperceptível.
+Os guardrails da §25 são **código executável**, não instrução de prompt: allowlist de ferramentas por agente (só o Writer escreve, e só no workspace; nenhum agente tem execução de comando), caminhos restritos a `src/content/` em `.md`/`.mdx` com `data/`, `.env`, `src/lib/auth/` e configuração recusados até para leitura, e travessia de diretório rejeitada em vez de normalizada.
 
-**A bolha recebe texto puro.** A definição vai para um atributo e é escrita com
-`textContent` — uma definição não consegue executar script na página nem que
-tente. A formatação completa fica na página do termo, onde o pipeline do Astro
-a renderiza com a sanitização de sempre.
+O último guardrail nasceu de um defeito real: a primeira execução contra o portal **substituiu a página de autenticação inteira por um esqueleto** — e passou por revisão, testes e auditoria, porque esqueleto bem formado é Markdown válido. Saíram duas correções: o Writer sem modelo passou a ser aditivo sobre página existente, e o orquestrador ganhou um guardrail de descarte que vale para qualquer origem do texto, inclusive um modelo.
 
-### A numeração das regras
+Conteúdo recuperado é tratado como **dado, nunca instrução** — pela mesma sanitização que o assistente usa, porque duas defesas com regras diferentes significam que a mais fraca é a que vale. E não há memória autônoma persistente: o estado pertence à execução e morre com ela. Guia em [/guides/agentes-de-documentacao/](src/content/docs/guides/agentes-de-documentacao.mdx).
 
-A spec numera de 001 a 005, mas `CONSISTENCY-001` já existia no portal (grafia
-inconsistente na página), que é o conceito da `CONSISTENCY-003` da spec.
-Renumerar quebraria configurações e histórico, então as regras novas ocupam
-002–005. O mapa está no cabeçalho de `src/lib/linter/rules/glossary.ts`.
+#### Self-healing
 
-### O plugin avaliado antes
+Detectar → diagnosticar → propor → validar → revisar → PR. Nunca `detectar → corrigir`.
 
-`@simonhyll/starlight-glossary` foi examinado antes de escrever qualquer código,
-como a spec exige. Está em `0.1.0-alpha`, publicado em junho de 2024, com 148
-linhas no total: o schema de configuração é um objeto vazio, `libs/content.ts`
-tem uma linha, e a rota do glossário devolve conteúdo fixo de exemplo
-("Semver", "This is some content") em vez de ler termos.
+Nada é escrito fora do workspace isolado dos agentes, nada é publicado sem aprovação humana, e nenhum nível de autonomia faz merge. O diagnóstico recusa sem fonte autoritativa; quando fontes autoritativas discordam, o ciclo declara conflito e para, em vez de escolher uma — documentação errada com ar de certeza é pior que a lacuna.
 
-Não há matcher, tooltip, aliases nem transformer de AST — ou seja, nenhum dos
-requisitos obrigatórios da avaliação. Daí o transformer próprio.
+Validação que não roda vale "não verificado", nunca "aprovado".
 
-## Atualizações recentes
+Em `npm run heal` e em Settings → Self-Healing.
 
-[`/atualizacoes`](src/pages/atualizacoes.astro) lista as páginas alteradas nos
-últimos 30 dias, da mais recente para a mais antiga, agrupadas por dia.
+Detalhes em **[Self-healing](/guides/self-healing/)**.
 
-A data vem do **Git**, não do `mtime`: o `mtime` muda a cada clone ou `npm ci`,
-e num servidor de CI todos os arquivos teriam a data de agora. Um clone raso
-(`fetch-depth: 1`) não tem histórico — nesse caso a página cai para o sistema de
-arquivos e **avisa na tela** que as datas não são as das alterações.
+#### Time Machine
 
-A sugestão de montar a estrutura a partir de um `index` por pasta não se aplica
-aqui: só os diretórios de idioma têm um. O agrupamento usa a própria pasta, que
-é de onde a Starlight já deriva as seções.
+Quatro perguntas que só o histórico responde: como esta página evoluiu, como o portal estava em maio, o que mudou de **comportamento** entre dois pontos, e o que aquele commit afetou. Em `npm run history` e em Settings → History.
 
-## Busca
+**O Git continua sendo a fonte.** Esta camada é indexação, não cópia: cada consulta reconstrói do repositório. É mais lento e sempre certo — um índice persistido divergiria no primeiro `rebase`, e passariam a existir duas respostas para "como esta página estava em maio", uma errada e nenhuma marcada como tal. Nada aqui escreve, faz checkout ou muda de branch; a leitura é por `git show`.
 
-Dois provedores, escolhidos por ambiente:
+**O que não dá para reconstruir vem ausente, não estimado.** Páginas, palavras, termos e endpoints saem do conteúdo daquele commit e são exatos. O Health Score **não** é recalculado: ele dependia de testes e contratos avaliados com as ferramentas daquela época. A primeira versão aceitava uma medição de até sete dias de distância, e uma comparação entre 12 e 18 de agosto exibiu o mesmo número nas duas pontas — a medição de hoje apresentada como se descrevesse o passado, com delta zero convidando à conclusão de que nada mudou.
 
-| Provedor | Quando | Índice |
-| --- | --- | --- |
-| **Pagefind** (padrão) | sem credenciais do Algolia | gerado no build, sem serviço externo |
-| **Algolia DocSearch** | com `ALGOLIA_APP_ID`, `ALGOLIA_SEARCH_API_KEY` e `ALGOLIA_INDEX_NAME` | hospedado no Algolia |
+O **semantic diff** responde "o que passou a ser verdade que antes não era": `30 dias → 90 dias`, `client_id → client_id + client_secret`. Cada achado carrega confiança — lista `required:` é estrutura declarada e vale 0,95; assunto de número inferido das palavras vizinhas vale 0,7. O limite está dito: reescrita em prosa que inverte um sentido passa despercebida, e por isso o diff textual continua ao lado em vez de ser substituído.
 
-As credenciais são suas e ficam no ambiente, nunca no repositório. Use a chave
-**Search-Only**: ela é pública por natureza, vai para o navegador e só lê o
-índice. A chave de Admin escreve no índice e não deve aparecer no cliente.
+**Restore não altera a branch.** Snapshot → workspace isolado → diff → validação → PR, sem atalho. Restaurar é operação perigosa disfarçada de simples: conteúdo antigo pode estar antigo por um bom motivo, e uma reversão com um clique apagaria a razão junto. Guia em [/guides/time-machine/](src/content/docs/guides/time-machine.mdx).
 
-É tudo ou nada: com uma variável faltando, o portal fica no Pagefind em vez de
-carregar um widget que falharia na primeira busca.
+#### Assistente de documentação
 
-Três detalhes que essa troca envolve:
+Um chatbot que responde a partir da documentação e cita as fontes. Sem chave de provedor ele devolve trechos e um resumo extrativo, sem redigir nada; com chave, o mesmo pipeline redige a resposta atravessando os guardrails.
 
-- O `Search` é um override nosso, porque o assistente de documentação fica ao
-  lado da busca. Por isso o `starlight-docsearch` avisa no build que não vai
-  substituir o componente — é esperado, e a composição está em
-  [Search.astro](src/components/Search.astro). Remover o override para calar o
-  aviso tiraria o assistente do cabeçalho.
-- O Pagefind continua sendo gerado mesmo com o Algolia ativo: a busca "warp"
-  (`/warp?q=termo`) consulta aquele índice local.
+Detalhes em **[Assistente de documentação](/guides/assistente/)**.
 
-O índice do Algolia precisa ser alimentado pelo crawler do DocSearch, que é
-configurado na conta do Algolia — o portal só consulta.
+#### Documentação legível por máquina
 
-## Publicação no GitHub Pages
+`llms.txt`, Markdown bruto em cada página e metadados estruturados — para que um agente leia a documentação sem raspar HTML.
 
-O portal tem duas naturezas no mesmo repositório: um **site de documentação**, que é HTML estático, e uma **aplicação** — editor, login, Settings, chat, feedback —, que precisa de um servidor Node. O GitHub Pages serve arquivos, não processos, então o que se publica lá é a primeira metade.
+Detalhes em **[Documentação legível por máquina](/guides/documentacao-legivel-por-maquina/)**.
 
-O workflow [deploy-docs.yml](.github/workflows/deploy-docs.yml) faz isso a cada push no branch principal. Antes do primeiro deploy, em **Settings → Pages** do repositório, defina *Source* como **GitHub Actions**.
+#### Consulta pelo terminal (MCP)
 
-| Variável do repositório | Para quê | Padrão |
-| --- | --- | --- |
-| `SITE_URL` | URL pública; o sitemap e o registro OpenSearch precisam dela absoluta | `https://<owner>.github.io/<repo>` |
-| `PAGES_BASE` | Subcaminho do site de projeto. Use `/` em site de usuário/organização ou domínio próprio | nome do repositório |
+Um servidor MCP e uma CLI que expõem a documentação para agentes e para o terminal, com os mesmos filtros de público e versão do portal.
 
-Localmente:
+Detalhes em **[Consulta pelo terminal (MCP)](/guides/mcp/)**.
 
-```bash
-npm run build:pages
-```
+### Plataforma
 
-O comando constrói com `PORTAL_TARGET=pages` e confere o pacote em `dist/client`.
+_Acesso, fluxo de trabalho e publicação._
 
-### O que não vai ao ar, e por quê
+#### Usuários e controle de acesso
 
-`PORTAL_TARGET=pages` **não renderiza** os componentes que dependem de servidor, em vez de publicá-los quebrados: uma ilha de servidor no Pages busca `/_server-islands/…` e recebe 404, o widget de feedback aceita o clique e falha no POST, o chat abre e não responde. Botão que não funciona é pior que botão ausente, porque o leitor não sabe que o problema não é dele.
+Três papéis — viewer, editor e admin. A leitura é pública; editar e administrar exigem entrar. A autorização é por capacidade, aplicada num único middleware, e os dados de usuário ficam fora do Git.
 
-A lista fica explícita em [src/config/deploy.ts](src/config/deploy.ts) — quem acrescentar um recurso com API própria decide ali o que acontece com ele no Pages.
+Detalhes em **[Usuários e controle de acesso](/guides/usuarios-e-acesso/)**.
 
-### O subcaminho é o detalhe que quebra
+#### Workflow de Git
 
-Num site de projeto (`usuario.github.io/repositorio/`), o `base` do Astro passa a ser `/repositorio/`. A Astro reescreve o que ela gera — navegação, assets, paginação — mas **não** os links absolutos escritos à mão no Markdown, nem os botões de `hero.actions` do frontmatter. Todos apontariam para a raiz do domínio.
+Branch, diff, portão de qualidade e preparação de pull request a partir do editor — com o corpo do PR montado a partir do que os motores de análise já sabem.
 
-Dois pontos cobrem isso: o rehype [rehype-base-path.ts](src/lib/deploy/rehype-base-path.ts) prefixa os links do corpo, e o override [Hero.astro](src/components/Hero.astro) prefixa os do hero. Foi a validação de links do build que revelou a segunda metade do problema.
+Detalhes em **[Workflow de Git](/guides/workflow-de-git/)**.
 
-Com `PAGES_BASE` diferente de `/`, a validação de links é desligada: ela confere os caminhos como estão na fonte, enquanto o prefixo entra na renderização, e o resultado seria acusar como quebrados links que o HTML final traz corretos. A validação continua valendo no build de raiz — o do desenvolvimento e o do PR.
+#### Publicação no GitHub Pages
 
-## Referência de API a partir de especificação
+Publicação automatizada no GitHub Pages, com o caminho base tratado e a distinção entre o site estático e o modo servidor.
 
-O portal aceita dois formatos de especificação, e cada um tem um caminho próprio porque descrevem coisas diferentes:
+Detalhes em **[Publicação no GitHub Pages](/guides/publicacao-no-github-pages/)**.
 
-| Formato | Como publicar | O que descreve |
-| --- | --- | --- |
-| **OpenAPI** | `src/schemas/<nome>.yaml` — o `starlight-openapi` gera as páginas no build | Rotas HTTP, verbos, códigos de status |
-| **AsyncAPI** | `src/schemas/<nome>.asyncapi.yaml` + `npm run docs:asyncapi` | Canais, mensagens e payloads de sistema orientado a eventos |
+#### Atualizações recentes
 
-Não há conversão entre os dois: um canal Kafka não é um endpoint REST. Misturá-los produziria documentação falsa.
+Uma lista do que mudou recentemente, derivada do Git — não uma lista mantida à mão que alguém esquece de atualizar.
 
-O `astro.config.mjs` só registra o `starlight-openapi` para arquivos que **declaram** `openapi:` ou `swagger:` — filtrar pela extensão não basta. Um AsyncAPI passado ao plugin gera uma página com o título certo e nenhuma operação: falha silenciosa, pior que um erro.
+Detalhes em **[Atualizações recentes](/guides/atualizacoes-recentes/)**.
 
-`npm run docs:asyncapi -- --check` falha se a página gerada estiver desatualizada em relação à especificação — serve para CI e para pegar quem editou a página gerada à mão. O mesmo é verificado por teste.
+#### Plugins da comunidade
 
-Um exemplo real está no repositório: [`src/schemas/streetlights-kafka.asyncapi.yaml`](src/schemas/streetlights-kafka.asyncapi.yaml) gera [`api-reference/streetlights-kafka.md`](src/content/docs/api-reference/streetlights-kafka.md).
+Os plugins da comunidade Starlight em uso, com o que cada um resolve e por que foi escolhido
+em vez das alternativas.
 
-## Plugins da comunidade Starlight
-
-| Plugin | O que acrescenta |
-| --- | --- |
-| `starlight-links-validator` | Valida todo link e âncora interna no build; link quebrado reprova o build. Complementa o `docs:lint`, que olha qualidade editorial e referências de conteúdo reutilizável. |
-| `starlight-view-modes` | Modos de leitura: zen (`/zen-mode/<página>`) e tela cheia. |
-| `starlight-videos` | Frontmatter e componentes para páginas de vídeo. |
-| `starlight-scroll-to-top` | Botão "voltar ao topo" com anel de progresso. |
-| `starlight-tags` | Taxonomia por tags, com páginas de índice em `/tags`. A taxonomia fica em [tags.yml](tags.yml) e aceita rótulos por idioma. |
-| `@inox-tools/star-warp` | Busca "warp": `/warp?q=termo` vai direto ao melhor resultado do Pagefind, e `/warp.xml` registra o portal como buscador do navegador (OpenSearch). |
-
-Dois entram **sob condição**, porque exigem conteúdo que só você tem:
-
-- **`starlight-openapi`** ativa sozinho quando existe um schema em `src/schemas/*.yaml|json`. A referência de API deste portal é escrita à mão e não descreve endpoints concretos; inventar um schema para ligar o plugin produziria documentação falsa.
-- **`starlight-versions`** ativa quando existe um `versions.json` na raiz (ex.: `["1.0"]`). Cada versão é uma cópia congelada da documentação, gerada pelo comando do próprio plugin.
-
-Cinco itens da lista **não** foram adicionados, e vale o registro do motivo:
-
-| Plugin | Por que não |
-| --- | --- |
-| `starlight-image-zoom` | Incompatível com o processador Markdown Sätteri do Astro 7 — o próprio plugin aborta o build e aponta o [issue #63](https://github.com/HiDeoo/starlight-image-zoom/issues/63). |
-| `starlight-contextual-menu` | Exige `astro@^5`; o projeto está no 7. E duplica o menu "Compartilhar com IA". |
-| `starlight-page-actions` | Duplica o que o portal já faz: copiar a página para IA e conversar com o assistente. |
-| `starlight-changelogs` | O portal já tem seção de Changelog com páginas próprias; adotar o plugin significaria reestruturar esse conteúdo. |
-| `starlight-recipes` | Modela receitas culinárias (ingredientes, porções, cozinha, autores). Nada neste portal tem essa forma. |
-| `starlight-fullview-mode` | O modo de tela cheia já vem do `starlight-view-modes`; os dois disputam os mesmos overrides de layout. |
-| `starlight-agentready` | **Removido depois de instalado.** Ele não gera nada localmente: a cada build faz um POST do seu domínio para `agentready.it.com` para registrá-lo num índice de IA de terceiros, sem opção de desligar. Publicar o domínio num serviço externo é decisão sua, não efeito colateral de um `npm run build`. |
-
-Três plugins (`view-modes`, `videos`) querem os mesmos pontos de override que o portal já usa (`PageTitle`, `Search`). Em vez de disputá-los, os componentes deles são **compostos** dentro dos nossos — é o que os próprios avisos de build pedem. Os avisos continuam aparecendo porque a Starlight não sabe que a composição foi feita.
-
-## Consulta pelo terminal (MCP Server + CLI)
-
-O diretório [mcp-docs/](mcp-docs/) traz um **Documentation MCP Server** e uma CLI que consultam esta mesma documentação a partir do terminal:
-
-```bash
-doc ask "Como funciona o rate limit?"
-```
-
-A separação importa: o servidor MCP expõe as ferramentas (`search_docs`, `get_document`, `list_documents`, `find_references`) pelo Model Context Protocol, e a CLI é apenas **um** cliente entre outros — uma IDE ou um agente de IA consomem o mesmo servidor, com o mesmo comportamento e as mesmas validações. O Markdown continua sendo a fonte de verdade: o indexador lê `src/content/docs` e `src/content/snippets`, entende os blocos reutilizáveis e sabe quais páginas consomem cada bloco, então a citação aponta uma página que o leitor pode abrir.
-
-É somente leitura, e funciona sem chave de API (busca lexical e resposta composta dos trechos encontrados). Instalação, configuração e arquitetura em [mcp-docs/README.md](mcp-docs/README.md).
-
-## Analytics da documentação (Do11y)
-
-Em **Settings → Analytics** o portal integra o [Do11y](https://docservable.com/), que captura eventos de engajamento nas páginas e os grava numa tabela do Supabase. Ele detecta referrers de plataformas de IA, então o dashboard mostra quanto da leitura vem de agentes (ChatGPT, Claude, Perplexity…) e quanto vem de pessoas.
-
-A tela reúne visualizações por página, origem das sessões, tipos de evento, dispositivos e eventos por dia, com recorte de 24 h a 90 dias.
-
-**Configuração:** crie a tabela no Supabase (o SQL está na própria tela) e cole as credenciais do projeto. Duas chaves, com papéis distintos:
-
-- a **publishable** vai no HTML do portal — é pública por design, e a política de RLS só permite `insert`;
-- a **service_role** é usada só pelo servidor, para ler os eventos. Ela **nunca** é enviada ao navegador nem devolvida por nenhuma rota; a tela mostra apenas os últimos quatro caracteres para confirmar qual chave está gravada.
-
-Alternativamente, por ambiente: `DO11Y_ENABLED`, `DO11Y_SUPABASE_URL`, `DO11Y_SUPABASE_KEY`, `DO11Y_SERVICE_ROLE_KEY`, `DO11Y_TABLE` (têm precedência sobre a tela).
-
-Só as páginas de documentação são medidas — o editor e o dashboard ficam de fora. Arquitetura em [docs/integracao-do11y.md](docs/integracao-do11y.md).
-
-### Build e preview de produção
-
-O projeto usa `@astrojs/node` com `output: 'server'`, porque as rotas do editor precisam de execução sob demanda para ler e gravar arquivos no filesystem.
-
-```bash
-npm run build
-npm run preview
-```
-
-Também é possível iniciar diretamente o servidor standalone gerado:
-
-```bash
-node ./dist/server/entry.mjs
-```
-
-### Docker
-
-Há um `Dockerfile` de dois estágios (build + runtime) que empacota o portal como imagem Node 22 Alpine. O container roda como usuário não-root (`node`) e espera um volume persistente em `/app/data`, onde ficam usuários, sessões e auditoria.
-
-**Construir e rodar:**
-
-```bash
-docker build -t lunar-limb .
-docker run -d --name lunar-limb \
-  -p 4321:4321 \
-  --env-file .env \
-  -v lunar-limb-data:/app/data \
-  --restart unless-stopped \
-  lunar-limb
-```
-
-O portal fica em `http://localhost:4321`.
-
-**Variáveis de ambiente:** o container lê as mesmas variáveis do `.env` (veja [`.env.sample`](.env.sample)) — `AUTH_SECRET`, `PORTAL_ADMIN_EMAIL`, `PORTAL_ADMIN_PASSWORD`, `SITE_URL`, `PORTAL_DATA_DIR` etc. Com `--env-file .env`, basta preencher o arquivo local.
-
-**Volume de dados:** `data/` é o único estado persistente. Remover o volume (`docker volume rm lunar-limb-data`) apaga usuários e sessões e faz o portal semear um novo admin no primeiro request.
-
-**Perda de senha do admin:** como `users.json` guarda só o hash, a senha não é recuperável. Apague o volume e reinicie com `PORTAL_ADMIN_EMAIL`/`PORTAL_ADMIN_PASSWORD` definidas, ou crie outro admin por `npm run user:create`.
-
-> O seed do admin (`PORTAL_ADMIN_EMAIL`/`PORTAL_ADMIN_PASSWORD`) só roda quando não existe nenhum usuário. Depois que `users.json` é criado, mudar essas variáveis não tem efeito.
-
-### Limitações atuais (para as próximas fases da especificação)
-
-- O preview de MDX não executa componentes Astro/Starlight reais (incluindo `<ContentBlock>`/`<IncludePage>` fora do resolver dedicado) — mostra um placeholder com nome e props para componentes genéricos.
-- Ainda não há scroll-sync entre editor e preview.
-- Resolução de imagem relativa ao pré-visualizar um snippet aberto diretamente (fora de uma página) assume a pasta `content/docs`, então pode ficar imprecisa nesse caso específico.
-- Referências quebradas e circulares aparecem no Problems panel e no Content Graph, mas ainda **não bloqueiam o build** em modo strict.
-- Mover ou renomear um arquivo quebra as referências a ele (o `id` é o caminho sem extensão) — ainda não há um "rename refactor" que atualize os consumidores.
-- O grafo só enxerga a sintaxe que o próprio editor gera (`<ContentBlock id="…" />` / `<IncludePage id="…" />`); referências escritas com props em outra ordem ou `id` vindo de expressão ficam de fora.
-- `<If>` só funciona em `.mdx` (é JSX); em `.md` a tag vira texto literal.
-- As variáveis são resolvidas em **build time** — mudar uma variável exige novo build para o site publicado refletir. No dev server, salvar variáveis recarrega a página do editor (o JSON é importado pelo build).
-- `showIf` aceita uma variável só, com negação opcional; não há expressões booleanas compostas.
-- A busca global varre o conteúdo a cada consulta, sem índice — adequado ao volume de um portal, não a dezenas de milhares de arquivos.
-- Git awareness é somente leitura: nenhum commit, stage ou checkout parte do editor.
-- A leitura da documentação é pública por decisão de produto: gatear as páginas exigiria desligar o prerender da Starlight, o que desativa a busca Pagefind. Conteúdo que não pode ser lido por qualquer um não deve estar no portal.
-- Não há "esqueci minha senha" nem tela de perfil: a redefinição é feita por um admin em Settings → Users. `mustChangePassword` é devolvido no login, mas não há tela que force a troca antes de continuar.
-- A busca conversacional devolve trechos, não respostas redigidas: quem sintetiza é o leitor. A relevância vem de BM25 sobre o mesmo índice do MCP Server, então ela acerta nome de campo, erro e comando melhor do que pergunta conceitual. As conversas ficam em memória, com TTL — reiniciar o servidor as descarta, e várias réplicas não as compartilham.
-- Usuários e sessões ficam em JSON local, adequado a uma instalação; várias réplicas precisariam de um store compartilhado. O limitador de tentativas de login também é por processo.
-
-### Dependências
-
-O projeto utiliza React, `@astrojs/react`, `@astrojs/node`, Monaco, `remark-mdx` e `js-yaml`. A Fase 5 adiciona `monaco-vim` como única dependência de runtime nova; as de desenvolvimento (`vitest`, `typescript`, `@astrojs/check`) vieram na Fase 4. Rode `npm install` sempre que o `package.json` mudar.
-
-> `astro check` depende de uma API programática que o compilador nativo do TypeScript 7 ainda não expõe, por isso o projeto fixa `typescript@^6` em devDependencies.
+Guia: **[Plugins da comunidade](/guides/plugins/)**. Notas de avaliação: [docs/plugins.md](docs/plugins.md).
 
 ## Clean install
 
@@ -978,4 +455,3 @@ npm install
 npm run build
 npm run dev
 ```
-

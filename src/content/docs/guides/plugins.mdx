@@ -1,0 +1,45 @@
+---
+title: Plugins da comunidade
+description: Os plugins da comunidade Starlight instalados, o que cada um faz e por que foi escolhido.
+sidebar:
+  order: 41
+tags: [guia, portal]
+owner: Time de Documentação
+audiences: [developer, product]
+governance:
+  owner:
+    type: team
+    id: documentation
+  review:
+    interval: 180d
+    at: 2026-08-19
+    by: mestre
+---
+
+| Plugin | O que acrescenta |
+| --- | --- |
+| `starlight-links-validator` | Valida todo link e âncora interna no build; link quebrado reprova o build. Complementa o `docs:lint`, que olha qualidade editorial e referências de conteúdo reutilizável. |
+| `starlight-view-modes` | Modos de leitura: zen (`/zen-mode/<página>`) e tela cheia. |
+| `starlight-videos` | Frontmatter e componentes para páginas de vídeo. |
+| `starlight-scroll-to-top` | Botão "voltar ao topo" com anel de progresso. |
+| `starlight-tags` | Taxonomia por tags, com páginas de índice em `/tags`. A taxonomia fica em [tags.yml](tags.yml) e aceita rótulos por idioma. |
+| `@inox-tools/star-warp` | Busca "warp": `/warp?q=termo` vai direto ao melhor resultado do Pagefind, e `/warp.xml` registra o portal como buscador do navegador (OpenSearch). |
+
+Dois entram **sob condição**, porque exigem conteúdo que só você tem:
+
+- **`starlight-openapi`** ativa sozinho quando existe um schema em `src/schemas/*.yaml|json`. A referência de API deste portal é escrita à mão e não descreve endpoints concretos; inventar um schema para ligar o plugin produziria documentação falsa.
+- **`starlight-versions`** ativa quando existe um `versions.json` na raiz (ex.: `["1.0"]`). Cada versão é uma cópia congelada da documentação, gerada pelo comando do próprio plugin.
+
+Cinco itens da lista **não** foram adicionados, e vale o registro do motivo:
+
+| Plugin | Por que não |
+| --- | --- |
+| `starlight-image-zoom` | Incompatível com o processador Markdown Sätteri do Astro 7 — o próprio plugin aborta o build e aponta o [issue #63](https://github.com/HiDeoo/starlight-image-zoom/issues/63). |
+| `starlight-contextual-menu` | Exige `astro@^5`; o projeto está no 7. E duplica o menu "Compartilhar com IA". |
+| `starlight-page-actions` | Duplica o que o portal já faz: copiar a página para IA e conversar com o assistente. |
+| `starlight-changelogs` | O portal já tem seção de Changelog com páginas próprias; adotar o plugin significaria reestruturar esse conteúdo. |
+| `starlight-recipes` | Modela receitas culinárias (ingredientes, porções, cozinha, autores). Nada neste portal tem essa forma. |
+| `starlight-fullview-mode` | O modo de tela cheia já vem do `starlight-view-modes`; os dois disputam os mesmos overrides de layout. |
+| `starlight-agentready` | **Removido depois de instalado.** Ele não gera nada localmente: a cada build faz um POST do seu domínio para `agentready.it.com` para registrá-lo num índice de IA de terceiros, sem opção de desligar. Publicar o domínio num serviço externo é decisão sua, não efeito colateral de um `npm run build`. |
+
+Três plugins (`view-modes`, `videos`) querem os mesmos pontos de override que o portal já usa (`PageTitle`, `Search`). Em vez de disputá-los, os componentes deles são **compostos** dentro dos nossos — é o que os próprios avisos de build pedem. Os avisos continuam aparecendo porque a Starlight não sabe que a composição foi feita.

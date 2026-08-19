@@ -14,6 +14,12 @@ governance:
     interval: 180d
     at: 2026-08-19
     by: mestre
+# Estas duas páginas **nomeiam** os marcadores de rascunho que o portal detecta.
+# Um guia sobre detecção de conteúdo inacabado que não pode escrever `TODO` não
+# consegue explicar o que detecta — e silenciar a regra aqui fica registrado no
+# relatório, que é como o silenciamento continua visível.
+lint:
+  ignore: [COMPLETENESS-001]
 ---
 
 Self-healing **não** é permitir que a IA altere documentação de produção de forma irrestrita.

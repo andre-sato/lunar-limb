@@ -14,6 +14,11 @@ governance:
   owner:
     type: team
     id: documentation
+  # A página documenta um endpoint público, e a política exige aprovador para
+  # isso. Sem esta linha ela aparece em Governança como exigência não atendida.
+  approver:
+    type: team
+    id: platform
   review:
     interval: 180d
     at: 2026-08-18

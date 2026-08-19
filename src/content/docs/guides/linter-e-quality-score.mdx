@@ -1,0 +1,41 @@
+---
+title: "Linter e Quality Score"
+description: "O revisor editorial automatizado: problemas com id estável, nota por dimensão, style guide versionado e portão de CI."
+sidebar:
+  order: 29
+tags: [guia, qualidade, portal]
+owner: Time de Documentação
+audiences: [developer, product]
+governance:
+  owner:
+    type: team
+    id: documentation
+  review:
+    interval: 180d
+    at: 2026-08-19
+    by: mestre
+# Estas duas páginas **nomeiam** os marcadores de rascunho que o portal detecta.
+# Um guia sobre detecção de conteúdo inacabado que não pode escrever `TODO` não
+# consegue explicar o que detecta — e silenciar a regra aqui fica registrado no
+# relatório, que é como o silenciamento continua visível.
+lint:
+  ignore: [COMPLETENESS-001]
+---
+
+O editor traz um revisor editorial automatizado: analisa cada página, aponta problemas com id estável (`STRUCTURE-001`, `TECH-MKT-001`, …) e calcula uma **nota de 0 a 10** com detalhamento por dimensão — gramática, clareza, concisão, estrutura, technical writing, consistência, acionabilidade, terminologia e legibilidade.
+
+Os problemas aparecem no painel abaixo do editor e sublinhados no Monaco. Correção rápida existe só quando é mecânica; sugestões subjetivas não alteram o texto sozinhas.
+
+A nota **não** é `10 − nº de erros`: cada dimensão é pontuada isoladamente, e o dano é normalizado por tamanho, para uma página longa não ser punida por ser longa. Calibração contra o conteúdo real: 8,9–10,0. Contra um documento escrito de propósito com TODO, linguagem promocional e link sem destino: 4,8.
+
+O style guide fica em `styles/default.yaml`, versionado em Git — limiares, termos proibidos, terminologia canônica, acrônimos conhecidos, severidade e peso por regra. Profiles adicionais herdam com `extends`, e uma página escolhe o seu pelo frontmatter. Regras podem ser silenciadas por linha, por bloco ou por página, e todo silenciamento é registrado.
+
+Na linha de comando e em CI:
+
+```bash
+npm run docs:lint
+```
+
+`--changed` analisa só o que mudou **mais as páginas consumidoras** dos blocos alterados, usando o Content Graph. Saída `0` aprovado, `1` gate reprovado, `2` configuração, `3` execução.
+
+**Settings → Quality** traz a visão do workspace: nota média, média por dimensão e problemas mais frequentes. Regras e arquitetura em [docs/linter.md](https://github.com/andre-sato/lunar-limb/blob/master/docs/linter.md).

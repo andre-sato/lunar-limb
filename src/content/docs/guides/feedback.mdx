@@ -1,0 +1,25 @@
+---
+title: Feedback de página
+description: O widget de utilidade no rodapé, o que ele guarda e o que ele deliberadamente não guarda.
+sidebar:
+  order: 30
+tags: [guia, qualidade, portal]
+owner: Time de Documentação
+audiences: [developer, product]
+governance:
+  owner:
+    type: team
+    id: documentation
+  review:
+    interval: 180d
+    at: 2026-08-19
+    by: mestre
+---
+
+No fim de cada página de documentação há um widget **"Esta página foi útil?"** com sim/não e um campo opcional de comentário. A Starlight não traz um componente de feedback nem plugin oficial — o caminho que ela indica é sobrescrever `Footer`, que é o que o projeto faz. As alternativas de mercado são SaaS de terceiros; aqui o retorno dos seus leitores fica no próprio projeto.
+
+O envio é **anônimo**: sem login, sem cookie, sem identificador de visitante. Grava-se caminho, voto, idioma e o comentário; o IP serve só ao limite de envio e não é armazenado.
+
+As respostas ficam em **Settings → Feedback**: proporção de "útil", comentários recentes e **onde mexer primeiro** — páginas com maioria negativa e pelo menos 3 votos, para uma reclamação isolada não mandar o time reescrever conteúdo.
+
+Com a integração do Do11y ligada, o mesmo clique também vira um evento `feedback` no Supabase. Detalhes em [docs/feedback-de-pagina.md](https://github.com/andre-sato/lunar-limb/blob/master/docs/feedback-de-pagina.md).

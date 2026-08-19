@@ -1,0 +1,47 @@
+---
+title: Vitrine de recursos
+description: Um produto fictício documentado com todos os recursos do portal ligados ao mesmo tempo, para ver cada um funcionando em contexto.
+sidebar:
+  order: 1
+  label: Visão geral
+tags: [exemplo, portal]
+owner: Time de Documentação
+audiences: [developer, product, support]
+governance:
+  owner:
+    type: team
+    id: documentation
+  review:
+    interval: 180d
+    at: 2026-08-19
+    by: mestre
+---
+
+Os [guias](/guides/manual/) explicam cada recurso do portal isoladamente. Esta seção faz o contrário: documenta **um produto fictício** — a *Órbita*, uma API de pagamentos que não existe — com todos os recursos ligados ao mesmo tempo.
+
+O conteúdo é sintético de propósito. O que importa aqui não é o produto, é ver os recursos operando juntos sobre um texto que se parece com documentação de verdade.
+
+:::caution[A Órbita não existe]
+Nenhum endpoint desta seção é real. Não aponte um cliente para eles, e não os use como referência da API do portal — essa fica em [Referência da API](/api-reference/overview/).
+:::
+
+## O que cada página demonstra
+
+| Página | Recursos em uso |
+| --- | --- |
+| [Primeiros passos](/exemplos/primeiros-passos/) | Público-alvo adaptativo, glossário, conteúdo reutilizável, diagrama, blocos de destaque |
+| [Cobranças](/exemplos/cobrancas/) | Proveniência, exemplos de contrato, tabela de erros, código com abas |
+| [Webhooks](/exemplos/webhooks/) | Conteúdo condicional, variáveis, diagrama de sequência, versionamento |
+| [Migração para a v2](/exemplos/migracao-v2/) | Guia de migração, mudança incompatível, aprovação obrigatória |
+
+## Como ler esta seção
+
+Cada página traz, no fim, uma nota curta chamada **O que esta página demonstra**. Ela lista os recursos usados ali e aponta o guia correspondente — é o caminho de volta da demonstração para a explicação.
+
+Se você chegou aqui querendo montar o seu portal, comece pelo [Manual completo](/guides/manual/) e volte quando quiser ver algum recurso em contexto.
+
+## Por que um produto inventado
+
+Documentar o próprio portal com todos os recursos ligados criaria uma distorção: a página de exemplo de conteúdo condicional passaria a esconder parte da documentação real, e o vínculo de exemplo apontaria para um endpoint de verdade que ninguém pretende manter.
+
+Um produto fictício isola a demonstração. A *Órbita* pode ter uma mudança incompatível na v2, um endpoint obsoleto e um webhook em beta sem que nada disso afete quem usa o portal.

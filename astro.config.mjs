@@ -324,6 +324,11 @@ export default defineConfig({
 					items: [{ autogenerate: { directory: 'guides' } }],
 				},
 				{
+					label: 'Exemplos',
+					translations: { en: 'Examples', es: 'Ejemplos' },
+					items: [{ autogenerate: { directory: 'exemplos' } }],
+				},
+				{
 					label: 'Referência da API',
 					translations: { en: 'API Reference', es: 'Referencia de la API' },
 					items: [{ autogenerate: { directory: 'api-reference' } }],
