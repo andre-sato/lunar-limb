@@ -85,6 +85,24 @@ resumo e o link.
 Para ver todos operando ao mesmo tempo sobre um produto fictício, veja a
 **[vitrine de recursos](src/content/docs/exemplos/index.mdx)** (publicada em `/exemplos/`).
 
+```mermaid
+flowchart LR
+    A["<b>Escrever</b><br/>editor · reuso · glossário<br/>audiências · versões"]
+    B["<b>Verificar</b><br/>linter · testes · contratos<br/>Digital Twin · proveniência"]
+    C["<b>Revisar</b><br/>impacto · saúde · governança<br/>vínculo com o código"]
+    D["<b>Publicar</b><br/>site · SDK · llms.txt<br/>MCP · API Explorer"]
+    E["<b>Observar</b><br/>leitura · lacunas<br/>avaliação de IA"]
+
+    A --> B --> C --> D --> E
+    E -. "a lacuna medida vira tarefa de escrita" .-> A
+
+    classDef s fill:#438dd5,stroke:#2e6295,color:#fff
+    class A,B,C,D,E s
+```
+
+A seta de volta é a tese: o portal não termina em publicar. O que os leitores não
+encontram vira item de backlog priorizado, e o ciclo recomeça.
+
 ### Autoria
 
 _Escrever, revisar e reaproveitar conteúdo._
@@ -109,15 +127,11 @@ Detalhes em **[Navegação](/guides/navegacao/)**.
 
 #### Documentação adaptativa
 
-Uma fonte de verdade, várias experiências: a mesma página serve a quem programa, a quem atende cliente e a quem opera, **sem duplicar arquivo** — `authentication-developer.md` e `authentication-support.md` divergem no terceiro mês e ninguém percebe qual está certo.
+A mesma página serve a quem programa, a quem atende cliente e a quem opera, sem duplicar arquivo — `authentication-developer.md` e `authentication-support.md` divergem no terceiro mês e ninguém percebe qual está certo.
 
-**O limite vem antes da funcionalidade.** Personalização de documentação erra sempre escondendo, então aqui nada é removido: o conteúdo de outra audiência fica recolhido num `<details>` com rótulo, dentro do documento, alcançável por teclado, anunciado por leitor de tela e encontrável pelo Ctrl+F. Vale igual para navegação e recomendações — elas reordenam e destacam, nunca tiram item da lista. É diferente do `<If>` que já existe: aquele resolve em build e **apaga** o trecho, que é o certo para conteúdo interno; aqui o objetivo é publicar tudo e mudar só a ênfase.
+Nada é escondido: o conteúdo de outra audiência fica recolhido num `<details>` com rótulo, alcançável por teclado e pelo Ctrl+F. Quem lê escolhe o perfil; nada é inferido por comportamento.
 
-As audiências (`developer`, `support`, `product`, `operations`, `ai-agent`) são declaradas no frontmatter, e o conteúdo específico usa `:::audience{type="support"}`. O bloco nasce **aberto**: sem JavaScript a página aparece inteira, porque adaptação é melhoria progressiva. Audiência escrita errada no atributo não faz o texto sumir — perder conteúdo por erro de digitação seria a pior falha possível desta camada.
-
-Quem lê escolhe o perfil na barra lateral; nada é inferido por comportamento, porque adivinhar o papel de alguém e reorganizar a documentação sobre o palpite erra em silêncio. `?audience=support` no link tem precedência sobre o cookie, para "veja isto na visão de suporte" funcionar para quem já tem preferência salva. Sem contexto, a documentação é a de sempre.
-
-No fim da página, **Você também pode precisar de**, montada do Content Graph, das tags e do contexto — cada item dizendo por que apareceu, e restrita ao mesmo idioma. No **assistente**, o contexto entra como enquadramento (recorte e tom), nunca como permissão: a autorização continua acontecendo antes, e nenhuma informação necessária é omitida por parecer de outro perfil. No **MCP**, `search_docs` aceita `audience` e `version`, descarta só o que foi escrito explicitamente para outro público e **recusa** audiência desconhecida em vez de ignorá-la. As analytics registram a distribuição por perfil — contadores, nada mais — e alimentam o Health Center. Guia em [/guides/documentacao-adaptativa/](src/content/docs/guides/documentacao-adaptativa.mdx).
+Detalhes em **[Documentação adaptativa](/guides/documentacao-adaptativa/)**.
 
 #### Busca
 
@@ -133,94 +147,57 @@ Detalhes em **[Versionamento da documentação](/guides/versionamento/)**.
 
 #### Glossário
 
-Os termos ficam em `src/content/glossary/`, um arquivo Markdown por termo, versionados pelo Git.
-Um termo cadastrado é destacado automaticamente nas páginas, explicado numa bolha, listado em
-`/glossary` e **usado pelo linter** para avaliar consistência de terminologia — o glossário é a
-fonte, e o linter é consumidor dela.
+Um arquivo Markdown por termo em `src/content/glossary/`, versionado pelo Git. Um termo cadastrado é destacado nas páginas, explicado numa bolha, listado em `/glossary` e **usado pelo linter** para avaliar consistência de terminologia — o glossário é a fonte, e o linter é consumidor dela.
 
-Guia de uso: **[Mantenha o glossário](/guides/glossario/)**. Arquitetura: [docs/glossario.md](docs/glossario.md).
+Detalhes em **[Mantenha o glossário](/guides/glossario/)**. Arquitetura em [docs/glossario.md](docs/glossario.md).
 
 #### Testes de documentação
 
-O linter pergunta "isto está bem escrito?". A suíte de testes pergunta "isto **funciona**?" — e é a pergunta que o linter nunca responde. Um link para uma página inexistente passa em qualquer regra de estilo; um exemplo de resposta que não bate mais com o schema está impecavelmente redigido.
+O linter pergunta "isto está bem escrito?". A suíte pergunta "isto **funciona**?" — um link para página inexistente passa em qualquer regra de estilo, e um exemplo que não bate mais com o schema está impecavelmente redigido.
+
+Verifica links, âncoras, Content Graph e exemplos de API, em três perfis do mais barato ao mais caro. A execução de snippets fica desligada por padrão: rodar código vindo de arquivo de conteúdo é execução arbitrária.
 
 ```bash
 npm run docs:test
 ```
 
-Três perfis, do mais barato ao mais caro: `quick` (padrão — links, âncoras, Content Graph, sem rede), `--standard` (mais exemplos de API e estrutura de snippets) e `--strict` (mais links externos, com rede). `--changed` restringe ao que o Git aponta, `--file <caminho>` a uma página, `--json` serve CI. Saída `0` aprovado, `1` falha, `2` opção inválida, `3` execução.
-
-As regras: `DOC-LINK-001` link interno para página inexistente, `DOC-LINK-002` âncora inexistente (a âncora do link passa pela mesma normalização dos títulos, acento incluído), `DOC-GRAPH-001` referência quebrada no Content Graph, `DOC-API-003` exemplo que envelheceu em relação ao schema, `DOC-SNIPPET-001` blocos marcados como executáveis, `DOC-LINK-003` link externo morto.
-
-**Duas decisões que valem explicação.** A primeira: a execução de snippets **não** é ligada por padrão. Rodar código vindo de arquivo de conteúdo é execução arbitrária — quem escreve documentação passaria a rodar qualquer coisa na máquina de quem testa, e em CI é porta aberta. O que roda é a verificação estrutural; cada bloco aparece como pulado dizendo isso. A segunda: `403` e `429` em link externo não reprovam. Sites bloqueiam robôs, e transformar isso em falha ensina a equipe a ignorar o relatório inteiro — só `404`, `410` e `5xx` são evidência de link morto.
-
-Teste pulado não reprova e também não conta como passado: aparece no relatório com o motivo. A tela de revisão do editor roda o perfil `standard` sobre os arquivos do PR, mostra as falhas com arquivo e linha, e as leva para o corpo do pull request. Quando a suíte não consegue rodar, a tela diz isso — não "aprovado". Guia em [/guides/testes-de-documentacao/](src/content/docs/guides/testes-de-documentacao.mdx).
+Detalhes em **[Testes de documentação](/guides/testes-de-documentacao/)**.
 
 #### Contratos de documentação
 
-A Documentation Test Suite pergunta "este exemplo **funciona**?". Esta camada pergunta "este exemplo representa o **contrato** de verdade?". O caso que separa as duas: a API exige `amount` e `currency`, a documentação mostra só `amount` — o exemplo até roda, e está incompleto em relação ao contrato.
+A suíte pergunta "este exemplo funciona?". Esta camada pergunta "ele representa o **contrato** de verdade?". O caso que as separa: a API exige `amount` e `currency`, a documentação mostra só `amount` — o exemplo roda, e está incompleto.
 
-Verifica método, caminho, parâmetros, códigos de status, autenticação, requisição, resposta e exemplos de código. A comparação com o schema corre nos **dois sentidos**, e o segundo é o que quase nenhuma ferramenta faz: campo que o exemplo mostra e o contrato não tem. É assim que documentação envelhece sem quebrar — ela continua exibindo um campo que a API removeu, e todo teste de execução continua passando. Numa requisição, campo a mais é aviso; numa resposta é quebra, porque a página está prometendo ao leitor um dado que não vem.
+A comparação corre nos **dois sentidos**, e o segundo é o que quase nenhuma ferramenta faz: campo que o exemplo mostra e o contrato não tem. É assim que documentação envelhece sem quebrar nenhum teste.
 
-A associação página↔contrato vem do **Digital Twin** (§25: esta camada não mantém grafo próprio), com `contract:` no frontmatter quando a inferência não basta. Contrato sem página fica **desconhecido**, nunca válido: ele não está certo, está sem documentação — e contá-lo como válido inflaria o score com endpoints que ninguém documentou. No score, `unknown` fica fora da conta e `warning` conta como verificado sem contar como bom.
-
-No merge, **só `invalid` bloqueia** (`failOnBreaking` em `contracts.yml`). Travar merge por aviso leva a equipe a desligar o portão inteiro. Para APIs sem OpenAPI completo há baseline declarável, que é o caminho de adoção gradual.
-
-Rodar contra o portal expôs um defeito que nenhum teste sintético pegaria: em JavaScript `$` não casa antes de `
-` e `.` não consome `
-`, então a extração de cabeçalhos HTTP devolvia lista vazia em **todo** arquivo de um checkout no Windows — que é como este repositório está. Guia em [/guides/contratos-de-documentacao/](src/content/docs/guides/contratos-de-documentacao.mdx).
+Detalhes em **[Contratos de documentação](/guides/contratos-de-documentacao/)**.
 
 #### Análise de impacto
 
-O Content Graph responde "quem usa o quê" — informação. O Impact Engine responde "se eu mudar isso, o que preciso revisar?" — decisão. Ele aparece no editor (painel de referências, botão **Impacto**, sob demanda e antes de salvar) e na revisão do PR, cujo corpo passa a trazer contagem por severidade, Impact Score, escopo estimado, quebras de contrato de API e checklist.
+O Content Graph responde "quem usa o quê" — informação. O Impact Engine responde "se eu mudar isso, o que preciso revisar?" — decisão. Aparece no editor e no corpo do pull request.
 
-Quatro severidades: 🔴 crítico é o que pode **invalidar** a documentação (endpoint removido, bloco incluído que deixou de existir), 🟠 alto provavelmente exige revisão, 🟡 médio é potencialmente relevante, 🟢 baixo não tem impacto funcional. `critical` fica reservado ao que torna o texto publicado falso, não ao que dá trabalho — classificar tudo como crítico é o mesmo que não classificar nada. A severidade cai com a distância no grafo.
+A razão de o motor existir é a dependência **indireta**: A inclui B, que inclui o bloco que você está editando, e não há aresta entre os dois. A contagem de um salto respondia "nenhuma página afetada" com convicção e errada.
 
-**Dependência indireta é a razão de o motor existir.** `guides/conteudo-reutilizavel.mdx` inclui `api-essentials`, que inclui `authentication-warning`; editar o último altera o texto publicado da página, e **não existe aresta entre os dois**. A contagem de um salto que havia antes respondia "nenhuma página afetada" — com convicção e errada. O relatório mostra por onde o impacto passou, porque "revise esta página" sem o caminho é um palpite pedindo confiança.
-
-O diff de API compara a especificação **interpretada**, não o texto: reordenar chaves do YAML são vinte linhas no `git diff` e mudança nenhuma, renomear um parâmetro é uma linha e quebra total. Renome é reconhecido como renome (`id → userId`) quando lugar, tipo e obrigatoriedade batem. São quebra: operação removida, parâmetro removido/renomeado/com tipo novo/que passou a obrigatório, corpo obrigatório, autenticação diferente, URL base diferente, resposta `2xx` que saiu. Não são: operação nova, opcional novo, obrigatório que relaxou, resposta nova, depreciação. A ligação página↔operação vem primeiro do que é **declarado** (`<TryIt schema=… operation=…/>`) e só depois do caminho literal no texto.
-
-O Impact Score (0–100) traz **cada fator com os pontos e o motivo** — um número que ninguém consegue conferir é o tipo de métrica que a equipe ignora na terceira vez que discorda da intuição. Sem consequência apurada o score é zero, inclusive o fator de tamanho: um PR que só mexe em `astro.config.mjs` não tem nada a revisar na documentação. No checklist entra só o que se consegue conferir — uma página, uma operação, um termo; "revisar a documentação" não é item de checklist. Guia em [/guides/analise-de-impacto/](src/content/docs/guides/analise-de-impacto.mdx).
+Detalhes em **[Análise de impacto](/guides/analise-de-impacto/)**.
 
 #### Confiança e proveniência
 
-Toda afirmação importante da documentação deveria ter evidência. Uma página pode dizer "chaves de API expiram em 90 dias" sem que exista em lugar nenhum o registro de onde isso veio, quem confirmou e quando — enquanto for verdade ninguém nota, e quando deixar de ser ninguém descobre.
+Uma página pode dizer "chaves expiram em 90 dias" sem que exista registro de onde isso veio, quem confirmou e quando. A proveniência é declarada no próprio conteúdo e versionada no Git.
 
-**O limite do selo, primeiro, porque é o que o impede de virar conforto falso.** "Verificado" quer dizer que a evidência citada **existe e confere** onde é possível comparar: o endpoint existe na especificação, o arquivo e a linha existem no código, o id de teste existe na suíte. **Não** quer dizer que a frase é verdadeira.
+**O limite do selo vem antes da funcionalidade.** "Verificado" quer dizer que a evidência citada existe e confere — o endpoint está na especificação, o arquivo e a linha estão no código. **Não** quer dizer que a frase é verdadeira.
 
-A proveniência é declarada no próprio conteúdo, versionada no Git — em banco separado ela divergiria do conteúdo no primeiro `git revert`, e divergindo deixa de ser evidência. Duas granularidades: bloco `provenance:` no frontmatter para a página, comentário antes do parágrafo para a afirmação. Em `.md` o comentário é `<!-- -->`; em `.mdx` é `{/* */}`, porque MDX tenta ler comentário HTML como JSX e o build falha.
-
-Quatro estados. **Verificado** (a evidência confere e a confirmação está no prazo), **vencido** (confere, confirmação passou do prazo), **não verificado** (declarado sem data, ou nunca confirmado), **evidência inválida** (não confere). Duas regras que decidem casos reais: evidência inválida com data de ontem continua inválida — a data só documenta que a conferência não olhou o que devia; e evidência que confere mas nunca foi confirmada não é "verificada", porque ninguém assinou embaixo.
-
-O prazo padrão fica em `trust.yml`: 180 dias, que é o que uma equipe consegue honrar. Prazo curto transforma o portal num mar de avisos amarelos que ninguém lê; prazo longo deixa a página envelhecer exibindo selo de verificada.
-
-O **Trust Score** (0–100) combina validade da fonte, cobertura por teste, frescor e responsável. Página sem afirmação recebe zero — dar nota cheia à ausência de evidência premiaria o que a camada existe para corrigir. Ele aparece **ao lado** do Quality Score em Settings → Quality, nunca dentro: misturar os dois faria uma página impecavelmente escrita e sem evidência parecer pior do que é.
-
-No **assistente**, a confiança ajusta a relevância sem substituí-la, e conteúdo vencido não é escondido — é a melhor informação que o portal tem, e a resposta sai com o aviso na frente, não no rodapé. No **MCP**, `get_document` devolve `trust` com `checked: "declaracao"`: o leitor Python lê o que a página declara e confere a data, mas não resolve evidência, e por isso nunca reporta `invalid`. Guia em [/guides/confianca-e-proveniencia/](src/content/docs/guides/confianca-e-proveniencia.mdx).
+Detalhes em **[Confiança e proveniência](/guides/confianca-e-proveniencia/)**.
 
 #### Observabilidade e SLOs
 
-O linter mede escrita, a suíte mede comportamento, o Impact Engine mede consequência, o Trust mede evidência, o Twin mede cobertura, o Contract mede fidelidade ao contrato. Nenhum deles responde à pergunta de segunda-feira: **a documentação está saudável, e o que fazemos primeiro?** É o que **Settings → Health** e `npm run docs:health` montam.
+Dez dimensões, SLOs, orçamento de erro e regressão entre medições — a pergunta de segunda-feira, que nenhuma das outras camadas responde: **a documentação está saudável, e o que fazemos primeiro?**
 
-**Ela não mede nada de novo** — e isso é requisito, não estilo. Quando a camada foi estendida para observabilidade, o cálculo próprio de cobertura de API que ela tinha foi **removido** e substituído pela consulta ao Digital Twin: duas contas para o mesmo número divergem na primeira mudança, e aí ninguém sabe qual acreditar.
+Ela não mede nada de novo; consulta as camadas que já medem. E a idade sozinha não determina obsolescência: o que empurra uma página para vermelho é evidência de divergência, não o calendário.
 
-Dez dimensões: qualidade, integridade de contrato, cobertura, frescor, confiabilidade, confiança, preparo para IA, consistência, cobertura de testes e acessibilidade. Cada uma mostra **de onde o número veio**. O Health Score é do portal inteiro e não substitui o Quality Score, que continua sendo a nota por página.
-
-**Não medido não é zero.** Dimensão sem dado fica fora da média e entra no SLO como *em risco*, nunca como violação — não se viola um alvo que não foi aferido.
-
-**A idade sozinha não determina obsolescência**, e essa é a regra que separa um indicador útil de um mar de vermelho. Uma página com 200 dias e nenhum sinal de divergência continua atual; a suspeita começa depois de um ano. O que empurra para obsoleta é evidência: contrato quebrado, proveniência que não confere, a API mudando depois da última edição. Uma página editada ontem com contrato quebrado fica vermelha; uma de dois anos, correta e muito lida, fica verde — e o relatório diz por quê.
-
-O **error budget** mostra quanto **resta**, não quanto se gastou: "40% restante" leva a decisão diferente de "3 de 5". Orçamento zero é caso normal — link morto e contrato quebrado não têm cota.
-
-O **snapshot** é a única coisa que esta camada persiste, porque histórico não se deriva; ele guarda números e o commit, nunca conteúdo. A regressão compara com a medição mais **próxima** do alvo e lista só as dimensões que pioraram. Os commits correlacionados são **candidatos**, não causa: a documentação também degrada quando o produto muda e ninguém mexe nela.
-
-`npm run docs:health -- check` serve ao CI (sai com 1 em SLO violado; risco não reprova, senão a equipe afrouxa os alvos até tudo ficar verde), e o PR mostra `antes → depois` — dizendo quando não há base de comparação, em vez de exibir `-0`. Guia em [/guides/observabilidade/](src/content/docs/guides/observabilidade.mdx).
+Detalhes em **[Observabilidade e SLOs](/guides/observabilidade/)**.
 
 #### Avaliação de IA
 
 Mede o assistente contra conjuntos de perguntas versionados em `evals/`. A camada separa **verificável** de **inferido** e só mede o primeiro: citação aponta para página que existe, página esperada foi citada, termo exigido apareceu. Por isso a métrica se chama "termos presentes", não "correção" — uma resposta pode conter todas as palavras e estar errada.
-
-Métrica que não se aplica fica fora da média, nunca entra como zero. Sem `ANTHROPIC_API_KEY` a corrida mede recuperação, não resposta gerada, e os casos adversariais aparecem como não avaliáveis — sem modelo os guardrails não rodam, e reprová-los ali seria alarme falso.
 
 Em `npm run ai:eval` e em Settings → AI Evaluation.
 
@@ -234,19 +211,44 @@ _Descobrir o que está errado antes de quem lê descobrir._
 
 _A especificação e o código dirigindo a documentação, os testes e o SDK._
 
+```mermaid
+flowchart TB
+    spec["<b>OpenAPI</b><br/>src/schemas/"]
+    parse["<b>parseOpenApi → ApiModel</b><br/><i>a única leitura da especificação</i>"]
+
+    exp["API Explorer"]
+    con["Contratos"]
+    twin["Digital Twin"]
+    imp["Análise de impacto"]
+    sdk["SDK"]
+
+    spec --> parse
+    parse --> exp
+    parse --> con
+    parse --> twin
+    parse --> imp
+    parse --> sdk
+
+    classDef f fill:#1168bd,stroke:#0b4884,color:#fff
+    classDef n fill:#f0ad4e,stroke:#a8791f,color:#000
+    classDef c fill:#85bbf0,stroke:#5d82a8,color:#000
+    class spec f
+    class parse n
+    class exp,con,twin,imp,sdk c
+```
+
+Nenhum consumidor abre YAML. Quando um deles precisa de algo que o `ApiModel` não
+carrega, o modelo ganha o campo — cinco leituras da mesma especificação divergem
+na primeira vez que alguém corrige um caso de borda em uma delas.
+O porquê está em [ADR-0004](docs/adr/0004-uma-leitura-do-openapi.md).
+
 #### Digital Twin
 
-O Content Graph responde "quem usa o quê" dentro da documentação. O Twin sobe um nível e responde sobre o **produto**: o que está documentado, o que a documentação descreve e não existe mais, e o que quebra se um endpoint mudar.
+O Content Graph responde sobre a documentação. O Twin sobe um nível e responde sobre o **produto**: o que está documentado, o que a documentação descreve e não existe mais, e o que quebra se um endpoint mudar.
 
-**Ele não é fonte de verdade.** A fonte continua sendo o Git — Markdown, OpenAPI, código. O Twin é derivado a cada análise e não persiste nada; se discordar do repositório, quem está errado é o grafo.
+O grafo de código é **exato**, não heurístico — a Astro mapeia arquivo para rota de forma determinística, então `src/pages/api/auth/me.ts` que exporta `GET` implementa `GET /api/auth/me`. Implementação sem documentação é dívida certa; documentação sem implementação é *potencialmente* obsoleta, porque a página pode descrever comportamento histórico.
 
-O grafo de código desta base é **exato**, não heurístico: a Astro mapeia arquivo para rota de forma determinística, então `src/pages/api/auth/me.ts` que exporta `GET` implementa `GET /api/auth/me`. Cada relação registra se foi `declared` (alguém escreveu a ligação, como um `<TryIt/>`) ou `derived` (convenção) — as duas erram de formas diferentes, e misturá-las impediria julgar o quanto confiar no relatório.
-
-Duas perguntas simétricas com severidades diferentes: **implementação sem documentação** é dívida certa; **documentação sem implementação** é *potencialmente* obsoleta, porque a página pode descrever comportamento histórico, versão anterior, conceito ou algo planejado — um veredito automático aqui viraria alarme falso.
-
-Medir o portal expôs dois defeitos de modelagem que só aparecem com dados reais. `GET /auth/me` da especificação e `GET /api/auth/me` do código eram **dois** endpoints, ambos "não documentados", até o prefixo do servidor entrar na identidade. E as 45 rotas internas do editor derrubavam a cobertura para **6%** — um número que qualquer equipe aprende a ignorar; elas continuam no grafo e saíram da conta via `twin.yml`, com a exceção de que endpoint declarado numa especificação é público por definição.
-
-`npm run twin -- coverage --min 90` serve ao CI (sai com 1 abaixo do mínimo, 0 quando não há o que medir), e a cobertura entra no corpo do PR. **Settings → Intelligence** traz tudo em tabela — um grafo de centenas de nós é bonito na captura de tela e inútil para achar o endpoint que ninguém documentou. Guia em [/guides/digital-twin/](src/content/docs/guides/digital-twin.mdx).
+Detalhes em **[Digital Twin](/guides/digital-twin/)**.
 
 #### Vínculo com o código
 
@@ -259,9 +261,9 @@ documentation:
       id: POST /api/payments
 ```
 
-A partir daí a CI cobra: entidade pública alterada sem página vinculada bloqueia o merge; página vinculada que ficou para trás vira aviso. Menção em texto não conta — só o vínculo declarado e resolvido contra o Digital Twin.
+A CI cobra a partir daí: entidade pública alterada sem página vinculada bloqueia o merge. Menção em texto não conta — só o vínculo declarado e resolvido contra o Digital Twin. E ele vive na documentação, nunca no código: o produto não deve depender de Markdown.
 
-O vínculo vive na documentação, nunca no código: o produto não deve depender de Markdown. Em `npm run docs:code` e em Settings → Code Loop.
+Em `npm run docs:code` e em Settings → Code Loop.
 
 Detalhes em **[Vínculo com o código](/guides/vinculo-com-o-codigo/)**.
 
@@ -277,17 +279,11 @@ Detalhes em **[Knowledge Graph](/guides/knowledge-graph/)**.
 
 #### SDK
 
-Gera um cliente TypeScript a partir da **mesma** especificação que já move a documentação, os contratos e o Digital Twin:
+Gera um cliente TypeScript a partir da **mesma** especificação que já move a documentação, os contratos e o Digital Twin — sem segundo parser, segundo engine de contrato nem segundo engine de impacto.
 
-```text
-OpenAPI → ApiModel → SDK
-```
+Onde a especificação não diz o tipo, o código gerado diz `unknown`: um SDK que finge saber faz o compilador aprovar uma chamada errada. O diff deriva do contrato, não da comparação textual dos arquivos gerados.
 
-Não há segundo parser, segundo engine de contrato nem segundo engine de impacto. Quando o gerador precisou de schemas nomeados, o `ApiModel` ganhou o campo — abrir o YAML de novo daria duas leituras da mesma especificação, e a segunda envelheceria.
-
-O pacote gerado não tem dependência de execução. Onde a especificação não diz o tipo, o código gerado diz `unknown`: um SDK que finge saber faz o compilador aprovar uma chamada errada.
-
-O diff deriva do contrato, não da comparação textual dos arquivos gerados. Em `npm run sdk` e no portão de revisão de PR.
+Em `npm run sdk` e no portão de revisão de PR.
 
 Detalhes em **[SDK](/guides/sdk/)**.
 
@@ -331,15 +327,11 @@ Detalhes em **[Observabilidade de leitura](/guides/observabilidade-de-leitura/)*
 
 #### Lacunas de documentação
 
-Saber que uma página teve dez mil acessos não diz o que falta. Esta camada pergunta **que informação as pessoas procuram e não encontram**, cruzando busca, assistente, MCP, feedback, contratos e o Digital Twin num backlog priorizado — em Settings → Gaps e em `npm run gaps`.
+Saber que uma página teve dez mil acessos não diz o que falta. Esta camada pergunta **que informação as pessoas procuram e não encontram**, cruzando busca, assistente, MCP, feedback, contratos e o Digital Twin num backlog priorizado.
 
-**Publicar não é resolver**, e é a regra que dá sentido ao resto. `start` registra o sinal de hoje como linha de base; depois de publicar, `resolve` compara — e **recusa** se as consultas e as respostas sem lastro não caíram pelo menos dois terços. Não se exige queda a zero: a pergunta continua sendo feita mesmo quando a resposta existe.
+**Publicar não é resolver.** `start` registra o sinal de hoje como linha de base; depois de publicar, `resolve` compara — e recusa se o sinal não caiu. Não se exige queda a zero: a pergunta continua sendo feita mesmo quando a resposta existe.
 
-Seis tipos, cada um levando a uma ação diferente: falta documentação, incompleta, desatualizada (quando o Twin ou o Contract acusam divergência), pouco clara, difícil de achar (mexer na navegação, não no texto) e contraditória. O score combina demanda, falha do assistente, cobertura baixa, insatisfação e contrato quebrado — este último pesando muito, porque documentação que diverge do produto é **pior** que ausente: ela leva a pessoa a errar com confiança.
-
-Rodar contra o portal expôs dois erros de medição que só aparecem com dados reais. **Cobertura não é relevância de busca**: o BM25 normaliza pelo melhor resultado, então "como rotacionar a chave de API" — assunto sobre o qual não existe uma linha aqui — foi classificada como *difícil de achar* com 100% de cobertura; agora o que se mede é a presença dos termos da pergunta nas páginas. E o agrupamento precisava de **dois** conjuntos de termos: a interseção admite variações no grupo, mas medir cobertura por ela reduzia "rotacionar a chave de api" a `chave, api`, que o portal documenta.
-
-A privacidade segue a decisão anterior: texto das perguntas desligado por padrão, e mesmo ligado só a pergunta **sem resposta**, sem quem perguntou, truncada e com credenciais redigidas. Desligado, a camada funciona com os sinais estruturais e diz na primeira linha que está trabalhando com menos. Guia em [/guides/lacunas-de-documentacao/](src/content/docs/guides/lacunas-de-documentacao.mdx).
+Detalhes em **[Lacunas de documentação](/guides/lacunas-de-documentacao/)**.
 
 #### Feedback de página
 
@@ -369,17 +361,11 @@ _O que o portal faz sozinho — e onde ele para para pedir aprovação._
 
 #### Agentes de documentação
 
-O objetivo **não é outro chatbot**. Um agente genérico produz "aqui está uma documentação sobre autenticação" e não garante que a implementação foi consultada, que a API está correta nem que os exemplos funcionam. Aqui, cinco agentes especializados usam as ferramentas que o portal já tem — Digital Twin, Content Graph, glossário, linter, testes, contratos, proveniência — e produzem mudanças **verificáveis**.
+O objetivo não é outro chatbot. Cinco agentes especializados usam as ferramentas que o portal já tem — Twin, Content Graph, glossário, linter, testes, contratos — e produzem mudanças **verificáveis**. Quatro dos cinco funcionam sem provedor nenhum.
 
-**Quatro dos cinco funcionam sem provedor nenhum.** Sem chave, o Writer não inventa prosa: produz um rascunho estruturado com o que se sabe, de onde veio e onde falta escrever, e a execução segue por revisão, testes e auditoria normalmente.
+Os guardrails são **código, não instrução de prompt**: allowlist de ferramentas, escrita restrita a um workspace isolado, e nada publicado sem aprovação humana. O guardrail de descarte nasceu de um defeito real — a primeira execução substituiu uma página inteira por um esqueleto, e passou por revisão, testes e auditoria, porque esqueleto bem formado é Markdown válido.
 
-**Nada é publicado automaticamente**, mesmo com todos os testes verdes — e aprovar não publica: o conteúdo continua no workspace isolado até ser aplicado. Três condições param a execução antes do fim: fontes que discordam (escolher uma em silêncio propagaria o conflito), pesquisa sem evidência (preencher com suposição é o que a camada existe para evitar) e regressão de saúde.
-
-Os guardrails da §25 são **código executável**, não instrução de prompt: allowlist de ferramentas por agente (só o Writer escreve, e só no workspace; nenhum agente tem execução de comando), caminhos restritos a `src/content/` em `.md`/`.mdx` com `data/`, `.env`, `src/lib/auth/` e configuração recusados até para leitura, e travessia de diretório rejeitada em vez de normalizada.
-
-O último guardrail nasceu de um defeito real: a primeira execução contra o portal **substituiu a página de autenticação inteira por um esqueleto** — e passou por revisão, testes e auditoria, porque esqueleto bem formado é Markdown válido. Saíram duas correções: o Writer sem modelo passou a ser aditivo sobre página existente, e o orquestrador ganhou um guardrail de descarte que vale para qualquer origem do texto, inclusive um modelo.
-
-Conteúdo recuperado é tratado como **dado, nunca instrução** — pela mesma sanitização que o assistente usa, porque duas defesas com regras diferentes significam que a mais fraca é a que vale. E não há memória autônoma persistente: o estado pertence à execução e morre com ela. Guia em [/guides/agentes-de-documentacao/](src/content/docs/guides/agentes-de-documentacao.mdx).
+Detalhes em **[Agentes de documentação](/guides/agentes-de-documentacao/)**.
 
 #### Self-healing
 
@@ -395,15 +381,11 @@ Detalhes em **[Self-healing](/guides/self-healing/)**.
 
 #### Time Machine
 
-Quatro perguntas que só o histórico responde: como esta página evoluiu, como o portal estava em maio, o que mudou de **comportamento** entre dois pontos, e o que aquele commit afetou. Em `npm run history` e em Settings → History.
+Como esta página evoluiu, como o portal estava em maio, o que mudou de **comportamento** entre dois pontos, e o que aquele commit afetou.
 
-**O Git continua sendo a fonte.** Esta camada é indexação, não cópia: cada consulta reconstrói do repositório. É mais lento e sempre certo — um índice persistido divergiria no primeiro `rebase`, e passariam a existir duas respostas para "como esta página estava em maio", uma errada e nenhuma marcada como tal. Nada aqui escreve, faz checkout ou muda de branch; a leitura é por `git show`.
+O Git continua sendo a fonte: cada consulta reconstrói do repositório, e nada aqui escreve, faz checkout ou muda de branch. O que não dá para reconstruir vem ausente, não estimado — o Health Score de uma data passada não é recalculado, porque ele dependia das ferramentas daquela época.
 
-**O que não dá para reconstruir vem ausente, não estimado.** Páginas, palavras, termos e endpoints saem do conteúdo daquele commit e são exatos. O Health Score **não** é recalculado: ele dependia de testes e contratos avaliados com as ferramentas daquela época. A primeira versão aceitava uma medição de até sete dias de distância, e uma comparação entre 12 e 18 de agosto exibiu o mesmo número nas duas pontas — a medição de hoje apresentada como se descrevesse o passado, com delta zero convidando à conclusão de que nada mudou.
-
-O **semantic diff** responde "o que passou a ser verdade que antes não era": `30 dias → 90 dias`, `client_id → client_id + client_secret`. Cada achado carrega confiança — lista `required:` é estrutura declarada e vale 0,95; assunto de número inferido das palavras vizinhas vale 0,7. O limite está dito: reescrita em prosa que inverte um sentido passa despercebida, e por isso o diff textual continua ao lado em vez de ser substituído.
-
-**Restore não altera a branch.** Snapshot → workspace isolado → diff → validação → PR, sem atalho. Restaurar é operação perigosa disfarçada de simples: conteúdo antigo pode estar antigo por um bom motivo, e uma reversão com um clique apagaria a razão junto. Guia em [/guides/time-machine/](src/content/docs/guides/time-machine.mdx).
+Detalhes em **[Time Machine](/guides/time-machine/)**.
 
 #### Assistente de documentação
 
