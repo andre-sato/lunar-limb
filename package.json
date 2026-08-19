@@ -18,6 +18,7 @@
 		"contract": "tsx scripts/contract.ts",
 		"gaps": "tsx scripts/gaps.ts",
 		"agent": "tsx scripts/agent.ts",
+		"history": "tsx scripts/history.ts",
 		"docs:asyncapi": "tsx scripts/asyncapi-to-docs.ts",
 		"build:pages": "tsx scripts/build-pages.ts",
 		"user:create": "tsx scripts/create-user.ts"

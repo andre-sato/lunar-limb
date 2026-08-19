@@ -1,0 +1,14 @@
+---
+import SettingsLayout from '../../layouts/SettingsLayout.astro';
+import HistoryPanel from '../../components/settings/HistoryPanel';
+
+export const prerender = false;
+---
+
+<SettingsLayout
+	title="History"
+	description="Time Machine: como a documentação evoluiu, como ela estava numa data, e o que mudou entre dois pontos."
+	active="history"
+>
+	<HistoryPanel client:load />
+</SettingsLayout>

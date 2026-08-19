@@ -49,6 +49,7 @@ Arquivos Markdown e MDX dentro de `src/content/docs/` são publicados automatica
 | `npm run contract` | Contract Testing: o exemplo representa o contrato de verdade? |
 | `npm run gaps` | Gap Mining: o que as pessoas procuram e não encontram. |
 | `npm run agent` | Agentes de documentação: pesquisa, rascunho, validação. |
+| `npm run history` | Time Machine: timeline, snapshot, comparação e restore. |
 | `npm run docs:asyncapi` | Gera páginas de referência a partir de especificações AsyncAPI. |
 | `npm run user:create` | Cria um usuário do portal (ver *Usuários e controle de acesso*). |
 
@@ -314,6 +315,18 @@ Os guardrails da §25 são **código executável**, não instrução de prompt: 
 O último guardrail nasceu de um defeito real: a primeira execução contra o portal **substituiu a página de autenticação inteira por um esqueleto** — e passou por revisão, testes e auditoria, porque esqueleto bem formado é Markdown válido. Saíram duas correções: o Writer sem modelo passou a ser aditivo sobre página existente, e o orquestrador ganhou um guardrail de descarte que vale para qualquer origem do texto, inclusive um modelo.
 
 Conteúdo recuperado é tratado como **dado, nunca instrução** — pela mesma sanitização que o assistente usa, porque duas defesas com regras diferentes significam que a mais fraca é a que vale. E não há memória autônoma persistente: o estado pertence à execução e morre com ela. Guia em [/guides/agentes-de-documentacao/](src/content/docs/guides/agentes-de-documentacao.mdx).
+
+## Time Machine
+
+Quatro perguntas que só o histórico responde: como esta página evoluiu, como o portal estava em maio, o que mudou de **comportamento** entre dois pontos, e o que aquele commit afetou. Em `npm run history` e em Settings → History.
+
+**O Git continua sendo a fonte.** Esta camada é indexação, não cópia: cada consulta reconstrói do repositório. É mais lento e sempre certo — um índice persistido divergiria no primeiro `rebase`, e passariam a existir duas respostas para "como esta página estava em maio", uma errada e nenhuma marcada como tal. Nada aqui escreve, faz checkout ou muda de branch; a leitura é por `git show`.
+
+**O que não dá para reconstruir vem ausente, não estimado.** Páginas, palavras, termos e endpoints saem do conteúdo daquele commit e são exatos. O Health Score **não** é recalculado: ele dependia de testes e contratos avaliados com as ferramentas daquela época. A primeira versão aceitava uma medição de até sete dias de distância, e uma comparação entre 12 e 18 de agosto exibiu o mesmo número nas duas pontas — a medição de hoje apresentada como se descrevesse o passado, com delta zero convidando à conclusão de que nada mudou.
+
+O **semantic diff** responde "o que passou a ser verdade que antes não era": `30 dias → 90 dias`, `client_id → client_id + client_secret`. Cada achado carrega confiança — lista `required:` é estrutura declarada e vale 0,95; assunto de número inferido das palavras vizinhas vale 0,7. O limite está dito: reescrita em prosa que inverte um sentido passa despercebida, e por isso o diff textual continua ao lado em vez de ser substituído.
+
+**Restore não altera a branch.** Snapshot → workspace isolado → diff → validação → PR, sem atalho. Restaurar é operação perigosa disfarçada de simples: conteúdo antigo pode estar antigo por um bom motivo, e uma reversão com um clique apagaria a razão junto. Guia em [/guides/time-machine/](src/content/docs/guides/time-machine.mdx).
 
 ## Feedback de página
 

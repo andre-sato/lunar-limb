@@ -101,7 +101,19 @@ export function extractRequiredFields(text: string): string[] {
 }
 
 export function extractEndpoints(text: string): string[] {
-	return [...new Set([...text.matchAll(ENDPOINT)].map((match) => `${match[1]} ${match[2]}`))].sort();
+	return [
+		...new Set(
+			[...text.matchAll(ENDPOINT)].map((match) => {
+				// O ponto precisa estar no conjunto de caracteres para caminhos como
+				// `/v1.0/users` funcionarem — e com ele, a pontuação final da frase
+				// entra junto. `GET /payments/{id}.` não casaria com o
+				// `GET /payments/{id}` do Digital Twin, e o mesmo endpoint apareceria
+				// como dois entre as camadas.
+				const path = match[2].replace(/[.,;:)\]]+$/, '');
+				return `${match[1]} ${path}`;
+			})
+		),
+	].sort();
 }
 
 export function extractStatusCodes(text: string): string[] {

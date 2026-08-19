@@ -50,6 +50,9 @@ export type AuditAction =
 	| 'AGENT_RUN_BLOCKED'
 	| 'AGENT_RUN_COMPLETED'
 	| 'AGENT_RUN_REVIEWED'
+	// Time Machine: restaurar prepara uma alteração de conteúdo a partir do
+	// passado, e saber quem pediu explica um diff que aparece do nada no editor.
+	| 'HISTORY_RESTORE_PREPARED'
 	// Gap Mining: mudança de ciclo de vida de uma lacuna e apagamento da
 	// telemetria de perguntas. A primeira é decisão de trabalho, a segunda destrói
 	// dado — as duas ficam no log.

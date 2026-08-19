@@ -96,6 +96,40 @@
 
 /* Nota explicativa no topo de um painel — o que o número quer dizer antes de a
    pessoa tirar a própria conclusão dele. */
+.history-timeline {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	font-size: 0.84rem;
+	line-height: 1.9;
+}
+
+.history-mark {
+	display: inline-block;
+	width: 18px;
+	font-weight: 700;
+	color: var(--sl-color-gray-2);
+}
+
+.history-date {
+	display: inline-block;
+	width: 92px;
+	color: var(--sl-color-gray-2);
+	font-variant-numeric: tabular-nums;
+}
+
+.history-subject {
+	font-weight: 500;
+}
+
+.history-tag {
+	margin-left: 6px;
+	padding: 1px 6px;
+	border-radius: 3px;
+	font-size: 0.72rem;
+	background: var(--sl-color-green-low, rgba(0, 128, 0, 0.15));
+}
+
 /* Diff de agente: rolagem própria, para um arquivo grande não empurrar a página. */
 .agent-diff {
 	max-height: 420px;

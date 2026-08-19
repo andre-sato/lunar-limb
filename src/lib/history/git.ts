@@ -61,12 +61,15 @@ export function pullRequestOf(subject: string): number | undefined {
 export async function timelineOf(relativePath: string, limit = 50): Promise<HistoryEntry[]> {
 	const file = `src/content/docs/${relativePath}`;
 
+	// `--raw` **e** `--numstat` juntos: com `--name-status` o git suprime o
+	// numstat, e a timeline saía com todas as contagens de linha em zero. O modo
+	// bruto traz o status e o numstat traz as contagens.
 	const stdout = await git([
 		'log',
 		`-${limit}`,
 		'--follow',
 		'--numstat',
-		'--name-status',
+		'--raw',
 		`--format=${RECORD}%H${SEPARATOR}%aI${SEPARATOR}%an${SEPARATOR}%s${SEPARATOR}%D`,
 		'--',
 		file,
