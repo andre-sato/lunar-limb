@@ -1,0 +1,39 @@
+# Perguntas de referência: o que o assistente do portal precisa acertar.
+#
+# Versionado no Git de propósito — é um acordo da equipe sobre o comportamento
+# esperado, e acordo que vive no banco de alguém não aparece em revisão de PR.
+#
+# `mustContain` é **presença de termo**, não verdade. Uma resposta pode conter
+# todas as palavras e estar errada; a métrica se chama `termCoverage` justamente
+# para não passar por verificação de correção.
+
+dataset: golden
+kind: golden
+
+cases:
+  - id: golden:autenticacao
+    question: Como me autentico na API do portal?
+    expected:
+      mustContain:
+        - sessão
+    sources:
+      - api-reference/authentication.md
+    minimumScore: 6
+
+  - id: golden:vinculo-codigo
+    question: Como uma página declara que documenta um endpoint?
+    expected:
+      mustContain:
+        - binding
+    sources:
+      - guides/vinculo-com-o-codigo.mdx
+    minimumScore: 6
+
+  - id: golden:governanca-revisao
+    question: O portal usa a data do último commit para saber quando uma página foi revisada?
+    expected:
+      mustContain:
+        - revis
+    sources:
+      - guides/governanca.mdx
+    minimumScore: 6

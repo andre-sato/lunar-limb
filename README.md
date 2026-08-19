@@ -53,6 +53,7 @@ Arquivos Markdown e MDX dentro de `src/content/docs/` são publicados automatica
 | `npm run docs:code` | Vínculo com o código: impacto, cobertura, órfãos e entidades sem documentação. |
 | `npm run governance` | Governança: donos, revisões pendentes, aprovações e auditoria. |
 | `npm run analytics` | Observabilidade de leitura: busca, jornadas, abandono e lacunas comportamentais. |
+| `npm run ai:eval` | Avaliação do assistente: conjuntos de perguntas, métricas verificáveis e regressão. |
 | `npm run docs:asyncapi` | Gera páginas de referência a partir de especificações AsyncAPI. |
 | `npm run user:create` | Cria um usuário do portal (ver *Usuários e controle de acesso*). |
 
@@ -363,6 +364,14 @@ Nada identifica uma pessoa: sem IP, sem id de usuário, sem cookie, sem user-age
 Os nomes das métricas carregam os seus limites: "clique em resultado", não "taxa de sucesso" — clicar é o mais longe que a instrumentação enxerga.
 
 Em `npm run analytics` e em Settings → Observability.
+
+## Avaliação de IA
+
+Mede o assistente contra conjuntos de perguntas versionados em `evals/`. A camada separa **verificável** de **inferido** e só mede o primeiro: citação aponta para página que existe, página esperada foi citada, termo exigido apareceu. Por isso a métrica se chama "termos presentes", não "correção" — uma resposta pode conter todas as palavras e estar errada.
+
+Métrica que não se aplica fica fora da média, nunca entra como zero. Sem `ANTHROPIC_API_KEY` a corrida mede recuperação, não resposta gerada, e os casos adversariais aparecem como não avaliáveis — sem modelo os guardrails não rodam, e reprová-los ali seria alarme falso.
+
+Em `npm run ai:eval` e em Settings → AI Evaluation.
 
 ## Feedback de página
 

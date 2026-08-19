@@ -1,0 +1,14 @@
+---
+import SettingsLayout from '../../layouts/SettingsLayout.astro';
+import AiEvalPanel from '../../components/settings/AiEvalPanel';
+
+export const prerender = false;
+---
+
+<SettingsLayout
+	title="AI Evaluation"
+	description="O assistente está correto, fundamentado e seguro — e o que o portal consegue de fato verificar sobre isso."
+	active="ai-eval"
+>
+	<AiEvalPanel client:load />
+</SettingsLayout>

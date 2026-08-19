@@ -66,7 +66,9 @@ export type AuditAction =
 	| 'BRANCH_DELETED'
 	| 'PULL_REQUEST_PREPARED'
 	// Observabilidade de leitura: apagar destrói dado, e destruir dado fica no log.
-	| 'OBSERVATIONS_FORGOTTEN';
+	| 'OBSERVATIONS_FORGOTTEN'
+	// Avaliação de IA: executar consome tempo e, com modelo configurado, dinheiro.
+	| 'AI_EVALUATION_RUN';
 
 export interface AuditEvent {
 	id: string;
