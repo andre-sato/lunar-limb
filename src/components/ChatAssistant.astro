@@ -136,6 +136,33 @@ const { t } = Astro.locals;
 		const messages = root.querySelector<HTMLElement>('[data-chat-messages]')!;
 		const form = root.querySelector<HTMLFormElement>('[data-chat-form]')!;
 		const input = form.querySelector<HTMLTextAreaElement>('textarea')!;
+
+		// A classe de escopo que o Astro gera para este componente.
+		//
+		// Lida do elemento renderizado pelo servidor, nunca escrita à mão: o
+		// sufixo muda a cada build. Sem ela, todo nó criado aqui embaixo nasce
+		// fora do alcance do CSS — as regras compilam para
+		// `.doc-chat__message:where(.astro-XXXX)`, e `createElement` não produz
+		// essa classe.
+		//
+		// O efeito era silencioso e visível ao mesmo tempo: a pergunta
+		// recém-digitada aparecia em 16px herdados ao lado de uma introdução de
+		// 14px, e os cartões de trecho vinham sem borda nenhuma.
+		const scope = [...root.classList].find((name) => name.startsWith('astro-'));
+
+		/**
+		 * Marca o nó e tudo dentro dele com a classe de escopo, e o devolve.
+		 *
+		 * Usada **no ponto de inserção**, não no de criação: um cartão de trecho é
+		 * montado em cinco pedaços antes de entrar na árvore, e marcar a subárvore
+		 * pronta é um lugar só para lembrar em vez de cinco.
+		 */
+		function scoped<T extends Element>(node: T): T {
+			if (!scope) return node;
+			node.classList.add(scope);
+			for (const child of node.querySelectorAll('*')) child.classList.add(scope);
+			return node;
+		}
 		const label = (name: string) => root.dataset[name] ?? '';
 
 		let conversationId: string | undefined;
@@ -179,7 +206,7 @@ const { t } = Astro.locals;
 			// a regra em todo lugar é o que impede alguém introduzir HTML aqui
 			// depois sem perceber a consequência.
 			element.textContent = text;
-			messages.append(element);
+			messages.append(scoped(element));
 			messages.scrollTop = messages.scrollHeight;
 			return element;
 		}
@@ -225,7 +252,7 @@ const { t } = Astro.locals;
 				link.textContent = label('openPage');
 				card.append(link);
 
-				messages.append(card);
+				messages.append(scoped(card));
 			}
 			messages.scrollTop = messages.scrollHeight;
 		}
@@ -262,7 +289,7 @@ const { t } = Astro.locals;
 
 			if (list.childElementCount === 0) return;
 			wrapper.append(list);
-			messages.append(wrapper);
+			messages.append(scoped(wrapper));
 			messages.scrollTop = messages.scrollHeight;
 		}
 
@@ -295,7 +322,7 @@ const { t } = Astro.locals;
 				wrapper.append(button);
 			}
 
-			messages.append(wrapper);
+			messages.append(scoped(wrapper));
 		}
 
 		function appendLoginPrompt(): void {
@@ -305,7 +332,7 @@ const { t } = Astro.locals;
 			link.href = `/login?next=${encodeURIComponent(location.pathname)}`;
 			link.textContent = label('login');
 			wrapper.append(document.createTextNode(' '));
-			wrapper.append(link);
+			wrapper.append(scoped(link));
 		}
 
 		form.addEventListener('submit', async (event) => {
@@ -366,6 +393,18 @@ const { t } = Astro.locals;
 </script>
 
 <style>
+	.doc-chat {
+		/*
+		 * O tamanho do texto da conversa, num lugar só.
+		 *
+		 * O diálogo do cabeçalho é largo e fica em `sm`; o painel lateral tem
+		 * 252px de coluna, onde a mesma medida lê apertada — ele desce um degrau
+		 * logo abaixo. A issue #8 pediu a redução; o que a fazia parecer maior
+		 * ainda era o defeito de escopo corrigido no script.
+		 */
+		--doc-chat-text: var(--sl-text-sm);
+	}
+
 	.doc-chat__trigger {
 		display: inline-flex;
 		align-items: center;
@@ -484,6 +523,7 @@ const { t } = Astro.locals;
 	/* --- Variante de painel, na barra lateral ---------------------------- */
 
 	.doc-chat--panel {
+		--doc-chat-text: var(--sl-text-xs);
 		display: block;
 		margin-block: 1rem 0.5rem;
 		border: 1px solid var(--sl-color-gray-5);
@@ -563,8 +603,8 @@ const { t } = Astro.locals;
 	.doc-chat__message {
 		padding: 0.6rem 0.8rem;
 		border-radius: 0.6rem;
-		font-size: var(--sl-text-sm);
-		line-height: 1.6;
+		font-size: var(--doc-chat-text);
+		line-height: 1.55;
 		white-space: pre-wrap;
 	}
 
@@ -606,8 +646,8 @@ const { t } = Astro.locals;
 	}
 
 	.doc-chat__excerpt-text {
-		font-size: var(--sl-text-sm);
-		line-height: 1.6;
+		font-size: var(--doc-chat-text);
+		line-height: 1.55;
 		white-space: pre-wrap;
 		color: var(--sl-color-gray-1);
 	}
@@ -673,10 +713,11 @@ const { t } = Astro.locals;
 		background: var(--sl-color-black);
 		color: var(--sl-color-white);
 		font: inherit;
-		font-size: var(--sl-text-sm);
+		font-size: var(--doc-chat-text);
 	}
 
 	.doc-chat__send {
+		font-size: var(--doc-chat-text);
 		padding: 0.5rem 0.9rem;
 		border: none;
 		border-radius: 0.5rem;

@@ -15,7 +15,20 @@
 	top: 80px;
 	display: flex;
 	flex-direction: column;
-	gap: 2px;
+	gap: 0;
+	/*
+	 * O menu é `sticky`, e um `sticky` mais alto que a janela não rola: ele fica
+	 * preso e o que passa da borda vira inalcançável. Com 20 itens a lista já
+	 * media 772px numa janela de 720 — o "Audit Log" no fim não tinha como ser
+	 * clicado. Agrupar acrescentou os cabeçalhos e levou a 970px.
+	 *
+	 * O teto abaixo devolve a rolagem ao próprio menu.
+	 */
+	max-height: calc(100vh - 80px - 1.5rem);
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	/* Espaço para a barra de rolagem não cobrir o texto do último item. */
+	padding-right: 4px;
 }
 
 .settings-nav-title {
@@ -27,7 +40,36 @@
 	padding: 0 10px 8px;
 }
 
+.settings-nav-group {
+	display: contents;
+}
+
+.settings-nav-group-title {
+	font-size: 0.68rem;
+	font-weight: 700;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: var(--sl-color-gray-3);
+	margin: 14px 0 4px;
+	padding: 0 10px;
+}
+
+/* O primeiro grupo é o Overview, sem rótulo: ele não precisa da folga de cima. */
+.settings-nav-group:first-child .settings-nav-group-title {
+	margin-top: 0;
+}
+
+.settings-nav ul {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
 .settings-nav a {
+	display: block;
 	padding: 8px 10px;
 	border-radius: 8px;
 	font-size: 0.88rem;

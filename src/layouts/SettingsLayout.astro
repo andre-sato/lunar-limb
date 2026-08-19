@@ -8,48 +8,154 @@
 import PortalShell from './PortalShell.astro';
 import '../styles/settings.css';
 
+type SettingsKey =
+	| 'overview'
+	| 'users'
+	| 'roles'
+	| 'analytics'
+	| 'feedback'
+	| 'health'
+	| 'intelligence'
+	| 'gaps'
+	| 'agents'
+	| 'history'
+	| 'code-loop'
+	| 'governance'
+	| 'observability'
+	| 'ai-eval'
+	| 'graph'
+	| 'organization'
+	| 'healing'
+	| 'quality'
+	| 'chatbot'
+	| 'audit';
+
 interface Props {
 	title: string;
 	description?: string;
-	active: 'overview' | 'users' | 'roles' | 'analytics' | 'feedback' | 'health' | 'intelligence' | 'gaps' | 'agents' | 'history' | 'code-loop' | 'governance' | 'observability' | 'ai-eval' | 'graph' | 'organization' | 'healing' | 'quality' | 'chatbot' | 'audit';
+	active: SettingsKey;
 }
 
 const { title, description, active } = Astro.props;
 
-const items = [
-	{ key: 'overview', label: 'Overview', href: '/settings' },
-	{ key: 'users', label: 'Users', href: '/settings/users' },
-	{ key: 'roles', label: 'Roles & Permissions', href: '/settings/roles' },
-	{ key: 'analytics', label: 'Analytics', href: '/settings/analytics' },
-	{ key: 'feedback', label: 'Feedback', href: '/settings/feedback' },
-	{ key: 'health', label: 'Health', href: '/settings/health' },
-	{ key: 'intelligence', label: 'Intelligence', href: '/settings/intelligence' },
-	{ key: 'gaps', label: 'Gaps', href: '/settings/gaps' },
-	{ key: 'agents', label: 'Agents', href: '/settings/agents' },
-	{ key: 'history', label: 'History', href: '/settings/history' },
-	{ key: 'code-loop', label: 'Code Loop', href: '/settings/code-loop' },
-	{ key: 'governance', label: 'Governance', href: '/settings/governance' },
-	{ key: 'observability', label: 'Observability', href: '/settings/observability' },
-	{ key: 'ai-eval', label: 'AI Evaluation', href: '/settings/ai-eval' },
-	{ key: 'graph', label: 'Knowledge Graph', href: '/settings/graph' },
-	{ key: 'organization', label: 'Organization', href: '/settings/organization' },
-	{ key: 'healing', label: 'Self-Healing', href: '/settings/healing' },
-	{ key: 'quality', label: 'Quality', href: '/settings/quality' },
-	{ key: 'chatbot', label: 'Chatbot', href: '/settings/chatbot' },
-	{ key: 'audit', label: 'Audit Log', href: '/settings/audit' },
-] as const;
+interface NavItem {
+	key: SettingsKey;
+	label: string;
+	href: string;
+}
+
+interface NavGroup {
+	/** `null` no primeiro grupo: o Overview não precisa de rótulo acima dele. */
+	label: string | null;
+	items: NavItem[];
+}
+
+/**
+ * A navegação, agrupada pela **pergunta que a pessoa veio responder** — e não
+ * pela ordem em que as telas foram construídas.
+ *
+ * A lista chegou a 20 itens numa coluna plana, que é onde uma navegação deixa de
+ * orientar e passa a exigir leitura linear: para achar "Gaps" era preciso
+ * percorrer tudo, porque nada dizia onde ele estaria. Agrupar por família de
+ * feature resolveria o problema de quem construiu as telas; agrupar por pergunta
+ * resolve o de quem as usa.
+ *
+ * Os grupos não recolhem. Recolher pouparia altura e cobraria um clique para
+ * saber o que existe — e o problema aqui era justamente não saber o que existe.
+ */
+const groups: NavGroup[] = [
+	{
+		label: null,
+		items: [{ key: 'overview', label: 'Overview', href: '/settings' }],
+	},
+	{
+		// "A documentação está boa, e como ela chegou até aqui?"
+		label: 'Content',
+		items: [
+			{ key: 'quality', label: 'Quality', href: '/settings/quality' },
+			{ key: 'health', label: 'Health', href: '/settings/health' },
+			{ key: 'gaps', label: 'Gaps', href: '/settings/gaps' },
+			{ key: 'feedback', label: 'Feedback', href: '/settings/feedback' },
+			{ key: 'history', label: 'History', href: '/settings/history' },
+		],
+	},
+	{
+		// "Ela corresponde ao produto?"
+		label: 'Product',
+		items: [
+			{ key: 'intelligence', label: 'Digital Twin', href: '/settings/intelligence' },
+			{ key: 'code-loop', label: 'Code Loop', href: '/settings/code-loop' },
+			{ key: 'graph', label: 'Knowledge Graph', href: '/settings/graph' },
+		],
+	},
+	{
+		// "Quem chega procurando resposta, encontra?"
+		label: 'Readers',
+		items: [
+			{ key: 'analytics', label: 'Analytics', href: '/settings/analytics' },
+			{ key: 'observability', label: 'Observability', href: '/settings/observability' },
+			{ key: 'chatbot', label: 'Search & assistant', href: '/settings/chatbot' },
+			{ key: 'ai-eval', label: 'AI Evaluation', href: '/settings/ai-eval' },
+		],
+	},
+	{
+		// "O que muda sem alguém digitar — e com que aprovação?"
+		label: 'Automation',
+		items: [
+			{ key: 'agents', label: 'Agents', href: '/settings/agents' },
+			{ key: 'healing', label: 'Self-Healing', href: '/settings/healing' },
+		],
+	},
+	{
+		// "Quem é responsável por quê?"
+		label: 'Ownership',
+		items: [
+			{ key: 'governance', label: 'Governance', href: '/settings/governance' },
+			{ key: 'organization', label: 'Organization', href: '/settings/organization' },
+		],
+	},
+	{
+		// "Quem entra, o que pode fazer, e o que já fez?"
+		label: 'Access',
+		items: [
+			{ key: 'users', label: 'Users', href: '/settings/users' },
+			{ key: 'roles', label: 'Roles & Permissions', href: '/settings/roles' },
+			{ key: 'audit', label: 'Audit Log', href: '/settings/audit' },
+		],
+	},
+];
 ---
 
 <PortalShell title={`Settings — ${title}`} section="settings">
 	<div class="settings-layout">
 		<nav class="settings-nav" aria-label="Administração">
-			<p class="settings-nav-title">Administration</p>
+			<p class="settings-nav-title" id="settings-nav-title">Administration</p>
 			{
-				items.map((item) => (
-					<a href={item.href} aria-current={item.key === active ? 'page' : undefined}>
-						{item.label}
-					</a>
-				))
+				groups.map((group) => {
+					// Cada grupo é a sua própria lista, rotulada pelo cabeçalho que a
+					// precede: um leitor de tela anuncia "Content, lista de 5 itens" em
+					// vez de despejar os 20 seguidos.
+					const headingId = group.label ? `settings-nav-${group.label.toLowerCase()}` : undefined;
+
+					return (
+						<div class="settings-nav-group">
+							{group.label && (
+								<p class="settings-nav-group-title" id={headingId}>
+									{group.label}
+								</p>
+							)}
+							<ul aria-labelledby={headingId ?? 'settings-nav-title'}>
+								{group.items.map((item) => (
+									<li>
+										<a href={item.href} aria-current={item.key === active ? 'page' : undefined}>
+											{item.label}
+										</a>
+									</li>
+								))}
+							</ul>
+						</div>
+					);
+				})
 			}
 		</nav>
 
