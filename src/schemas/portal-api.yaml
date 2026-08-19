@@ -31,14 +31,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  user:
-                    type: object
-                    properties:
-                      id: { type: string }
-                      email: { type: string }
-                      role: { type: string, enum: [viewer, editor, admin] }
+                $ref: '#/components/schemas/CurrentUser'
         '401':
           description: Sem sessão
 
@@ -56,27 +49,14 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required: [message]
-              properties:
-                message:
-                  type: string
-                  description: A pergunta, em português, inglês ou espanhol.
-                  example: como autenticar na API
-                conversationId:
-                  type: string
-                  description: Continua uma conversa existente.
+              $ref: '#/components/schemas/SearchRequest'
       responses:
         '200':
           description: Resposta com trechos e fontes
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  message: { type: string }
-                  excerpts: { type: array, items: { type: object } }
-                  sources: { type: array, items: { type: object } }
+                $ref: '#/components/schemas/SearchAnswer'
         '401':
           description: Sem sessão
         '429':
@@ -94,18 +74,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  current: { type: string }
-                  defaultBranch: { type: string }
-                  branches:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        name: { type: string }
-                        ahead: { type: integer }
-                        behind: { type: integer }
+                $ref: '#/components/schemas/BranchList'
         '401':
           description: Sem sessão
         '403':
@@ -124,27 +93,14 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required: [content]
-              properties:
-                content:
-                  type: string
-                  description: O Markdown a analisar, com frontmatter.
-                  example: "---\ntitle: Teste\ndescription: Uma página curta para ver o linter responder.\n---\n\nTexto de exemplo com uma frase inteira para o analisador medir.\n"
-                path:
-                  type: string
-                  description: Caminho relativo, usado para regras por tipo de página.
+              $ref: '#/components/schemas/LintRequest'
       responses:
         '200':
           description: Resultado da análise
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  score: { type: number }
-                  gate: { type: string, enum: [pass, warning, fail] }
-                  findings: { type: array, items: { type: object } }
+                $ref: '#/components/schemas/LintResult'
         '401':
           description: Sem sessão
 
@@ -160,16 +116,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required: [path, vote]
-              properties:
-                path:
-                  type: string
-                  description: Caminho da página avaliada.
-                  example: /guides/getting-started/
-                vote:
-                  type: string
-                  enum: [up, down]
+              $ref: '#/components/schemas/FeedbackRequest'
       responses:
         '200':
           description: Registrado
@@ -180,6 +127,167 @@ security:
   - sessionCookie: []
 
 components:
+  # Schemas nomeados.
+  #
+  # Eles existem para que o contrato tenha vocabulário próprio: `SearchAnswer` é
+  # um conceito do produto, e repeti-lo inline em cada operação produziria cópias
+  # que envelhecem separadamente. O SDK gerado tipa a partir daqui — expandir o
+  # `$ref` daria vinte cópias da mesma forma e nenhuma com nome.
+  schemas:
+    User:
+      type: object
+      description: Um usuário do portal.
+      required: [id, email, role]
+      properties:
+        id: { type: string }
+        email: { type: string, format: email }
+        role:
+          type: string
+          enum: [viewer, editor, admin]
+          description: Papel que decide o que a pessoa pode ver e editar.
+
+    CurrentUser:
+      type: object
+      description: A sessão atual.
+      required: [user]
+      properties:
+        user:
+          $ref: '#/components/schemas/User'
+
+    SearchRequest:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+          description: A pergunta, em português, inglês ou espanhol.
+          example: como autenticar na API
+        conversationId:
+          type: string
+          description: Continua uma conversa existente.
+
+    Excerpt:
+      type: object
+      description: Um trecho da documentação, já recortado.
+      required: [title, text, url, path]
+      properties:
+        title: { type: string }
+        section: { type: string }
+        text:
+          type: string
+          description: Texto do trecho, com credenciais redigidas.
+        url: { type: string }
+        path:
+          type: string
+          description: Caminho da página em `src/content/docs`.
+
+    Source:
+      type: object
+      description: Uma página citada na resposta.
+      required: [documentId, title, url, relevance]
+      properties:
+        documentId: { type: string }
+        title: { type: string }
+        url: { type: string }
+        relevance:
+          type: number
+          description: Maior relevância entre os trechos desta página.
+
+    SearchAnswer:
+      type: object
+      description: |
+        Resposta da busca. O `message` é uma frase de enquadramento extrativa —
+        não há modelo de linguagem gerando texto novo.
+      required: [message, excerpts, sources, empty]
+      properties:
+        message: { type: string }
+        excerpts:
+          type: array
+          items:
+            $ref: '#/components/schemas/Excerpt'
+        sources:
+          type: array
+          items:
+            $ref: '#/components/schemas/Source'
+        empty:
+          type: boolean
+          description: Verdadeiro quando nada passou do limiar de relevância.
+        conversationId: { type: string }
+
+    Branch:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+        ahead:
+          type: integer
+          description: Commits à frente do remoto.
+        behind:
+          type: integer
+          description: Commits atrás do remoto.
+
+    BranchList:
+      type: object
+      required: [current, branches]
+      properties:
+        current: { type: string }
+        defaultBranch: { type: string }
+        branches:
+          type: array
+          items:
+            $ref: '#/components/schemas/Branch'
+
+    LintRequest:
+      type: object
+      required: [content]
+      properties:
+        content:
+          type: string
+          description: O Markdown a analisar, com frontmatter.
+        path:
+          type: string
+          description: Caminho relativo, usado para regras por tipo de página.
+
+    LintFinding:
+      type: object
+      description: Um apontamento do linter, com onde ele está.
+      required: [rule, message, severity]
+      properties:
+        rule: { type: string }
+        message: { type: string }
+        severity:
+          type: string
+          enum: [error, warning, info]
+        line: { type: integer }
+        column: { type: integer }
+
+    LintResult:
+      type: object
+      required: [score, gate, findings]
+      properties:
+        score:
+          type: number
+          description: Nota de 0 a 100.
+        gate:
+          type: string
+          enum: [pass, warning, fail]
+        findings:
+          type: array
+          items:
+            $ref: '#/components/schemas/LintFinding'
+
+    FeedbackRequest:
+      type: object
+      required: [path, vote]
+      properties:
+        path:
+          type: string
+          description: Caminho da página avaliada.
+          example: /guides/getting-started/
+        vote:
+          type: string
+          enum: [up, down]
+
   securitySchemes:
     sessionCookie:
       type: apiKey

@@ -16,7 +16,14 @@
 // Grafo de impacto (§4)
 // ---------------------------------------------------------------------------
 
-export type ImpactNodeType = 'page' | 'section' | 'api' | 'schema' | 'glossary' | 'snippet' | 'version';
+/**
+ * `sdk` entra aqui, e não num engine próprio.
+ *
+ * A spec de SDK Engineering é explícita: o SDK é mais um artefato do mesmo
+ * mecanismo de impacto, ao lado de páginas, testes e blocos reutilizáveis. Um
+ * segundo engine daria duas respostas para "o que quebra se isto mudar".
+ */
+export type ImpactNodeType = 'page' | 'section' | 'api' | 'schema' | 'glossary' | 'snippet' | 'version' | 'sdk';
 
 export interface ImpactNode {
 	/** Identidade dentro do grafo de impacto: `page:guides/authentication`. */

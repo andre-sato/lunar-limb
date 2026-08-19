@@ -57,6 +57,7 @@ Arquivos Markdown e MDX dentro de `src/content/docs/` são publicados automatica
 | `npm run graph` | Knowledge Graph: consulta, impacto e frescor. |
 | `npm run org` | Organização: repositórios, produtos, saúde agregada e busca global. |
 | `npm run heal` | Self-healing: detectar, diagnosticar, propor e validar correções. |
+| `npm run sdk` | SDK: gerar, verificar e comparar o cliente TypeScript da API. |
 | `npm run docs:asyncapi` | Gera páginas de referência a partir de especificações AsyncAPI. |
 | `npm run user:create` | Cria um usuário do portal (ver *Usuários e controle de acesso*). |
 
@@ -401,6 +402,20 @@ Nada é escrito fora do workspace isolado dos agentes, nada é publicado sem apr
 Validação que não roda vale "não verificado", nunca "aprovado".
 
 Em `npm run heal` e em Settings → Self-Healing.
+
+## SDK
+
+Gera um cliente TypeScript a partir da **mesma** especificação que já move a documentação, os contratos e o Digital Twin:
+
+```text
+OpenAPI → ApiModel → SDK
+```
+
+Não há segundo parser, segundo engine de contrato nem segundo engine de impacto. Quando o gerador precisou de schemas nomeados, o `ApiModel` ganhou o campo — abrir o YAML de novo daria duas leituras da mesma especificação, e a segunda envelheceria.
+
+O pacote gerado não tem dependência de execução. Onde a especificação não diz o tipo, o código gerado diz `unknown`: um SDK que finge saber faz o compilador aprovar uma chamada errada.
+
+O diff deriva do contrato, não da comparação textual dos arquivos gerados. Em `npm run sdk` e no portão de revisão de PR.
 
 ## Feedback de página
 

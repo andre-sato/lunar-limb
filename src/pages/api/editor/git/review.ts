@@ -17,6 +17,7 @@ import { recordAudit } from '../../../../lib/auth/audit';
 import { runDocumentationTests } from '../../../../lib/doctest/runner';
 import { analyzeImpactOf } from '../../../../lib/impact/engine';
 import { documentationImpact } from '../../../../lib/codeloop/service';
+import { analyzeSdkImpact, sdkGovernance } from '../../../../lib/sdk/integration';
 import { digitalTwin } from '../../../../lib/twin/service';
 import { loadTwinConfig } from '../../../../lib/twin/load';
 import { loadContractConfig, runContractTests } from '../../../../lib/contract/engine';
@@ -176,6 +177,40 @@ async function coverageGate() {
  * bloquearia todo PR de um portal que ainda está começando a documentar.
  */
 /**
+ * O portão do SDK.
+ *
+ * Ele responde a pergunta que nenhum outro portão faz: **esta mudança quebra
+ * quem já instalou o pacote?** Documentação errada custa uma leitura confusa;
+ * SDK incompatível quebra o build de outra pessoa, em outro repositório, sem
+ * aviso.
+ *
+ * O impacto vem do contrato, não da comparação dos arquivos gerados: trocar a
+ * indentação do gerador mudaria todo arquivo e nenhum contrato.
+ */
+async function sdkGate(base: string) {
+	try {
+		const [impact, dimensions] = await Promise.all([analyzeSdkImpact(base), sdkGovernance(base)]);
+
+		return {
+			breaking: impact.breaking,
+			additive: impact.additive,
+			regenerate: impact.regenerate,
+			unavailable: impact.unavailable,
+			dimensions,
+			// Só ruptura bloqueia. SDK fora de sincronia é aviso: quem abre o PR
+			// pode não ter rodado o gerador ainda, e travar por isso ensinaria a
+			// equipe a desligar o portão.
+			blocked: impact.breaking > 0,
+		};
+	} catch (error) {
+		// Mesma política dos outros portões: falhar em executar não é aprovar, mas
+		// também não bloqueia.
+		console.error('[sdk] portão não executou', error);
+		return { breaking: 0, additive: 0, regenerate: [], unavailable: true, dimensions: [], blocked: false, error: true };
+	}
+}
+
+/**
  * O portão do Documentation-to-Code Loop (P2.2).
  *
  * Ele responde uma pergunta que nenhum outro portão faz: as **entidades do
@@ -284,7 +319,7 @@ export const GET: APIRoute = async ({ url }) => {
 		const head = await currentBranch();
 
 		const [diff, paths, remote] = await Promise.all([branchDiff(base), changedPaths(base), getRemote()]);
-		const [gate, impact, tests, coverage, contracts, health, codeLoop] = await Promise.all([
+		const [gate, impact, tests, coverage, contracts, health, codeLoop, sdk] = await Promise.all([
 			runGate(paths),
 			analyzeImpactOf({ base }),
 			runTests(paths),
@@ -292,6 +327,7 @@ export const GET: APIRoute = async ({ url }) => {
 			contractGate(paths),
 			healthGate(),
 			codeLoopGate(base),
+			sdkGate(base),
 		]);
 
 		return json({
@@ -305,6 +341,7 @@ export const GET: APIRoute = async ({ url }) => {
 			contracts,
 			health,
 			codeLoop,
+			sdk,
 			remote: remote ? { url: remote.url, owner: remote.owner, repo: remote.repo } : null,
 			// A interface precisa saber se o botão cria o PR ou abre o provedor.
 			canCreatePullRequest: Boolean(remote && providerToken()),
@@ -332,7 +369,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 			return json({ error: 'Não há alterações entre as duas branches.' }, 400);
 		}
 
-		const [gate, impact, tests, coverage, contracts, health, codeLoop] = await Promise.all([
+		const [gate, impact, tests, coverage, contracts, health, codeLoop, sdk] = await Promise.all([
 			runGate(paths),
 			analyzeImpactOf({ base }),
 			runTests(paths),
@@ -340,6 +377,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 			contractGate(paths),
 			healthGate(),
 			codeLoopGate(base),
+			sdkGate(base),
 		]);
 
 		const input = {
@@ -361,6 +399,22 @@ export const POST: APIRoute = async ({ request, locals }) => {
 				health.score === null
 					? undefined
 					: { score: health.score, previous: health.previous, delta: health.delta, newIssues: health.newIssues },
+			// Estes dois eram calculados, devolvidos na resposta e **não** chegavam
+			// ao corpo do pull request: as seções existiam e nunca renderizavam.
+			codeLoop:
+				codeLoop.entities === 0
+					? undefined
+					: {
+							coverage: codeLoop.coverage,
+							blocked: codeLoop.blocked,
+							entities: codeLoop.entities,
+							missing: codeLoop.missing,
+							stalePages: codeLoop.stalePages,
+						},
+			sdk:
+				sdk.unavailable || sdk.breaking + sdk.additive === 0
+					? undefined
+					: { breaking: sdk.breaking, additive: sdk.additive, regenerate: sdk.regenerate },
 		};
 
 		const result = await createPullRequest(input);
@@ -380,7 +434,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 			},
 		});
 
-		return json({ ...result, gate, impact, tests, coverage, contracts, health, codeLoop, body: composePullRequestBody(input) });
+		return json({ ...result, gate, impact, tests, coverage, contracts, health, codeLoop, sdk, body: composePullRequestBody(input) });
 	} catch (error) {
 		return json({ error: error instanceof Error ? error.message : 'Falha ao criar o pull request.' }, 500);
 	}

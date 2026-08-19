@@ -12,6 +12,7 @@
  * | Ausente | Documentation-to-Code Loop |
  * | Terminologia | Glossário |
  * | Lacuna comportamental | Observabilidade de leitura |
+ * | SDK desatualizado | SDK Engineering |
  *
  * Inventar detecção própria criaria uma sétima opinião sobre a mesma
  * documentação — e a experiência das camadas anteriores é que duas opiniões
@@ -21,6 +22,7 @@
 import { documentationImpact } from '../codeloop/service';
 import { runContractTests } from '../contract/engine';
 import { observability } from '../observe/service';
+import { detectStaleSdk } from '../sdk/integration';
 import type { Evidence, HealingIssue, IssueType, Severity } from './types';
 
 function issueId(type: IssueType, subject: string): string {
@@ -154,6 +156,30 @@ export async function detectIssues(options: DetectOptions = {}): Promise<Healing
 			status: 'detected',
 			detectedAt,
 			summary: `${contract.id}: ${failures.length} verificação(ões) de contrato falhando.`,
+		});
+	}
+
+	// --- SDK desatualizado (§26 da spec de SDK) -----------------------------
+	//
+	// Ele entra como problema detectado e **não** gera proposta de redação:
+	// regerar SDK é `npm run sdk -- generate`, determinístico e sem modelo de
+	// linguagem. Mandar um agente escrever código de cliente à mão quando existe
+	// um gerador trocaria um processo verificável por um palpite caro.
+	for (const signal of await detectStaleSdk().catch(() => [])) {
+		issues.push({
+			id: issueId('stale', `sdk-${signal.language}`),
+			type: 'stale',
+			severity: 'high',
+			confidence: 1,
+			evidence: [
+				evidence(signal.summary, 'SDK Engineering', 1),
+				evidence(`Arquivos: ${signal.files.slice(0, 8).join(', ')}.`, 'SDK Engineering', 1),
+				evidence('A correção é determinística: `npm run sdk -- generate`.', 'SDK Engineering', 1),
+			],
+			affectedPages: [],
+			status: 'detected',
+			detectedAt,
+			summary: signal.summary,
 		});
 	}
 

@@ -37,7 +37,7 @@ function operation(partial: Partial<ApiOperation> = {}): ApiOperation {
 }
 
 function model(operations: ApiOperation[], partial: Partial<ApiModel> = {}): ApiModel {
-	return { title: 'API', version: '1.0.0', servers: ['/api'], operations, securitySchemes: [], ...partial };
+	return { title: 'API', version: '1.0.0', servers: ['/api'], operations, securitySchemes: [], schemas: [], ...partial };
 }
 
 /** Grafo de conteúdo: páginas e blocos, com quem inclui quem. */

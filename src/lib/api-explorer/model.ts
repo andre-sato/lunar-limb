@@ -43,6 +43,29 @@ export interface ApiResponse {
 	status: string;
 	description: string;
 	contentType?: string;
+	/**
+	 * Schema da resposta, **sem** `$ref` resolvido.
+	 *
+	 * O Explorer nunca precisou dele; o gerador de SDK precisa, e resolver aqui
+	 * destruiria a informação de qual modelo nomeado a resposta devolve — que é
+	 * justamente o que o SDK quer tipar.
+	 */
+	schema?: unknown;
+}
+
+/**
+ * Um schema nomeado de `components/schemas`.
+ *
+ * Ele entra no `ApiModel` porque o gerador de SDK precisa de modelos com nome, e
+ * a spec de SDK proíbe um segundo parser. Estender o modelo existente é o que
+ * mantém uma única leitura do OpenAPI para Explorer, contratos, Twin e SDK.
+ */
+export interface ApiSchema {
+	name: string;
+	/** O nó do schema como está no documento, com `$ref` preservado. */
+	schema: unknown;
+	description?: string;
+	deprecated: boolean;
 }
 
 export type SecurityKind = 'apiKey' | 'http-bearer' | 'http-basic' | 'oauth2' | 'openIdConnect' | 'unknown';
@@ -82,6 +105,8 @@ export interface ApiModel {
 	servers: string[];
 	operations: ApiOperation[];
 	securitySchemes: SecurityScheme[];
+	/** Schemas nomeados de `components/schemas`, na ordem do documento. */
+	schemas: ApiSchema[];
 }
 
 export class OpenApiError extends Error {}
@@ -280,10 +305,13 @@ export function parseOpenApi(raw: string): ApiModel {
 			const responses: ApiResponse[] = Object.entries<Json>(operation.responses ?? {}).map(
 				([status, value]) => {
 					const response = resolve<Json>(document, value);
+					const responseType = Object.keys(response.content ?? {})[0];
+
 					return {
 						status,
 						description: String(response.description ?? ''),
-						contentType: Object.keys(response.content ?? {})[0],
+						contentType: responseType,
+						schema: responseType ? response.content?.[responseType]?.schema : undefined,
 					};
 				}
 			);
@@ -306,6 +334,15 @@ export function parseOpenApi(raw: string): ApiModel {
 		}
 	}
 
+	// Schemas nomeados. O `$ref` é preservado: quem gera SDK precisa saber que a
+	// resposta devolve `User`, e não uma cópia anônima da forma de `User`.
+	const schemas: ApiSchema[] = Object.entries<Json>(document.components?.schemas ?? {}).map(([name, value]) => ({
+		name,
+		schema: value,
+		description: typeof value?.description === 'string' ? value.description : undefined,
+		deprecated: value?.deprecated === true,
+	}));
+
 	const servers: string[] = Array.isArray(document.servers)
 		? document.servers.map((server: Json) => String(server.url ?? '')).filter(Boolean)
 		: [];
@@ -317,6 +354,7 @@ export function parseOpenApi(raw: string): ApiModel {
 		servers,
 		operations,
 		securitySchemes,
+		schemas,
 	};
 }
 

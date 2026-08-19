@@ -102,6 +102,12 @@ export interface PullRequestInput {
 	 * verificam se o que está escrito está certo, não se alguém escreveu.
 	 */
 	codeLoop?: { coverage: number; blocked: boolean; entities: number; missing: string[]; stalePages: string[] };
+	/**
+	 * Impacto no SDK gerado. Ele merece seção própria porque é o único artefato
+	 * daqui que vive **fora** deste repositório: uma ruptura quebra o build de
+	 * quem instalou o pacote, e isso não aparece em nenhum diff desta branch.
+	 */
+	sdk?: { breaking: number; additive: number; regenerate: string[] };
 }
 
 /**
@@ -189,9 +195,30 @@ export function composePullRequestBody(input: PullRequestInput): string {
 
 	if (input.impact) parts.push(...impactSection(input.impact));
 	if (input.codeLoop && input.codeLoop.entities > 0) parts.push(...codeLoopSection(input.codeLoop));
+	if (input.sdk && input.sdk.breaking + input.sdk.additive > 0) parts.push(...sdkSection(input.sdk));
 
 	parts.push('---', '_Preparado pelo editor do portal._');
 	return parts.join('\n').trim();
+}
+
+/** A parte do corpo que fala do SDK gerado. */
+function sdkSection(sdk: NonNullable<PullRequestInput['sdk']>): string[] {
+	const parts: string[] = [
+		`**SDK:** ${sdk.breaking} mudança(s) incompatível(is) · ${sdk.additive} aditiva(s)`,
+		'',
+	];
+
+	if (sdk.breaking > 0) {
+		parts.push('> Mudança incompatível quebra o build de quem já instalou o pacote.', '');
+	}
+
+	if (sdk.regenerate.length > 0) {
+		parts.push('_Arquivos a regerar:_');
+		for (const file of sdk.regenerate.slice(0, 15)) parts.push(`- \`${file}\``);
+		parts.push('', 'Rode `npm run sdk -- generate`.', '');
+	}
+
+	return parts;
 }
 
 /** A parte do corpo que fala do vínculo com o código (P2.2). */

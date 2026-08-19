@@ -1,0 +1,25 @@
+# SDK Engineering.
+#
+# O princípio: nenhuma definição de endpoint, parâmetro, schema, autenticação ou
+# resposta é redigida de novo para o SDK.
+#
+#     OpenAPI → ApiModel → SDK
+#
+# O `ApiModel` é a leitura única do OpenAPI, compartilhada com o API Explorer, o
+# Contract Testing, o Digital Twin e o Impact Engine. Não existe segundo parser.
+
+sdk:
+  spec: src/schemas/portal-api.yaml
+
+  generators:
+    typescript:
+      enabled: true
+      output: generated/typescript
+      packageName: "@lunar-limb/api-client"
+      # `api` amarra a versão do SDK à da especificação — é o que permite dizer
+      # "SDK 1.0.0 corresponde a API 1.0.0" sem manter dois números à mão.
+      version: api
+
+  # SDK desatualizado bloqueia a CI. Diferente de documentação envelhecida, ele
+  # quebra o build de quem o instalou.
+  failOnStale: true

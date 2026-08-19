@@ -26,6 +26,7 @@
 		"graph": "tsx scripts/graph.ts",
 		"org": "tsx scripts/org.ts",
 		"heal": "tsx scripts/heal.ts",
+		"sdk": "tsx scripts/sdk.ts",
 		"docs:asyncapi": "tsx scripts/asyncapi-to-docs.ts",
 		"build:pages": "tsx scripts/build-pages.ts",
 		"user:create": "tsx scripts/create-user.ts"
