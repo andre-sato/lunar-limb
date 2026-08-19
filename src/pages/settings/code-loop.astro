@@ -1,0 +1,14 @@
+---
+import SettingsLayout from '../../layouts/SettingsLayout.astro';
+import CodeLoopPanel from '../../components/settings/CodeLoopPanel';
+
+export const prerender = false;
+---
+
+<SettingsLayout
+	title="Code Loop"
+	description="O vínculo entre código e documentação: o que está declarado, o que resolve contra o produto e o que ficou sem documentação."
+	active="code-loop"
+>
+	<CodeLoopPanel client:load />
+</SettingsLayout>

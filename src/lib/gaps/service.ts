@@ -19,6 +19,7 @@ import { getTrustIndex } from '../trust/load';
 import { getTwin } from '../twin/load';
 import { findUndocumented } from '../twin/analysis';
 import { runContractTests } from '../contract/engine';
+import { documentationImpact } from '../codeloop/service';
 import { clusterQueries, tokenize, type QueryCluster } from './cluster';
 import { analyzeGaps, checkResolution, type ClusterAnalysis, type RetrievedPage } from './analyze';
 import { readTelemetry } from './telemetry';
@@ -198,7 +199,10 @@ export async function analyzeDocumentationGaps(options: AnalyzeOptions = {}): Pr
 	// está publicado, e alguém vai chamá-lo. É o que mantém a camada útil com o
 	// registro de perguntas desligado.
 	if (twin) {
+		const unmentioned = new Set<string>();
+
 		for (const item of findUndocumented(twin.graph)) {
+			unmentioned.add(item.node.name);
 			analyses.push({
 				cluster: {
 					representative: `como usar ${item.node.name}`,
@@ -209,6 +213,31 @@ export async function analyzeDocumentationGaps(options: AnalyzeOptions = {}): Pr
 				},
 				pages: [],
 				productNodes: [item.node.id],
+			});
+		}
+
+		// Documentation-to-Code Loop (P2.2): entidade **mencionada** em alguma
+		// página, mas sem vínculo declarado.
+		//
+		// É um sinal mais fraco que o de cima — o assunto existe no portal — e por
+		// isso entra separado: quem lê a lista precisa distinguir "ninguém escreveu"
+		// de "escreveram e ninguém assumiu a página como a referência". Tratar os
+		// dois como o mesmo item mandaria a equipe reescrever conteúdo que já existe.
+		const unbound = await documentationImpact.findUndocumented().catch(() => []);
+
+		for (const entity of unbound) {
+			if (unmentioned.has(entity.entityId)) continue;
+
+			analyses.push({
+				cluster: {
+					representative: `qual página documenta ${entity.entityId}`,
+					variants: [],
+					tokens: tokenize(entity.entityId),
+					terms: tokenize(entity.entityId),
+					count: 0,
+				},
+				pages: [],
+				productNodes: [],
 			});
 		}
 	}

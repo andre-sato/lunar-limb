@@ -16,6 +16,7 @@ import { getContentFs } from '../../../../lib/editor/content-fs';
 import { recordAudit } from '../../../../lib/auth/audit';
 import { runDocumentationTests } from '../../../../lib/doctest/runner';
 import { analyzeImpactOf } from '../../../../lib/impact/engine';
+import { documentationImpact } from '../../../../lib/codeloop/service';
 import { digitalTwin } from '../../../../lib/twin/service';
 import { loadTwinConfig } from '../../../../lib/twin/load';
 import { loadContractConfig, runContractTests } from '../../../../lib/contract/engine';
@@ -174,6 +175,35 @@ async function coverageGate() {
  * documenta — é assunto de cobertura, não de contrato: reprovar por ele
  * bloquearia todo PR de um portal que ainda está começando a documentar.
  */
+/**
+ * O portão do Documentation-to-Code Loop (P2.2).
+ *
+ * Ele responde uma pergunta que nenhum outro portão faz: as **entidades do
+ * produto** que esta branch alterou têm página vinculada e atualizada? O
+ * Contract Testing verifica se o exemplo bate com a especificação; este verifica
+ * se alguém sequer documentou o que mudou.
+ */
+async function codeLoopGate(base: string) {
+	try {
+		const report = await documentationImpact.analyze(`${base}...HEAD`);
+
+		return {
+			coverage: report.impact.coverage,
+			blocked: report.blocked,
+			entities: report.impact.affectedEntities.length,
+			missing: report.impact.missingDocumentation.map((entity) => entity.entityId),
+			stalePages: report.impact.affectedPages.filter((page) => page.stale).map((page) => page.path),
+			violations: report.violations,
+		};
+	} catch (error) {
+		// Mesma política dos outros portões: falhar em executar não é aprovar, mas
+		// também não bloqueia — um erro de execução travando todo merge é como se
+		// desliga um portão para sempre.
+		console.error('[codeloop] portão não executou', error);
+		return { coverage: 0, blocked: false, entities: 0, missing: [], stalePages: [], violations: [], error: true };
+	}
+}
+
 async function contractGate(paths: readonly string[]) {
 	const docs = paths.filter((file) => file.startsWith(DOCS_PREFIX) && /\.mdx?$/.test(file));
 
@@ -254,13 +284,14 @@ export const GET: APIRoute = async ({ url }) => {
 		const head = await currentBranch();
 
 		const [diff, paths, remote] = await Promise.all([branchDiff(base), changedPaths(base), getRemote()]);
-		const [gate, impact, tests, coverage, contracts, health] = await Promise.all([
+		const [gate, impact, tests, coverage, contracts, health, codeLoop] = await Promise.all([
 			runGate(paths),
 			analyzeImpactOf({ base }),
 			runTests(paths),
 			coverageGate(),
 			contractGate(paths),
 			healthGate(),
+			codeLoopGate(base),
 		]);
 
 		return json({
@@ -273,6 +304,7 @@ export const GET: APIRoute = async ({ url }) => {
 			coverage,
 			contracts,
 			health,
+			codeLoop,
 			remote: remote ? { url: remote.url, owner: remote.owner, repo: remote.repo } : null,
 			// A interface precisa saber se o botão cria o PR ou abre o provedor.
 			canCreatePullRequest: Boolean(remote && providerToken()),
@@ -300,13 +332,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
 			return json({ error: 'Não há alterações entre as duas branches.' }, 400);
 		}
 
-		const [gate, impact, tests, coverage, contracts, health] = await Promise.all([
+		const [gate, impact, tests, coverage, contracts, health, codeLoop] = await Promise.all([
 			runGate(paths),
 			analyzeImpactOf({ base }),
 			runTests(paths),
 			coverageGate(),
 			contractGate(paths),
 			healthGate(),
+			codeLoopGate(base),
 		]);
 
 		const input = {
@@ -347,7 +380,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 			},
 		});
 
-		return json({ ...result, gate, impact, tests, coverage, contracts, health, body: composePullRequestBody(input) });
+		return json({ ...result, gate, impact, tests, coverage, contracts, health, codeLoop, body: composePullRequestBody(input) });
 	} catch (error) {
 		return json({ error: error instanceof Error ? error.message : 'Falha ao criar o pull request.' }, 500);
 	}

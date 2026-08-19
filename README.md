@@ -50,6 +50,7 @@ Arquivos Markdown e MDX dentro de `src/content/docs/` são publicados automatica
 | `npm run gaps` | Gap Mining: o que as pessoas procuram e não encontram. |
 | `npm run agent` | Agentes de documentação: pesquisa, rascunho, validação. |
 | `npm run history` | Time Machine: timeline, snapshot, comparação e restore. |
+| `npm run docs:code` | Vínculo com o código: impacto, cobertura, órfãos e entidades sem documentação. |
 | `npm run docs:asyncapi` | Gera páginas de referência a partir de especificações AsyncAPI. |
 | `npm run user:create` | Cria um usuário do portal (ver *Usuários e controle de acesso*). |
 
@@ -327,6 +328,21 @@ Quatro perguntas que só o histórico responde: como esta página evoluiu, como 
 O **semantic diff** responde "o que passou a ser verdade que antes não era": `30 dias → 90 dias`, `client_id → client_id + client_secret`. Cada achado carrega confiança — lista `required:` é estrutura declarada e vale 0,95; assunto de número inferido das palavras vizinhas vale 0,7. O limite está dito: reescrita em prosa que inverte um sentido passa despercebida, e por isso o diff textual continua ao lado em vez de ser substituído.
 
 **Restore não altera a branch.** Snapshot → workspace isolado → diff → validação → PR, sem atalho. Restaurar é operação perigosa disfarçada de simples: conteúdo antigo pode estar antigo por um bom motivo, e uma reversão com um clique apagaria a razão junto. Guia em [/guides/time-machine/](src/content/docs/guides/time-machine.mdx).
+
+## Vínculo com o código
+
+Uma página declara, no frontmatter, quais entidades do produto ela documenta:
+
+```yaml
+documentation:
+  bindings:
+    - type: api
+      id: POST /api/payments
+```
+
+A partir daí a CI cobra: entidade pública alterada sem página vinculada bloqueia o merge; página vinculada que ficou para trás vira aviso. Menção em texto não conta — só o vínculo declarado e resolvido contra o Digital Twin.
+
+O vínculo vive na documentação, nunca no código: o produto não deve depender de Markdown. Em `npm run docs:code` e em Settings → Code Loop.
 
 ## Feedback de página
 

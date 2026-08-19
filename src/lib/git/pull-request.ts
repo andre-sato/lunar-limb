@@ -96,6 +96,12 @@ export interface PullRequestInput {
 	contracts?: { broken: number; warning: number; pages: string[] };
 	/** Saúde da documentação, antes e depois. */
 	health?: { score: number; previous: number | null; delta: number | null; newIssues: string[] };
+	/**
+	 * Documentation-to-Code Loop: entidades do produto que a branch alterou e não
+	 * têm página vinculada. É a pergunta que os outros portões não fazem — eles
+	 * verificam se o que está escrito está certo, não se alguém escreveu.
+	 */
+	codeLoop?: { coverage: number; blocked: boolean; entities: number; missing: string[]; stalePages: string[] };
 }
 
 /**
@@ -182,9 +188,35 @@ export function composePullRequestBody(input: PullRequestInput): string {
 	}
 
 	if (input.impact) parts.push(...impactSection(input.impact));
+	if (input.codeLoop && input.codeLoop.entities > 0) parts.push(...codeLoopSection(input.codeLoop));
 
 	parts.push('---', '_Preparado pelo editor do portal._');
 	return parts.join('\n').trim();
+}
+
+/** A parte do corpo que fala do vínculo com o código (P2.2). */
+function codeLoopSection(loop: NonNullable<PullRequestInput['codeLoop']>): string[] {
+	const parts: string[] = [
+		`**Cobertura documental da mudança:** ${loop.coverage}% · ${loop.entities} entidade(s) do produto alterada(s)`,
+		'',
+	];
+
+	if (loop.missing.length > 0) {
+		parts.push('_Sem página vinculada:_');
+		for (const entity of loop.missing.slice(0, 15)) parts.push(`- \`${entity}\``);
+		if (loop.missing.length > 15) parts.push(`- … e mais ${loop.missing.length - 15}`);
+		parts.push('');
+	}
+
+	if (loop.stalePages.length > 0) {
+		parts.push('_Página vinculada que não foi atualizada nesta branch:_');
+		for (const page of loop.stalePages.slice(0, 15)) parts.push(`- \`${page}\``);
+		parts.push('');
+	}
+
+	if (loop.blocked) parts.push('> A política do `codeloop.yml` considera esta mudança bloqueada.', '');
+
+	return parts;
 }
 
 /**

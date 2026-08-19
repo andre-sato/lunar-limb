@@ -1,0 +1,35 @@
+# Documentation-to-Code Loop — política (P2.2).
+#
+# O vínculo entre página e produto vive no **frontmatter da documentação**, nunca
+# no código: o produto não deve depender de Markdown, e uma anotação no código
+# apontando para uma página faria um `git mv` quebrar o build.
+
+documentation:
+  bindings:
+    # Tipos de entidade que exigem documentação vinculada.
+    #
+    # Só o que é publicado. Exigir documentação de toda função interna
+    # transformaria a política numa fila impossível, e o primeiro efeito disso é
+    # alguém desligá-la inteira — inclusive para o que importa.
+    requiredFor:
+      - public-api
+      - public-event
+      - cli-command
+
+  policy:
+    apiChanges:
+      # Mudou o endpoint e a página não foi atualizada no mesmo conjunto: erro.
+      requireDocs: true
+      # Exemplo em toda página de API. Desligado por padrão: nem toda página que
+      # documenta um endpoint é a referência dele.
+      requireExamples: false
+
+    breakingChanges:
+      requireMigrationGuide: true
+
+    releases:
+      minimumCoverage: 95
+
+    # Só violação de item **obrigatório** bloqueia. Bloquear por aviso levaria a
+    # equipe a desligar o portão, e aí nem o obrigatório seria verificado.
+    failOnViolation: true
