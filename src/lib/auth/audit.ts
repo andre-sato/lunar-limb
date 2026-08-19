@@ -68,7 +68,10 @@ export type AuditAction =
 	// Observabilidade de leitura: apagar destrói dado, e destruir dado fica no log.
 	| 'OBSERVATIONS_FORGOTTEN'
 	// Avaliação de IA: executar consome tempo e, com modelo configurado, dinheiro.
-	| 'AI_EVALUATION_RUN';
+	| 'AI_EVALUATION_RUN'
+	// Self-healing: redigir consome tempo, produz conteúdo e, com modelo
+	// configurado, custa dinheiro. As três razões pedem registro de quem mandou.
+	| 'HEALING_DRAFTED';
 
 export interface AuditEvent {
 	id: string;

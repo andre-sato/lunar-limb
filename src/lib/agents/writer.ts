@@ -101,12 +101,12 @@ export function draftFromEvidence(
 ): string {
 	const title = task.target
 		? task.target.replace(/\.mdx?$/, '').split('/').at(-1)?.replace(/-/g, ' ') ?? 'Documentação'
-		: task.instruction.slice(0, 60);
+		: headlineOf(task.instruction, 60);
 
 	const lines: string[] = [
 		'---',
-		`title: ${capitalize(title)}`,
-		`description: ${task.instruction.slice(0, 150)}`,
+		`title: ${yamlScalar(capitalize(title))}`,
+		`description: ${yamlScalar(headlineOf(task.instruction, 150))}`,
 		'---',
 		'',
 		`${PLACEHOLDER}`,
@@ -217,7 +217,7 @@ export async function write(
 	const [reusable, glossary] = await Promise.all([findReusable(task.instruction), loadGlossary().catch(() => [])]);
 	const glossaryTerms = glossary.map((term) => term.term);
 
-	const target = task.target ?? `src/content/docs/guides/${slugify(task.instruction)}.md`;
+	const target = task.target ?? `src/content/docs/guides/${slugify(headlineOf(task.instruction, 60))}.md`;
 	const relative = target.startsWith('src/content/') ? target : `src/content/docs/${target}`;
 
 	const existing = await workspace.readOriginal(relative);
@@ -337,6 +337,30 @@ export function buildWriterPrompt(
 		.join('\n');
 
 	return { system, user };
+}
+
+/**
+ * A primeira linha da instrução, e só ela.
+ *
+ * Cortar por caractere ignorando a quebra de linha fazia uma instrução de várias
+ * linhas vazar inteira para o frontmatter — o `title:` continuava na linha
+ * seguinte, o bloco deixava de ser YAML e o build recusava a página. Apareceu na
+ * primeira proposta real do ciclo de self-healing.
+ */
+export function headlineOf(instruction: string, limit: number): string {
+	const first = instruction.split(/\r?\n/)[0]?.trim() ?? '';
+	return (first === '' ? 'Documentação' : first).slice(0, limit);
+}
+
+/**
+ * Escapa um valor para caber numa linha de YAML.
+ *
+ * `title: Documentar POST /api/auth/login: sessão` é YAML inválido por causa do
+ * segundo `:`. Aspas resolvem, e derivar título de texto livre significa que o
+ * segundo `:` vai acontecer.
+ */
+export function yamlScalar(value: string): string {
+	return /[:#[\]{}&*!|>'"%@`]/.test(value) ? `"${value.replace(/"/g, '\\"')}"` : value;
 }
 
 function slugify(text: string): string {

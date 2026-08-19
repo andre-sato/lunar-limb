@@ -1,0 +1,57 @@
+# Self-Healing Documentation (P3.6).
+#
+# O princípio que decide tudo aqui: self-healing **não** é permitir que a IA
+# altere documentação de produção de forma irrestrita.
+#
+# O ciclo é detectar → diagnosticar → propor → validar → revisar → PR. Cada etapa
+# produz um artefato inspecionável, nada é escrito fora do workspace isolado do
+# Agent Orchestrator, e nada é publicado sem aprovação humana.
+
+selfHealing:
+  # 0 só detecta · 1 explica · 2 redige · 3 redige, valida e abre PR · 4 faz merge.
+  #
+  # O padrão é 3 com merge automático desligado. O nível 4 existe no modelo e
+  # não é ligado por padrão em nenhuma circunstância: o produto não decide
+  # sozinho publicar conteúdo gerado.
+  autonomy: 3
+
+  low:
+    autoCreatePR: true
+    requireApproval: false
+
+  medium:
+    autoCreatePR: true
+    requireApproval: true
+
+  high:
+    autoCreatePR: true
+    requireApproval: true
+
+  # Crítico não abre PR sozinho. Um PR aberto é um convite a aprovar sem ler, e o
+  # que é crítico merece a fricção de alguém decidir abrir.
+  critical:
+    autoCreatePR: false
+    requireApproval: true
+
+  # Duas tentativas. Sem teto, um ciclo que não consegue corrigir gira para
+  # sempre — e cada volta custa uma chamada de modelo.
+  maxAttempts: 2
+
+  onFailure:
+    action: create-gap
+
+  # Confiança mínima do diagnóstico para gerar proposta. Abaixo disso o
+  # diagnóstico é palpite, e palpite não vira texto publicado.
+  minimumConfidence: 0.6
+
+  # Qual fonte descreve o produto quando duas discordam **em autoridade**. Ela não
+  # resolve contradição: divergência real entre contrato e código continua sendo
+  # conflito, e conflito vira lacuna para intervenção humana.
+  authority:
+    order:
+      - production-contract
+      - source-code
+      - tests
+      - release-notes
+      - documentation
+      - generated-content

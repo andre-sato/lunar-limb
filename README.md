@@ -56,6 +56,7 @@ Arquivos Markdown e MDX dentro de `src/content/docs/` são publicados automatica
 | `npm run ai:eval` | Avaliação do assistente: conjuntos de perguntas, métricas verificáveis e regressão. |
 | `npm run graph` | Knowledge Graph: consulta, impacto e frescor. |
 | `npm run org` | Organização: repositórios, produtos, saúde agregada e busca global. |
+| `npm run heal` | Self-healing: detectar, diagnosticar, propor e validar correções. |
 | `npm run docs:asyncapi` | Gera páginas de referência a partir de especificações AsyncAPI. |
 | `npm run user:create` | Cria um usuário do portal (ver *Usuários e controle de acesso*). |
 
@@ -390,6 +391,16 @@ Registra repositórios, produtos e times em `organization.yml` e agrega o que d�
 O portal **não busca repositório da rede**: registrado por `url`, ele é listado e não lido — clonar e ler conteúdo arbitrário a cada coleta é decisão de quem opera. A profundidade da leitura é declarada por repositório, e o que não foi medido fica fora da média: contá-lo como zero faria registrar um repositório baixar a nota da organização.
 
 Em `npm run org` e em Settings → Organization.
+
+## Self-healing
+
+Detectar → diagnosticar → propor → validar → revisar → PR. Nunca `detectar → corrigir`.
+
+Nada é escrito fora do workspace isolado dos agentes, nada é publicado sem aprovação humana, e nenhum nível de autonomia faz merge. O diagnóstico recusa sem fonte autoritativa; quando fontes autoritativas discordam, o ciclo declara conflito e para, em vez de escolher uma — documentação errada com ar de certeza é pior que a lacuna.
+
+Validação que não roda vale "não verificado", nunca "aprovado".
+
+Em `npm run heal` e em Settings → Self-Healing.
 
 ## Feedback de página
 

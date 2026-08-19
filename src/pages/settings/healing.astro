@@ -1,0 +1,14 @@
+---
+import SettingsLayout from '../../layouts/SettingsLayout.astro';
+import HealingPanel from '../../components/settings/HealingPanel';
+
+export const prerender = false;
+---
+
+<SettingsLayout
+	title="Self-Healing"
+	description="Detectar, diagnosticar, propor e validar correções de documentação — sempre com aprovação humana antes de publicar."
+	active="healing"
+>
+	<HealingPanel client:load />
+</SettingsLayout>
