@@ -52,6 +52,7 @@ Arquivos Markdown e MDX dentro de `src/content/docs/` são publicados automatica
 | `npm run history` | Time Machine: timeline, snapshot, comparação e restore. |
 | `npm run docs:code` | Vínculo com o código: impacto, cobertura, órfãos e entidades sem documentação. |
 | `npm run governance` | Governança: donos, revisões pendentes, aprovações e auditoria. |
+| `npm run analytics` | Observabilidade de leitura: busca, jornadas, abandono e lacunas comportamentais. |
 | `npm run docs:asyncapi` | Gera páginas de referência a partir de especificações AsyncAPI. |
 | `npm run user:create` | Cria um usuário do portal (ver *Usuários e controle de acesso*). |
 
@@ -352,6 +353,16 @@ Cada página declara dono, revisor e intervalo de revisão no frontmatter; o `go
 "Revisada" é o que alguém declarou, nunca a data do último commit — corrigir uma vírgula não reinicia o relógio de uma página que ninguém leu. E vencida (foi revisada, o intervalo passou) é contada à parte de nunca revisada (entrou no regime, nunca teve revisão): somar as duas acusaria a equipe de atraso no primeiro dia de qualquer regime.
 
 Em `npm run governance` e em Settings → Governance.
+
+## Observabilidade de leitura
+
+Mede se a documentação **resolve o problema de quem chegou**, não se ela está tecnicamente correta — e as duas notas ficam lado a lado, nunca somadas.
+
+Nada identifica uma pessoa: sem IP, sem id de usuário, sem cookie, sem user-agent. O que existe é uma sessão efêmera do navegador que some quando a aba fecha. Do Not Track, Global Privacy Control e a escolha do leitor desligam a coleta; o texto das buscas é desligado por padrão; uma linha só aparece com 3+ sessões distintas.
+
+Os nomes das métricas carregam os seus limites: "clique em resultado", não "taxa de sucesso" — clicar é o mais longe que a instrumentação enxerga.
+
+Em `npm run analytics` e em Settings → Observability.
 
 ## Feedback de página
 

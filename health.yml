@@ -83,3 +83,20 @@ documentation:
     # Desligado, as lacunas continuam sendo detectadas pelos outros sinais:
     # endpoint sem página, voto negativo, evidência inválida, teste falhando.
     storeUnansweredQuestions: false
+
+    # Observabilidade de leitura (P3.2).
+    #
+    # Nada aqui identifica uma pessoa: o evento não tem onde guardar IP, id de
+    # usuário ou cookie. O que existe é uma sessão efêmera, gerada no navegador,
+    # que some quando a aba fecha.
+    observability:
+      enabled: true
+      # Evento mais velho que isto é apagado na próxima escrita — não num
+      # processo de limpeza separado, que é o processo que ninguém lembra de
+      # rodar e que deixa dado vivo além do prazo.
+      retentionDays: 90
+      # Mínimo de sessões distintas para uma linha aparecer no relatório. Com 1,
+      # "quem leu esta página" pode ser uma pessoa identificável para quem
+      # conhece a equipe, e a agregação deixa de agregar.
+      minimumSessions: 3
+      windowDays: 30

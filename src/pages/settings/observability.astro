@@ -1,0 +1,14 @@
+---
+import SettingsLayout from '../../layouts/SettingsLayout.astro';
+import ObservabilityPanel from '../../components/settings/ObservabilityPanel';
+
+export const prerender = false;
+---
+
+<SettingsLayout
+	title="Observability"
+	description="O que os leitores fazem: busca, jornada, abandono e as lacunas que o comportamento sugere — sempre agregado, nunca identificável."
+	active="observability"
+>
+	<ObservabilityPanel client:load />
+</SettingsLayout>

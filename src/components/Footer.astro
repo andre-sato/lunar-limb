@@ -15,6 +15,7 @@ import FeedbackWidget from './FeedbackWidget.astro';
 import GlossaryTooltip from './glossary/GlossaryTooltip.astro';
 import TrustPanel from './trust/TrustPanel.astro';
 import Recommendations from './adaptive/Recommendations.astro';
+import ReaderSignals from './observe/ReaderSignals.astro';
 import { serverFeatures } from '../config/deploy';
 
 // A página inicial usa hero e não é um documento que se "leia até o fim";
@@ -29,6 +30,10 @@ const isSplash = Astro.locals.starlightRoute.entry.data.template === 'splash';
 {!isSplash && <Recommendations />}
 {!isSplash && <TrustPanel />}
 {!isSplash && serverFeatures.feedback && <FeedbackWidget />}
+{/* Sinais de leitura: página aberta, tempo até sair, exemplo copiado. Sem
+    identificador de pessoa, e desligado por Do Not Track, GPC ou escolha do
+    leitor — ver src/components/observe/ReaderSignals.astro. */}
+{!isSplash && <ReaderSignals />}
 {/* Uma bolha por página, compartilhada por todos os termos destacados. */}
 <GlossaryTooltip />
 <Default {...Astro.props}><slot /></Default>

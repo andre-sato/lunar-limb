@@ -64,7 +64,9 @@ export type AuditAction =
 	| 'BRANCH_SWITCHED'
 	| 'BRANCH_RENAMED'
 	| 'BRANCH_DELETED'
-	| 'PULL_REQUEST_PREPARED';
+	| 'PULL_REQUEST_PREPARED'
+	// Observabilidade de leitura: apagar destrói dado, e destruir dado fica no log.
+	| 'OBSERVATIONS_FORGOTTEN';
 
 export interface AuditEvent {
 	id: string;

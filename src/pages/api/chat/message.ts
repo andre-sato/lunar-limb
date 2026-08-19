@@ -14,6 +14,9 @@ import { loadHealthConfig } from '../../../lib/health/config';
 import { contextFromCookie, mergeContext, normalizeContext, CONTEXT_COOKIE } from '../../../lib/adaptive/context';
 import { recordAudienceEvent } from '../../../lib/adaptive/analytics';
 import { recordQuerySignal } from '../../../lib/gaps/telemetry';
+import { recordEvent } from '../../../lib/observe/store';
+import { loadObservabilityConfig } from '../../../lib/observe/config';
+import { sanitizeSession } from '../../../lib/observe/store';
 
 export const prerender = false;
 
@@ -138,6 +141,24 @@ export const POST: APIRoute = async ({ request, locals, cookies }) => {
 		// Sinal para o Gap Mining. O texto só é gravado quando quem opera o portal
 		// ligou isso, e mesmo então apenas quando a consulta **falhou** — pergunta
 		// respondida não é lacuna. Ver `gaps/telemetry.ts`.
+		// Observabilidade de leitura (P3.2): quantos resultados a consulta devolveu.
+		//
+		// O evento é gravado com a **sessão do navegador**, não com o id do usuário
+		// — a camada de observabilidade não tem onde guardar quem é a pessoa, e é
+		// isso que a mantém agregada. Sem sessão no corpo, o evento não é gravado:
+		// inventar uma aqui a partir do usuário desfaria a separação.
+		const observeSession = sanitizeSession(payload.session);
+		if (observeSession) {
+			const observeConfig = await loadObservabilityConfig();
+			await recordEvent({
+				type: 'search',
+				session: observeSession,
+				at: Math.floor(Date.now() / 60_000) * 60_000,
+				results: answer.sources.length,
+				...(observeConfig.storeQueryText ? { query: message.slice(0, 120) } : {}),
+			}).catch(() => {});
+		}
+
 		await recordQuerySignal({
 			question: message,
 			origin: 'assistant',

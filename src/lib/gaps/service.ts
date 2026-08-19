@@ -20,6 +20,7 @@ import { getTwin } from '../twin/load';
 import { findUndocumented } from '../twin/analysis';
 import { runContractTests } from '../contract/engine';
 import { documentationImpact } from '../codeloop/service';
+import { observability } from '../observe/service';
 import { clusterQueries, tokenize, type QueryCluster } from './cluster';
 import { analyzeGaps, checkResolution, type ClusterAnalysis, type RetrievedPage } from './analyze';
 import { readTelemetry } from './telemetry';
@@ -240,6 +241,39 @@ export async function analyzeDocumentationGaps(options: AnalyzeOptions = {}): Pr
 				productNodes: [],
 			});
 		}
+	}
+
+	// --- sinais de comportamento (P3.2) ------------------------------------
+	//
+	// Só busca **sem resultado e com texto** entra aqui, e a restrição custou uma
+	// tentativa errada: passar todo sinal comportamental por este caminho produziu
+	// recomendações sem sentido — uma página com quatro votos negativos virou
+	// "criar `guides-manual-mdx.md`", e o agregado "buscas sem resultado (texto não
+	// guardado)" virou título de página.
+	//
+	// A causa é que este caminho espera **demanda não atendida em forma de
+	// pergunta**. Sinal ancorado numa página existente é outra coisa: ele diz que
+	// o conteúdo está lá e não serviu, e vive no relatório de observabilidade, onde
+	// a recomendação é revisar, não criar.
+	for (const behavioral of await observability.gaps().catch(() => [])) {
+		if (behavioral.signal !== 'zero-result') continue;
+
+		const tokens = tokenize(behavioral.topic);
+		// Sem texto guardado, o "tópico" é uma frase sobre a configuração do portal,
+		// não uma pergunta de leitor.
+		if (tokens.length === 0 || behavioral.topic.includes('não guardado')) continue;
+
+		analyses.push({
+			cluster: {
+				representative: behavioral.topic,
+				variants: [],
+				tokens,
+				terms: tokens,
+				count: behavioral.occurrences,
+			},
+			pages: [],
+			productNodes: [],
+		});
 	}
 
 	const gaps = analyzeGaps({ analyses }).map((gap) => {

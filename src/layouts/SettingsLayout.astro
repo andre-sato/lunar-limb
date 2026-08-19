@@ -11,7 +11,7 @@ import '../styles/settings.css';
 interface Props {
 	title: string;
 	description?: string;
-	active: 'overview' | 'users' | 'roles' | 'analytics' | 'feedback' | 'health' | 'intelligence' | 'gaps' | 'agents' | 'history' | 'code-loop' | 'governance' | 'quality' | 'chatbot' | 'audit';
+	active: 'overview' | 'users' | 'roles' | 'analytics' | 'feedback' | 'health' | 'intelligence' | 'gaps' | 'agents' | 'history' | 'code-loop' | 'governance' | 'observability' | 'quality' | 'chatbot' | 'audit';
 }
 
 const { title, description, active } = Astro.props;
@@ -29,6 +29,7 @@ const items = [
 	{ key: 'history', label: 'History', href: '/settings/history' },
 	{ key: 'code-loop', label: 'Code Loop', href: '/settings/code-loop' },
 	{ key: 'governance', label: 'Governance', href: '/settings/governance' },
+	{ key: 'observability', label: 'Observability', href: '/settings/observability' },
 	{ key: 'quality', label: 'Quality', href: '/settings/quality' },
 	{ key: 'chatbot', label: 'Chatbot', href: '/settings/chatbot' },
 	{ key: 'audit', label: 'Audit Log', href: '/settings/audit' },

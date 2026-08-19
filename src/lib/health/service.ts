@@ -10,6 +10,7 @@
  * não se deriva: como o portal estava num instante.
  */
 
+import { observability } from '../observe/service';
 import { collectHealth, type ObservabilityReport } from './collect';
 import {
 	detectRegression,
@@ -31,6 +32,23 @@ export interface SloReport {
 	passed: boolean;
 }
 
+/**
+ * Saúde técnica e sucesso do leitor, lado a lado (P3.2 — § Health integration).
+ *
+ * As duas **não** são somadas numa nota só. Elas respondem perguntas diferentes
+ * — "está correta?" e "resolve o problema de quem chegou?" — e uma média
+ * deixaria um portal tecnicamente impecável e inútil parecer saudável.
+ *
+ * `userSuccess` é `null` sem volume, e a combinação também: um portal recém
+ * instrumentado teria sucesso 0 e derrubaria a nota por **ausência de dado**,
+ * que é o oposto do que a nota deveria dizer.
+ */
+export interface CombinedHealth {
+	technical: number;
+	userSuccess: number | null;
+	combined: number | null;
+}
+
 export interface DocumentationHealthService {
 	getOverview(): Promise<ObservabilityReport>;
 	getPageHealth(pageId: string): Promise<PageHealth | undefined>;
@@ -38,6 +56,7 @@ export interface DocumentationHealthService {
 	evaluateSLO(): Promise<SloReport>;
 	getRegressions(windows?: readonly number[]): Promise<HealthRegression[]>;
 	createSnapshot(): Promise<HealthSnapshot>;
+	getCombinedHealth(): Promise<CombinedHealth>;
 }
 
 export const documentationHealth: DocumentationHealthService = {
@@ -120,5 +139,15 @@ export const documentationHealth: DocumentationHealthService = {
 
 		await saveSnapshot(snapshot);
 		return snapshot;
+	},
+
+	async getCombinedHealth() {
+		const [report, userSuccess] = await Promise.all([collectHealth(), observability.userSuccess().catch(() => null)]);
+
+		return {
+			technical: report.overall,
+			userSuccess,
+			combined: userSuccess === null ? null : Math.round((report.overall + userSuccess) / 2),
+		};
 	},
 };

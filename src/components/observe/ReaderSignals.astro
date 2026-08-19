@@ -1,0 +1,94 @@
+---
+/**
+ * O beacon de leitura (P3.2).
+ *
+ * Ele existe para responder "esta página resolve o problema de quem chegou
+ * aqui?" — e três decisões o mantêm honesto:
+ *
+ * 1. **A sessão vive em `sessionStorage`**, não em cookie. Ela some quando a aba
+ *    fecha e nunca liga duas visitas da mesma pessoa. É o suficiente para costurar
+ *    uma jornada e insuficiente para reconhecer alguém.
+ * 2. **Do Not Track e Global Privacy Control desligam tudo**, no cliente, antes
+ *    do primeiro envio — e o servidor os honra de novo, por garantia.
+ * 3. **O leitor pode desligar** com `localStorage.setItem('portal:no-analytics',
+ *    '1')`, e essa escolha sobrevive à sessão. É o único dado persistente que
+ *    este componente grava no navegador, e ele diz "não me observe".
+ *
+ * O que o beacon nunca manda: identificador de pessoa, e-mail, IP (que ele nem
+ * tem), referrer, ou o texto da busca — este último só quando o portal está
+ * configurado para guardá-lo, e o servidor descarta caso contrário.
+ */
+import { serverFeatures } from '../../config/deploy';
+
+const path = Astro.locals.starlightRoute?.entry?.id ?? '';
+---
+
+{
+	serverFeatures.feedback && path !== '' && (
+		<script is:inline data-observe-path={path}>
+			(() => {
+				const script = document.currentScript;
+				const path = script?.dataset.observePath;
+				if (!path) return;
+
+				// Pedidos explícitos de não rastrear, honrados antes de qualquer coisa.
+				if (navigator.doNotTrack === '1' || navigator.globalPrivacyControl === true) return;
+
+				try {
+					if (localStorage.getItem('portal:no-analytics') === '1') return;
+				} catch {
+					// Armazenamento bloqueado pelo navegador: sem como verificar a
+					// escolha da pessoa, o padrão é não observar.
+					return;
+				}
+
+				let session;
+				try {
+					session = sessionStorage.getItem('portal:session');
+					if (!session) {
+						session = [...crypto.getRandomValues(new Uint8Array(8))]
+							.map((byte) => byte.toString(16).padStart(2, '0'))
+							.join('');
+						sessionStorage.setItem('portal:session', session);
+					}
+				} catch {
+					return;
+				}
+
+				const send = (payload) => {
+					const body = JSON.stringify({ ...payload, session });
+					// `sendBeacon` sobrevive à navegação; sem ele o evento de saída se
+					// perderia justamente nas visitas curtas, que são as que importam.
+					if (navigator.sendBeacon) navigator.sendBeacon('/api/observe', new Blob([body], { type: 'application/json' }));
+					else fetch('/api/observe', { method: 'POST', body, keepalive: true, headers: { 'Content-Type': 'application/json' } });
+				};
+
+				send({ type: 'page-view', path });
+
+				const openedAt = Date.now();
+				let sent = false;
+
+				const reportExit = () => {
+					if (sent) return;
+					sent = true;
+					send({ type: 'page-exit', path, dwellSeconds: Math.round((Date.now() - openedAt) / 1000) });
+				};
+
+				// `visibilitychange` é o único evento confiável no celular: `unload`
+				// não dispara quando o sistema mata a aba em segundo plano.
+				addEventListener('visibilitychange', () => {
+					if (document.visibilityState === 'hidden') reportExit();
+				});
+				addEventListener('pagehide', reportExit);
+
+				document.addEventListener('click', (event) => {
+					const target = event.target;
+					if (!(target instanceof Element)) return;
+					if (target.closest('.expressive-code button[data-copy], .copy button')) {
+						send({ type: 'example-copy', path });
+					}
+				});
+			})();
+		</script>
+	)
+}
