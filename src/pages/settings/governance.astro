@@ -1,0 +1,14 @@
+---
+import SettingsLayout from '../../layouts/SettingsLayout.astro';
+import GovernancePanel from '../../components/settings/GovernancePanel';
+
+export const prerender = false;
+---
+
+<SettingsLayout
+	title="Governance"
+	description="Quem é responsável por cada página, quando ela precisa ser revisada e o que exige aprovação antes de publicar."
+	active="governance"
+>
+	<GovernancePanel client:load />
+</SettingsLayout>

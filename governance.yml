@@ -1,0 +1,58 @@
+# Documentation Governance (P3.1).
+#
+# Duas decisões que valem ler antes de editar:
+#
+# 1. **Não há intervalo de revisão padrão para o portal inteiro.** Impor 90 dias a
+#    tudo produziria, no primeiro dia, uma lista de vencidas do tamanho do portal
+#    — e uma lista que ninguém consegue atender é uma lista que ninguém lê. O
+#    regime entra por regra, onde ele é levado a sério.
+#
+# 2. **"Revisada" é uma afirmação de alguém**, declarada no frontmatter da página,
+#    e nunca derivada da data do último commit. Corrigir uma vírgula não é revisar.
+
+governance:
+  teams:
+    - id: documentation
+      label: Time de Documentação
+    - id: platform
+      label: Time de Plataforma
+
+  defaults:
+    owner: documentation
+
+  rules:
+    # Referência de API: o que mais envelhece em silêncio, porque o contrato muda
+    # sem que o texto precise mudar para continuar compilando.
+    - path: api-reference
+      owner: documentation
+      reviewer: platform
+      approver: platform
+      review:
+        interval: 90d
+
+    # Guias de qualidade e operação: envelhecem devagar, mas envelhecem.
+    - path: guides
+      owner: documentation
+      review:
+        interval: 180d
+
+  approval:
+    required:
+      - public-api
+      - breaking-change
+      - security-sensitive
+
+  # Caminhos tratados como sensíveis a segurança.
+  securitySensitive:
+    - api-reference/authentication.md
+
+  # Prazo para atender uma revisão vencida, por severidade, em dias.
+  sla:
+    critical: 2
+    high: 5
+    medium: 15
+    low: 30
+
+  # Revisão vencida não derruba a CI por padrão. Um portão que bloqueia merge por
+  # documentação que envelheceu sozinha é o portão que a equipe desliga primeiro.
+  failOnExpired: false

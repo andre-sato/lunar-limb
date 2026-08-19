@@ -20,6 +20,7 @@
 		"agent": "tsx scripts/agent.ts",
 		"history": "tsx scripts/history.ts",
 		"docs:code": "tsx scripts/docs-code.ts",
+		"governance": "tsx scripts/governance.ts",
 		"docs:asyncapi": "tsx scripts/asyncapi-to-docs.ts",
 		"build:pages": "tsx scripts/build-pages.ts",
 		"user:create": "tsx scripts/create-user.ts"

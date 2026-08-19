@@ -1,0 +1,130 @@
+---
+title: Governança
+description: Quem é dono de cada página, quando ela precisa ser revisada, o que exige aprovação antes de publicar — e por que "revisada" nunca é a data do último commit.
+sidebar:
+  order: 20
+tags: [guia, qualidade, portal]
+owner: Time de Documentação
+audiences: [developer, product]
+governance:
+  owner:
+    type: team
+    id: documentation
+  review:
+    interval: 180d
+    at: 2026-08-18
+    by: mestre
+---
+
+Quatro perguntas que a documentação de um produto vivo precisa responder o tempo todo:
+
+- Quem é responsável por esta página?
+- Quem pode alterá-la?
+- Quem precisa aprovar a alteração?
+- Quando ela precisa ser revisada de novo?
+
+## Declaração na página
+
+```yaml
+---
+title: Pagamentos
+governance:
+  owner:
+    type: team
+    id: payments
+  reviewer:
+    type: team
+    id: developer-experience
+  review:
+    interval: 90d
+    at: 2026-08-18
+    by: mestre
+---
+```
+
+A forma curta também vale — `owner: Time de Documentação` como texto solto. Ela já existia no portal antes desta camada, e recusá-la transformaria dezenas de páginas em “sem dono” num dia em que nada mudou.
+
+`@fulano` é pessoa; qualquer outro texto é time.
+
+## "Revisada" é uma afirmação, não um commit
+
+Seria fácil derivar a última revisão da data do último commit da página. O número ficaria bonito e estaria errado: **corrigir uma vírgula reiniciaria o relógio de 90 dias de uma página que ninguém leu.**
+
+Por isso a revisão é o que alguém declarou em `review.at`. Página sem essa declaração é *nunca revisada*, e isso aparece.
+
+## Vencida e nunca revisada são coisas diferentes
+
+O painel conta as duas separadamente, e a distinção não é cosmética:
+
+- **Vencida** — a página foi revisada e o intervalo passou.
+- **Nunca revisada** — a página entrou no regime e nunca teve revisão declarada.
+
+Somar as duas diria à equipe, no primeiro dia de qualquer regime de revisão, que ela está atrasada em algo que acabou de ser criado. Quando esta camada entrou neste portal, foi exatamente isso que aconteceu: 27 páginas apareceram como atrasadas sem que nada tivesse atrasado.
+
+Página **sem** intervalo declarado não está em dia nem atrasada — está fora do regime, e não entra em nenhuma das contas.
+
+## Regras, e por que a mais específica vence
+
+```yaml
+governance:
+  teams:
+    - id: documentation
+      label: Time de Documentação
+
+  defaults:
+    owner: documentation
+
+  rules:
+    - path: api-reference
+      owner: documentation
+      reviewer: platform
+      approver: platform
+      review:
+        interval: 90d
+```
+
+A regra de prefixo mais longo vence, e a página vence qualquer regra. Empatar por ordem de declaração faria a mesma página mudar de dono conforme alguém reordenasse o arquivo.
+
+Cada campo herdado registra **de onde veio**. Sem essa marca, a tela mostraria um dono e ninguém saberia se alguém o escolheu para aquela página ou se ele caiu de um padrão que vale para duzentas.
+
+Não há intervalo de revisão padrão para o portal inteiro, de propósito: impor 90 dias a tudo produziria uma lista de vencidas do tamanho do portal, e uma lista que ninguém consegue atender é uma lista que ninguém lê.
+
+## Aprovação
+
+```yaml
+approval:
+  required:
+    - public-api
+    - breaking-change
+    - security-sensitive
+```
+
+Uma página dispara `public-api` quando declara [vínculo](/guides/vinculo-com-o-codigo/) com um endpoint público; `security-sensitive` quando o caminho está na lista de `securitySensitive`.
+
+“Aprovação designada” significa que **existe um aprovador para a página** — não que alguém aprovou. O portal não faz merge; quem registra a aprovação é o provedor de Git, no pull request. Afirmar aqui que a mudança foi aprovada seria afirmar algo que esta camada não enxerga.
+
+## SLA
+
+```yaml
+sla:
+  critical: 2
+  high: 5
+  medium: 15
+  low: 30
+```
+
+A severidade cresce com o atraso, não com uma importância declarada da página — o portal não tem esse campo, e inventá-lo a partir do caminho criaria uma hierarquia que ninguém decidiu.
+
+## CLI
+
+```bash
+npm run governance -- status
+```
+
+```bash
+npm run governance -- overdue
+```
+
+`owners` lista quem é dono do quê — com um balde explícito para as páginas sem dono, porque a lista que esconde os órfãos é a que faz a cobertura parecer 100%. `audit` mostra a trilha de auditoria: o tipo de cada evento e quem o causou, nunca o conteúdo da documentação nem de perguntas.
+
+Revisão vencida não derruba a CI por padrão. Um portão que bloqueia merge por documentação que envelheceu sozinha é o portão que a equipe desliga primeiro — e depois ele não verifica mais nada.

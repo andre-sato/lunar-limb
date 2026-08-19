@@ -51,6 +51,7 @@ Arquivos Markdown e MDX dentro de `src/content/docs/` são publicados automatica
 | `npm run agent` | Agentes de documentação: pesquisa, rascunho, validação. |
 | `npm run history` | Time Machine: timeline, snapshot, comparação e restore. |
 | `npm run docs:code` | Vínculo com o código: impacto, cobertura, órfãos e entidades sem documentação. |
+| `npm run governance` | Governança: donos, revisões pendentes, aprovações e auditoria. |
 | `npm run docs:asyncapi` | Gera páginas de referência a partir de especificações AsyncAPI. |
 | `npm run user:create` | Cria um usuário do portal (ver *Usuários e controle de acesso*). |
 
@@ -343,6 +344,14 @@ documentation:
 A partir daí a CI cobra: entidade pública alterada sem página vinculada bloqueia o merge; página vinculada que ficou para trás vira aviso. Menção em texto não conta — só o vínculo declarado e resolvido contra o Digital Twin.
 
 O vínculo vive na documentação, nunca no código: o produto não deve depender de Markdown. Em `npm run docs:code` e em Settings → Code Loop.
+
+## Governança
+
+Cada página declara dono, revisor e intervalo de revisão no frontmatter; o `governance.yml` preenche o resto por regra de caminho, e a regra mais específica vence.
+
+"Revisada" é o que alguém declarou, nunca a data do último commit — corrigir uma vírgula não reinicia o relógio de uma página que ninguém leu. E vencida (foi revisada, o intervalo passou) é contada à parte de nunca revisada (entrou no regime, nunca teve revisão): somar as duas acusaria a equipe de atraso no primeiro dia de qualquer regime.
+
+Em `npm run governance` e em Settings → Governance.
 
 ## Feedback de página
 
