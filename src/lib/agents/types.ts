@@ -174,10 +174,10 @@ export interface AgentRun {
  *
  *     0  sugerir       devolve recomendação, não escreve nada
  *     1  rascunhar     escreve no workspace isolado
- *     2  validar       rascunha e roda toda a validação  ← padrão
- *     3  pull request  abre o PR depois de validar
+ *     2  validar       rascunha e roda toda a validação  
+ *     3  pull request  abre o PR depois de validar ← padrão
  *
- * O padrão é **2**, como a spec pede. E mesmo no nível 3 a aprovação humana
+ * O padrão foi alterado para **3**. E mesmo no nível 3 a aprovação humana
  * continua obrigatória (§22): o que o nível 3 automatiza é a abertura do PR
  * **depois** de alguém aprovar, não a decisão de publicar.
  */
@@ -190,7 +190,7 @@ export const AUTONOMY_LABEL: Record<AutonomyLevel, string> = {
 	3: 'Pull request',
 };
 
-export const DEFAULT_AUTONOMY: AutonomyLevel = 2;
+export const DEFAULT_AUTONOMY: AutonomyLevel = 3;
 
 export interface OrchestratorConfig {
 	autonomy: AutonomyLevel;
