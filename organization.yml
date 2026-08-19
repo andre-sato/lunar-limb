@@ -1,0 +1,38 @@
+# Enterprise / Multi-repository (P3.5).
+#
+# Dois limites que valem ler antes de registrar algo:
+#
+# 1. **O portal não busca repositório da rede.** Um repositório com `url` é
+#    listado e não é lido. Clonar e ler conteúdo arbitrário a cada coleta é
+#    decisão de quem opera; o portal lê o que já está em disco.
+#
+# 2. **A profundidade da leitura varia, e o relatório diz qual cada um recebeu.**
+#    O repositório onde o portal roda tem Digital Twin, contratos, lacunas e
+#    saúde reais. Os vizinhos são lidos pelos arquivos — contagem, dono declarado,
+#    links internos. Repositório sem medição fica **fora** da média da
+#    organização: contá-lo como zero faria registrar um repositório baixar a nota,
+#    e o efeito disso é ninguém registrar repositório nenhum.
+
+organization:
+  id: lunar-limb
+  label: Lunar Limb
+
+  products:
+    - id: portal
+      label: Portal de documentação
+      owner: documentation
+
+  repositories:
+    - id: lunar-limb
+      product: portal
+      owner: documentation
+      path: .
+      docs: src/content/docs
+
+    # Exemplo de registro por URL. Ele aparece na listagem e não é lido — para
+    # que o portal o leia, clone-o e troque `url` por `path`.
+    #
+    # - id: payments-service
+    #   product: payments
+    #   owner: payments-team
+    #   url: https://github.com/exemplo/payments-service

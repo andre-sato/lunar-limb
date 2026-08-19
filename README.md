@@ -55,6 +55,7 @@ Arquivos Markdown e MDX dentro de `src/content/docs/` são publicados automatica
 | `npm run analytics` | Observabilidade de leitura: busca, jornadas, abandono e lacunas comportamentais. |
 | `npm run ai:eval` | Avaliação do assistente: conjuntos de perguntas, métricas verificáveis e regressão. |
 | `npm run graph` | Knowledge Graph: consulta, impacto e frescor. |
+| `npm run org` | Organização: repositórios, produtos, saúde agregada e busca global. |
 | `npm run docs:asyncapi` | Gera páginas de referência a partir de especificações AsyncAPI. |
 | `npm run user:create` | Cria um usuário do portal (ver *Usuários e controle de acesso*). |
 
@@ -381,6 +382,14 @@ Estende o Digital Twin com time, release, lacuna e contrato — **não** é um s
 Nem toda aresta propaga impacto. Se um endpoint muda, as páginas que o documentam são afetadas; a especificação que o define não é. Quando uma camada não carrega, o grafo é montado sem ela e declara a degradação, porque um grafo sem a governança responde "ninguém é dono disto" com a mesma confiança de um completo.
 
 Em `npm run graph` e em Settings → Knowledge Graph.
+
+## Organização e múltiplos repositórios
+
+Registra repositórios, produtos e times em `organization.yml` e agrega o que dá para agregar sem mentir.
+
+O portal **não busca repositório da rede**: registrado por `url`, ele é listado e não lido — clonar e ler conteúdo arbitrário a cada coleta é decisão de quem opera. A profundidade da leitura é declarada por repositório, e o que não foi medido fica fora da média: contá-lo como zero faria registrar um repositório baixar a nota da organização.
+
+Em `npm run org` e em Settings → Organization.
 
 ## Feedback de página
 

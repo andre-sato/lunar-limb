@@ -1,0 +1,14 @@
+---
+import SettingsLayout from '../../layouts/SettingsLayout.astro';
+import OrganizationPanel from '../../components/settings/OrganizationPanel';
+
+export const prerender = false;
+---
+
+<SettingsLayout
+	title="Organization"
+	description="Documentação distribuída por repositórios, produtos e times — e a profundidade com que o portal conseguiu ler cada um."
+	active="organization"
+>
+	<OrganizationPanel client:load />
+</SettingsLayout>
