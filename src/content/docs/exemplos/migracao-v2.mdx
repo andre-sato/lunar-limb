@@ -88,13 +88,21 @@ A tolerância foi um erro: ela escondia bugs de arredondamento do lado de quem c
 
 ## Ordem de migração
 
-```mermaid
-flowchart TD
-    A[1. Aceitar 'contestada' no seu código] --> B[2. Trocar email da raiz por cliente.email]
-    B --> C[3. Trocar paginação por cursor]
-    C --> D[4. Garantir valores em centavos]
-    D --> E[5. Apontar a URL base para /v2]
-    E --> F[6. Reprocessar webhooks pendentes]
+```text
+  compatível com a v1 — faça em produção, um por vez
+  ┌──────────────────────────────────────────────────┐
+  │  1. Aceitar 'contestada' no seu código           │
+  │                      ↓                           │
+  │  2. Trocar email da raiz por cliente.email       │
+  │                      ↓                           │
+  │  3. Trocar paginação por cursor                  │
+  │                      ↓                           │
+  │  4. Garantir valores em centavos                 │
+  └──────────────────────┬───────────────────────────┘
+                         ↓
+     5. Apontar a URL base para /v2   ← a única troca de versão
+                         ↓
+     6. Reprocessar webhooks pendentes
 ```
 
 Os passos 1 a 4 são compatíveis com a v1 — dá para fazê-los em produção, um por vez, antes de trocar a URL. Só o passo 5 muda de versão.

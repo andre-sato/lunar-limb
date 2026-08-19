@@ -25,19 +25,21 @@ A resposta do `POST /v1/cobrancas` chega antes da autorização. Quem conta o de
 
 ## Entrega
 
-```mermaid
-sequenceDiagram
-    participant Orbita as Órbita
-    participant Voce as Seu endpoint
-
-    Orbita->>Voce: POST /webhooks/orbita
-    Note over Voce: processa
-    Voce-->>Orbita: 200
-    Note over Orbita: entregue
-
-    Orbita->>Voce: POST /webhooks/orbita
-    Voce-->>Orbita: 500
-    Note over Orbita: reenvia em 1min, 5min, 30min, 2h, 12h
+```text
+Órbita                              Seu endpoint
+   │                                      │
+   │  POST /webhooks/orbita               │
+   ├─────────────────────────────────────►│  processa
+   │                        200           │
+   │◄─────────────────────────────────────┤
+   │  entregue                            │
+   │                                      │
+   │  POST /webhooks/orbita               │
+   ├─────────────────────────────────────►│  falhou
+   │                        500           │
+   │◄─────────────────────────────────────┤
+   │  reenvia em 1min → 5min → 30min      │
+   │            → 2h → 12h                │
 ```
 
 A Órbita considera entregue qualquer resposta `2xx`. Qualquer outra coisa — inclusive tempo esgotado — entra na fila de reenvio, com cinco tentativas espaçadas ao longo de quase 15 horas.

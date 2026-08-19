@@ -23,14 +23,21 @@ import { Tabs, TabItem } from '@astrojs/starlight/components';
 
 Uma cobrança é a intenção de receber um valor. Ela nasce `pendente`, vira `aprovada` ou `recusada`, e pode ser `estornada` depois de aprovada.
 
-```mermaid
-stateDiagram-v2
-    [*] --> pendente
-    pendente --> aprovada
-    pendente --> recusada
-    aprovada --> estornada
-    recusada --> [*]
-    estornada --> [*]
+```text
+                 ┌───────────┐
+    criada ─────►│ pendente  │
+                 └─────┬─────┘
+                       │
+          ┌────────────┴────────────┐
+          ▼                         ▼
+   ┌─────────────┐           ┌─────────────┐
+   │  aprovada   │           │  recusada   │──► fim
+   └──────┬──────┘           └─────────────┘
+          │
+          ▼
+   ┌─────────────┐
+   │  estornada  │──► fim
+   └─────────────┘
 ```
 
 Não há caminho de `recusada` para `aprovada`. Uma cobrança recusada é definitiva — para tentar de novo, crie outra.

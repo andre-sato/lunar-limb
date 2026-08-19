@@ -24,18 +24,22 @@ A Órbita cobra em três chamadas: você se autentica, cria uma cobrança e escu
 
 ## O percurso
 
-```mermaid
-sequenceDiagram
-    participant App as Sua aplicação
-    participant Orbita as API da Órbita
-    participant Banco as Adquirente
-
-    App->>Orbita: POST /v1/cobrancas
-    Orbita-->>App: 201 { id, status: "pendente" }
-    Orbita->>Banco: autoriza
-    Banco-->>Orbita: aprovado
-    Orbita->>App: webhook cobranca.aprovada
-    App-->>Orbita: 200
+```text
+Sua aplicação            API da Órbita            Adquirente
+      │                        │                       │
+      │  POST /v1/cobrancas    │                       │
+      ├───────────────────────►│                       │
+      │  201 { pendente }      │                       │
+      │◄───────────────────────┤                       │
+      │                        │      autoriza         │
+      │                        ├──────────────────────►│
+      │                        │      aprovado         │
+      │                        │◄──────────────────────┤
+      │  webhook               │                       │
+      │  cobranca.aprovada     │                       │
+      │◄───────────────────────┤                       │
+      │  200                   │                       │
+      ├───────────────────────►│                       │
 ```
 
 O ponto que costuma surpreender está na quarta linha: a resposta do `POST` chega **antes** da autorização. A cobrança nasce `pendente`, e quem decide se ela foi aprovada é o webhook — não o corpo da resposta.

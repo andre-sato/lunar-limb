@@ -63,6 +63,20 @@ Arquivos Markdown e MDX dentro de `src/content/docs/` são publicados automatica
 
 > **Comece pelo [Manual completo](src/content/docs/guides/manual.mdx)** (publicado em `/guides/manual/`): recursos do portal e do editor, atalhos de teclado, fluxos de trabalho e casos de uso, com diagramas.
 
+## Arquitetura e decisões
+
+- **[docs/arquitetura.md](docs/arquitetura.md)** — o portal nos níveis do
+  [modelo C4](https://c4model.com/): contexto, contêineres, componentes e dois
+  diagramas dinâmicos (o portão de pull request e o ciclo de self-healing).
+- **[docs/adr/](docs/adr/)** — 16 Architectural Decision Records. Cada uma
+  registra uma decisão, o que ela custou, o que foi descartado e — quando a
+  decisão nasceu de um defeito observado — o defeito.
+
+A distinção entre os dois vale saber: a arquitetura descreve como o sistema é
+hoje e muda quando ele muda; uma ADR descreve por que ele ficou assim e não muda
+nunca. Quando a decisão é revista, a ADR antiga é marcada como substituída e uma
+nova é escrita.
+
 ## Recursos
 
 Cada recurso tem um guia próprio no portal publicado. As seções abaixo dão o
