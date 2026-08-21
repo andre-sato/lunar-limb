@@ -2420,3 +2420,124 @@ body {
 	color: var(--editor-text-dim);
 	margin: 0 0 0.4rem;
 }
+
+/* ------------------------------------------------ organizar a navegação
+ *
+ * Arrastar reordena os dados da barra lateral, não os arquivos (issue #11).
+ * A distinção importa no visual também: a lista parece uma navegação, e não
+ * uma árvore de diretórios, para não sugerir que um item arrastado muda de
+ * pasta — e de URL.
+ */
+
+.sidebar-organizer__groups {
+	display: grid;
+	gap: 14px;
+	max-height: 58vh;
+	overflow-y: auto;
+}
+
+.sidebar-organizer__group {
+	border: 1px solid var(--editor-border, #2a2a33);
+	border-radius: 8px;
+	padding: 10px 12px;
+}
+
+.sidebar-organizer__group > header {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin-bottom: 8px;
+}
+
+.sidebar-organizer__group > header input[type='text'],
+.sidebar-organizer__group > header input:not([type]) {
+	flex: 1;
+	min-width: 0;
+	font-weight: 600;
+	padding: 4px 8px;
+}
+
+.sidebar-organizer__group > header label {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	font-size: 0.78rem;
+	white-space: nowrap;
+}
+
+.sidebar-organizer__count {
+	font-size: 0.75rem;
+	opacity: 0.7;
+	font-variant-numeric: tabular-nums;
+}
+
+.sidebar-organizer__group ul {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: grid;
+	gap: 2px;
+	/* Um grupo vazio precisa continuar sendo alvo de soltura. */
+	min-height: 24px;
+}
+
+.sidebar-organizer__group li {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 5px 8px;
+	border-radius: 6px;
+	background: var(--editor-surface, #16161d);
+	cursor: grab;
+}
+
+.sidebar-organizer__group li:hover {
+	background: var(--editor-surface-hover, #1f1f28);
+}
+
+.sidebar-organizer__handle {
+	opacity: 0.5;
+	flex: none;
+}
+
+.sidebar-organizer__title {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-size: 0.85rem;
+}
+
+.sidebar-organizer__group li code {
+	font-size: 0.7rem;
+	opacity: 0.55;
+	flex: none;
+}
+
+.sidebar-organizer__moves {
+	display: flex;
+	align-items: center;
+	gap: 3px;
+	flex: none;
+}
+
+.sidebar-organizer__moves button {
+	padding: 1px 6px;
+	font-size: 0.75rem;
+	line-height: 1.4;
+}
+
+.sidebar-organizer__moves select {
+	font-size: 0.72rem;
+	max-width: 130px;
+}
+
+.sidebar-organizer__status {
+	margin-top: 10px;
+}
+
+.sidebar-organizer__issues {
+	margin: 0 0 10px;
+	padding-left: 18px;
+}

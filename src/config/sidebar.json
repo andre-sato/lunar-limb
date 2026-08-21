@@ -1,0 +1,118 @@
+{
+	"guides": [
+		{
+			"label": {
+				"pt-BR": "Comece por aqui",
+				"en": "Start here",
+				"es": "Empieza aquí"
+			},
+			"collapsed": false,
+			"items": [
+				"guides/getting-started",
+				"guides/configure-your-portal",
+				"guides/publish-documentation",
+				"guides/manual"
+			]
+		},
+		{
+			"label": {
+				"pt-BR": "Escrever",
+				"en": "Writing",
+				"es": "Escribir"
+			},
+			"collapsed": true,
+			"items": [
+				"guides/editor",
+				"guides/conteudo-reutilizavel",
+				"guides/conteudo-condicional",
+				"guides/diagramas",
+				"guides/glossario",
+				"guides/documentacao-adaptativa",
+				"guides/versionamento"
+			]
+		},
+		{
+			"label": {
+				"pt-BR": "Verificar",
+				"en": "Verifying",
+				"es": "Verificar"
+			},
+			"collapsed": true,
+			"items": [
+				"guides/linter-e-quality-score",
+				"guides/testes-de-documentacao",
+				"guides/contratos-de-documentacao",
+				"guides/confianca-e-proveniencia",
+				"guides/analise-de-impacto",
+				"guides/saude-da-documentacao"
+			]
+		},
+		{
+			"label": {
+				"pt-BR": "Ligar ao produto",
+				"en": "Connecting to the product",
+				"es": "Conectar al producto"
+			},
+			"collapsed": true,
+			"items": [
+				"guides/digital-twin",
+				"guides/vinculo-com-o-codigo",
+				"guides/referencia-de-api",
+				"guides/overlays-e-api-views",
+				"guides/api-explorer",
+				"guides/sdk"
+			]
+		},
+		{
+			"label": {
+				"pt-BR": "Operar",
+				"en": "Operating",
+				"es": "Operar"
+			},
+			"collapsed": true,
+			"items": [
+				"guides/usuarios-e-acesso",
+				"guides/governanca",
+				"guides/workflow-de-git",
+				"guides/publicacao-no-github-pages",
+				"guides/organizacao",
+				"guides/plugins"
+			]
+		},
+		{
+			"label": {
+				"pt-BR": "Entender o uso",
+				"en": "Understanding usage",
+				"es": "Entender el uso"
+			},
+			"collapsed": true,
+			"items": [
+				"guides/navegacao",
+				"guides/busca",
+				"guides/feedback",
+				"guides/observabilidade",
+				"guides/observabilidade-de-leitura",
+				"guides/lacunas-de-documentacao",
+				"guides/atualizacoes-recentes"
+			]
+		},
+		{
+			"label": {
+				"pt-BR": "IA e automação",
+				"en": "AI and automation",
+				"es": "IA y automatización"
+			},
+			"collapsed": true,
+			"items": [
+				"guides/assistente",
+				"guides/documentacao-legivel-por-maquina",
+				"guides/mcp",
+				"guides/agentes-de-documentacao",
+				"guides/avaliacao-de-ia",
+				"guides/self-healing",
+				"guides/knowledge-graph",
+				"guides/time-machine"
+			]
+		}
+	]
+}

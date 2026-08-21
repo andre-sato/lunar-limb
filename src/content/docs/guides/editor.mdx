@@ -81,6 +81,30 @@ Além do site publicado, o projeto inclui um editor Markdown/MDX interno em **`/
 
    Arquitetura detalhada em [docs/conteudo-condicional.md](https://github.com/andre-sato/lunar-limb/blob/master/docs/conteudo-condicional.md).
 
+### Organizar a navegação (`Ctrl/Cmd + Shift + O`)
+
+Os guias aparecem na barra lateral em grupos, e a tela de organização reordena
+esses grupos — arrastando, ou pelos botões de subir, descer e trocar de grupo,
+que fazem o mesmo movimento por teclado.
+
+**Arrastar reordena a barra lateral, não os arquivos.** É a decisão que dá forma
+à tela: o caminho de uma página vem do disco, então mover `guides/sdk.mdx` para
+outra pasta trocaria `/guides/sdk/` por outra URL e quebraria links internos,
+links externos e as referências de conteúdo reutilizável. Reordenar dados não
+muda URL nenhuma.
+
+A tela recusa salvar o que quebraria o portal: slug inexistente (a Starlight
+derruba o build inteiro por causa de um), página repetida em dois grupos, grupo
+vazio, e página que ficaria fora de todos os grupos — esta última some da
+navegação sem ninguém decidir isso. Quem quer uma página fora da barra declara
+`visible: false` no frontmatter, e aí ela não é acusada.
+
+A validação é a mesma função no formulário e no servidor. Duas divergiriam, e a
+mais frouxa decidiria o que você vê até o servidor recusar.
+
+A barra publicada é montada no build: salvar não muda o que já está servido. No
+servidor de desenvolvimento, reinicie; em produção, vale no próximo build.
+
 **Como rodar:**
 
 ```bash

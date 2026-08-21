@@ -15,6 +15,7 @@ import LintPanel from './LintPanel';
 import { useLint } from './useLint';
 import type { LintFinding } from '../../lib/linter/types';
 import ContentGraphModal from './ContentGraphModal';
+import SidebarOrganizerModal from './SidebarOrganizerModal';
 import GitWorkflowModal from './GitWorkflowModal';
 import CommandPalette, { type PaletteMode } from './CommandPalette';
 import SearchModal from './SearchModal';
@@ -143,6 +144,7 @@ export default function EditorApp() {
 	);
 	const [deleteWarning, setDeleteWarning] = useState<DeleteWarningState | null>(null);
 	const [showGraphModal, setShowGraphModal] = useState(false);
+	const [showSidebarOrganizer, setShowSidebarOrganizer] = useState(false);
 	const [showGitModal, setShowGitModal] = useState(false);
 	const [globalProblemCount, setGlobalProblemCount] = useState(0);
 
@@ -742,12 +744,19 @@ export default function EditorApp() {
 		};
 	}, [referenceRefreshToken]);
 
-	// Ctrl/Cmd + Shift + G abre o grafo.
+	// Ctrl/Cmd + Shift + G abre o grafo; Ctrl/Cmd + Shift + O, a organização da
+	// navegação.
 	useEffect(() => {
 		function onKeydown(e: KeyboardEvent) {
-			if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'g') {
+			if (!(e.ctrlKey || e.metaKey) || !e.shiftKey) return;
+			const key = e.key.toLowerCase();
+
+			if (key === 'g') {
 				e.preventDefault();
 				setShowGraphModal(true);
+			} else if (key === 'o') {
+				e.preventDefault();
+				setShowSidebarOrganizer(true);
 			}
 		}
 		window.addEventListener('keydown', onKeydown, true);
@@ -817,6 +826,13 @@ export default function EditorApp() {
 				group: 'Conteúdo',
 				shortcut: 'Ctrl+Shift+G',
 				run: () => setShowGraphModal(true),
+			},
+			{
+				id: 'sidebar.organize',
+				label: 'Organizar a navegação (grupos da barra lateral)',
+				group: 'Conteúdo',
+				shortcut: 'Ctrl+Shift+O',
+				run: () => setShowSidebarOrganizer(true),
 			},
 			{ id: 'view.split', label: 'Ver: editor + preview', group: 'Ver', run: () => setViewMode('split') },
 			{ id: 'view.editor', label: 'Ver: apenas editor', group: 'Ver', run: () => setViewMode('editor') },
@@ -1026,6 +1042,8 @@ export default function EditorApp() {
 					}}
 				/>
 			)}
+
+			{showSidebarOrganizer && <SidebarOrganizerModal onClose={() => setShowSidebarOrganizer(false)} />}
 
 			{showGraphModal && (
 				<ContentGraphModal
