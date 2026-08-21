@@ -24,6 +24,15 @@ body {
 	--accent-contrast: #ffffff;
 	--danger: #dc2626;
 	--success: #16a34a;
+	/*
+	 * Dois tokens que faltavam (issue #14). O arquivo usava `--ed-warning` e
+	 * `--ed-surface-alt` — nomes de duas famílias inventadas à mão, `--ed-*` e
+	 * `--editor-*`, que nunca foram declaradas em lugar nenhum. Onde não havia
+	 * fallback, a declaração inteira ficava inválida e a propriedade caía para
+	 * o valor herdado: borda sem cor, fundo transparente, texto na cor errada.
+	 */
+	--warning: #b8860b;
+	--surface-alt: rgba(127, 127, 127, 0.15);
 
 	display: flex;
 	flex-direction: column;
@@ -1940,8 +1949,8 @@ body {
 /* ---------------------------------------------------- Documentation Linter */
 
 .lint-panel {
-	border-top: 1px solid var(--ed-border);
-	background: var(--ed-surface);
+	border-top: 1px solid var(--border);
+	background: var(--bg-elevated);
 	font-size: 0.8rem;
 	flex-shrink: 0;
 	max-height: 44vh;
@@ -1949,16 +1958,16 @@ body {
 }
 
 .lint-panel--warn {
-	border-top-color: var(--ed-warning, #b8860b);
+	border-top-color: var(--warning, #b8860b);
 }
 
 .lint-panel--fail {
-	border-top-color: var(--ed-danger, #b3261e);
+	border-top-color: var(--danger, #b3261e);
 }
 
 .lint-panel--error {
 	padding: 8px 12px;
-	color: var(--ed-danger, #b3261e);
+	color: var(--danger, #b3261e);
 }
 
 .lint-header {
@@ -1976,7 +1985,7 @@ body {
 	background: transparent;
 	border: 0;
 	padding: 7px 4px;
-	color: var(--ed-text);
+	color: var(--text);
 	font: inherit;
 	cursor: pointer;
 }
@@ -1987,13 +1996,13 @@ body {
 }
 
 .lint-score span {
-	color: var(--ed-text-dim);
+	color: var(--text-muted);
 }
 
 .lint-band {
 	padding: 1px 7px;
 	border-radius: 999px;
-	background: var(--ed-surface-alt, rgba(127, 127, 127, 0.15));
+	background: var(--surface-alt, rgba(127, 127, 127, 0.15));
 	font-size: 0.72rem;
 }
 
@@ -2005,24 +2014,24 @@ body {
 	min-width: 18px;
 	padding: 0 5px;
 	border-radius: 999px;
-	background: var(--ed-surface-alt, rgba(127, 127, 127, 0.15));
+	background: var(--surface-alt, rgba(127, 127, 127, 0.15));
 	font-size: 0.7rem;
 	font-variant-numeric: tabular-nums;
 	text-align: center;
 }
 
 .lint-chip--error {
-	background: color-mix(in srgb, var(--ed-danger, #b3261e) 22%, transparent);
-	color: var(--ed-danger, #b3261e);
+	background: color-mix(in srgb, var(--danger, #b3261e) 22%, transparent);
+	color: var(--danger, #b3261e);
 }
 
 .lint-chip--warning {
-	background: color-mix(in srgb, var(--ed-warning, #b8860b) 22%, transparent);
-	color: var(--ed-warning, #b8860b);
+	background: color-mix(in srgb, var(--warning, #b8860b) 22%, transparent);
+	color: var(--warning, #b8860b);
 }
 
 .lint-running {
-	color: var(--ed-text-dim);
+	color: var(--text-muted);
 	font-size: 0.72rem;
 }
 
@@ -2030,7 +2039,7 @@ body {
 
 .lint-breakdown {
 	padding: 8px 12px 12px;
-	border-top: 1px solid var(--ed-border);
+	border-top: 1px solid var(--border);
 	display: flex;
 	flex-direction: column;
 	gap: 5px;
@@ -2047,21 +2056,21 @@ body {
 .lint-breakdown-row--aside {
 	margin-top: 5px;
 	padding-top: 6px;
-	border-top: 1px dashed var(--ed-border);
-	color: var(--ed-text-dim);
+	border-top: 1px dashed var(--border);
+	color: var(--text-muted);
 }
 
 .lint-breakdown-bar {
 	height: 5px;
 	border-radius: 999px;
-	background: var(--ed-surface-alt, rgba(127, 127, 127, 0.18));
+	background: var(--surface-alt, rgba(127, 127, 127, 0.18));
 	overflow: hidden;
 }
 
 .lint-breakdown-bar span {
 	display: block;
 	height: 100%;
-	background: var(--ed-accent);
+	background: var(--accent);
 	border-radius: 999px;
 }
 
@@ -2074,7 +2083,7 @@ body {
 	margin: 8px 0 0;
 	font-size: 0.7rem;
 	line-height: 1.5;
-	color: var(--ed-text-dim);
+	color: var(--text-muted);
 }
 
 /* ----------------------------------------------------------------- lista */
@@ -2083,14 +2092,14 @@ body {
 	list-style: none;
 	margin: 0;
 	padding: 0;
-	border-top: 1px solid var(--ed-border);
+	border-top: 1px solid var(--border);
 }
 
 .lint-item {
 	display: flex;
 	align-items: flex-start;
 	gap: 4px;
-	border-bottom: 1px solid var(--ed-border);
+	border-bottom: 1px solid var(--border);
 }
 
 .lint-item:last-child {
@@ -2105,7 +2114,7 @@ body {
 	padding: 6px 10px;
 	background: transparent;
 	border: 0;
-	color: var(--ed-text);
+	color: var(--text);
 	font: inherit;
 	font-size: 0.78rem;
 	text-align: left;
@@ -2114,23 +2123,23 @@ body {
 }
 
 .lint-item-main:hover {
-	background: var(--ed-surface-alt, rgba(127, 127, 127, 0.08));
+	background: var(--surface-alt, rgba(127, 127, 127, 0.08));
 }
 
 .lint-item--error .lint-item-main svg {
-	color: var(--ed-danger, #b3261e);
+	color: var(--danger, #b3261e);
 	flex-shrink: 0;
 	margin-top: 1px;
 }
 
 .lint-item--warning .lint-item-main svg {
-	color: var(--ed-warning, #b8860b);
+	color: var(--warning, #b8860b);
 	flex-shrink: 0;
 	margin-top: 1px;
 }
 
 .lint-item--suggestion .lint-item-main svg {
-	color: var(--ed-text-dim);
+	color: var(--text-muted);
 	flex-shrink: 0;
 	margin-top: 1px;
 }
@@ -2149,7 +2158,7 @@ body {
 .lint-suggestion,
 .lint-explanation {
 	font-size: 0.72rem;
-	color: var(--ed-text-dim);
+	color: var(--text-muted);
 	line-height: 1.45;
 	overflow-wrap: anywhere;
 }
@@ -2161,8 +2170,8 @@ body {
 	gap: 7px;
 	flex-shrink: 0;
 	font-size: 0.68rem;
-	color: var(--ed-text-dim);
-	font-family: var(--ed-font-mono, monospace);
+	color: var(--text-muted);
+	font-family: var(--el-mono, monospace);
 }
 
 .lint-fix {
@@ -2171,10 +2180,10 @@ body {
 	gap: 4px;
 	margin: 6px 10px 6px 0;
 	padding: 3px 8px;
-	border: 1px solid var(--ed-border);
+	border: 1px solid var(--border);
 	border-radius: 6px;
-	background: var(--ed-bg);
-	color: var(--ed-text);
+	background: var(--bg);
+	color: var(--text);
 	font: inherit;
 	font-size: 0.72rem;
 	cursor: pointer;
@@ -2182,16 +2191,16 @@ body {
 }
 
 .lint-fix:hover {
-	border-color: var(--ed-accent);
-	color: var(--ed-accent);
+	border-color: var(--accent);
+	color: var(--accent);
 }
 
 .lint-suppressed {
 	margin: 0;
 	padding: 6px 12px;
-	border-top: 1px solid var(--ed-border);
+	border-top: 1px solid var(--border);
 	font-size: 0.72rem;
-	color: var(--ed-text-dim);
+	color: var(--text-muted);
 }
 
 .sr-only {
@@ -2222,7 +2231,7 @@ body {
 
 .git-section {
 	padding: 0.75rem 1rem;
-	border-top: 1px solid var(--editor-border);
+	border-top: 1px solid var(--border);
 }
 
 .git-section h3 {
@@ -2230,7 +2239,7 @@ body {
 	font-size: 0.8rem;
 	text-transform: uppercase;
 	letter-spacing: 0.05em;
-	color: var(--editor-text-dim);
+	color: var(--text-muted);
 }
 
 .git-current {
@@ -2247,12 +2256,12 @@ body {
 	align-items: center;
 	gap: 0.3rem;
 	font-size: 0.78rem;
-	color: var(--editor-warning, #d79b3b);
+	color: var(--warning, #d79b3b);
 }
 
 .reference-impact-preview {
 	padding: 0.4rem 0.75rem 0.6rem;
-	border-top: 1px solid var(--editor-border, #2a2d33);
+	border-top: 1px solid var(--border, #2a2d33);
 	font-size: 0.76rem;
 	line-height: 1.6;
 }
@@ -2271,11 +2280,11 @@ body {
 .reference-impact-reason,
 .reference-impact-empty,
 .reference-impact-inline {
-	color: var(--editor-text-muted, #8a8f98);
+	color: var(--text-muted, #8a8f98);
 }
 
 .reference-impact-error {
-	color: var(--editor-error, #d9534f);
+	color: var(--danger, #d9534f);
 	font-size: 0.76rem;
 }
 
@@ -2293,11 +2302,11 @@ body {
 
 .git-impact-reason,
 .git-impact-via {
-	color: var(--editor-text-muted, #8a8f98);
+	color: var(--text-muted, #8a8f98);
 }
 
 .git-impact-more {
-	color: var(--editor-text-muted, #8a8f98);
+	color: var(--text-muted, #8a8f98);
 	font-style: italic;
 }
 
@@ -2308,7 +2317,7 @@ body {
 
 .git-checklist summary {
 	cursor: pointer;
-	color: var(--editor-text-muted, #8a8f98);
+	color: var(--text-muted, #8a8f98);
 }
 
 .git-checklist ul {
@@ -2323,17 +2332,17 @@ body {
 	list-style: disc;
 	font-size: 0.78rem;
 	line-height: 1.5;
-	color: var(--editor-text-muted, #8a8f98);
+	color: var(--text-muted, #8a8f98);
 }
 
 .git-test-failures code {
 	font-size: 0.74rem;
-	color: var(--editor-text, inherit);
+	color: var(--text, inherit);
 }
 
 /* O caminho do arquivo fica em fonte monoespaçada: é para ser copiado. */
 .git-test-where {
-	font-family: var(--editor-font-mono, ui-monospace, monospace);
+	font-family: var(--el-mono, ui-monospace, monospace);
 	font-size: 0.72rem;
 	opacity: 0.85;
 }
@@ -2351,10 +2360,10 @@ body {
 	flex: 1;
 	min-width: 0;
 	padding: 0.35rem 0.5rem;
-	border: 1px solid var(--editor-border);
+	border: 1px solid var(--border);
 	border-radius: 0.3rem;
-	background: var(--editor-bg);
-	color: var(--editor-text);
+	background: var(--bg);
+	color: var(--text);
 	font: inherit;
 }
 
@@ -2392,7 +2401,7 @@ body {
 	font-size: 0.7rem;
 	text-transform: uppercase;
 	letter-spacing: 0.04em;
-	color: var(--editor-text-dim);
+	color: var(--text-muted);
 }
 
 .git-change--added { color: #4ea36b; }
@@ -2417,7 +2426,7 @@ body {
 .git-hint,
 .git-summary {
 	font-size: 0.8rem;
-	color: var(--editor-text-dim);
+	color: var(--text-muted);
 	margin: 0 0 0.4rem;
 }
 
@@ -2437,7 +2446,7 @@ body {
 }
 
 .sidebar-organizer__group {
-	border: 1px solid var(--editor-border, #2a2a33);
+	border: 1px solid var(--border, #2a2a33);
 	border-radius: 8px;
 	padding: 10px 12px;
 }
@@ -2487,12 +2496,12 @@ body {
 	gap: 8px;
 	padding: 5px 8px;
 	border-radius: 6px;
-	background: var(--editor-surface, #16161d);
+	background: var(--bg-elevated, #16161d);
 	cursor: grab;
 }
 
 .sidebar-organizer__group li:hover {
-	background: var(--editor-surface-hover, #1f1f28);
+	background: var(--bg-elevated, #1f1f28);
 }
 
 .sidebar-organizer__handle {
@@ -2540,4 +2549,30 @@ body {
 .sidebar-organizer__issues {
 	margin: 0 0 10px;
 	padding-left: 18px;
+}
+
+/* --------------------------------------------------- classes sem estilo (#14)
+ *
+ * Usadas por componentes do editor e ausentes de qualquer folha. Cada uma
+ * renderizava como texto corrido no meio de uma linha que esperava distinção.
+ */
+
+/* O id da regra e a linha, ao lado da mensagem do linter: eles são referência,
+ * não prosa, e precisam se separar do texto sem competir com ele. */
+.lint-rule,
+.lint-line {
+	flex: none;
+	font-family: var(--el-mono, ui-monospace, monospace);
+	font-size: 0.7rem;
+	padding: 0 5px;
+	border-radius: 4px;
+	background: var(--bg-elevated, #1f1f28);
+	opacity: 0.8;
+}
+
+/* Cabeçalho de grupo nos modais de busca e de inserir conteúdo: sem espaço
+ * acima, os grupos viram uma lista contínua e o agrupamento some. */
+.reusable-group + .reusable-group,
+.search-group + .search-group {
+	margin-top: 12px;
 }

@@ -873,3 +873,86 @@
 	border-color: var(--sl-color-red, #c8553d);
 	color: var(--sl-color-red-high, #f28b82);
 }
+
+/* ------------------------------------------------------- busca e assistente
+ *
+ * Sete classes do painel do assistente não existiam em folha de estilo nenhuma
+ * (issue #14). A tela renderizava com os campos empilhados sem grade, os
+ * atalhos sem espaçamento e as estatísticas como uma lista de definição crua.
+ */
+
+.chatbot-panel__check {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin: 12px 0;
+	font-size: 0.9rem;
+}
+
+.chatbot-panel__grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+	gap: 14px;
+	margin-bottom: 4px;
+}
+
+.chatbot-panel__grid label {
+	display: flex;
+	flex-direction: column;
+	gap: 5px;
+	font-size: 0.82rem;
+	color: var(--sl-color-gray-2);
+	/* Sem isto, um campo numérico largo empurra a coluna e a grade desalinha. */
+	min-width: 0;
+}
+
+.chatbot-panel__grid input,
+.chatbot-panel__grid select {
+	width: 100%;
+	padding: 6px 8px;
+}
+
+.chatbot-panel__help {
+	margin: 6px 0 0;
+	font-size: 0.82rem;
+	line-height: 1.55;
+	color: var(--sl-color-gray-3);
+}
+
+.chatbot-panel__actions {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin-top: 16px;
+	flex-wrap: wrap;
+}
+
+.chatbot-panel__ok {
+	font-size: 0.84rem;
+	color: var(--sl-color-green-high, #7ee787);
+}
+
+.chatbot-panel__stats {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+	gap: 12px;
+	margin: 12px 0 0;
+}
+
+.chatbot-panel__stats > div {
+	padding: 10px 12px;
+	border: 1px solid var(--sl-color-gray-5);
+	border-radius: 8px;
+}
+
+.chatbot-panel__stats dt {
+	font-size: 0.78rem;
+	color: var(--sl-color-gray-3);
+}
+
+.chatbot-panel__stats dd {
+	margin: 4px 0 0;
+	font-size: 1.15rem;
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+}
