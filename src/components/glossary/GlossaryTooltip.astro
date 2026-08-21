@@ -32,6 +32,24 @@
 		// não conserva o estreitamento de uma variável que pode ter mudado.
 		const tooltip = found;
 
+		// A bolha sai de onde nasceu e passa a viver no `<body>`.
+		//
+		// Ela é renderizada dentro do `Footer`, que fica no `.main-pane` — e o
+		// `.main-pane` da Starlight tem `isolation: isolate`, que cria um contexto
+		// de empilhamento. Dentro dele, `z-index: 100` só compete com irmãos: a
+		// caixa inteira pinta abaixo da sidebar, que é `position: fixed` com
+		// `z-index: 5`.
+		//
+		// Medido antes da correção, com a bolha sobre a sidebar em 292px:
+		// `elementFromPoint` devolvia os links da navegação nos três pontos
+		// testados, nunca a bolha. Subir o `z-index` para mil não resolveria — o
+		// teto não é o número, é o contexto.
+		//
+		// As coordenadas não mudam de referência: o cálculo já soma `scrollX`/
+		// `scrollY`, e `position: absolute` no `<body>` resolve contra o mesmo
+		// bloco recipiente inicial.
+		document.body.append(tooltip);
+
 		const termLabel = tooltip.querySelector<HTMLElement>('[data-glossary-tooltip-term]')!;
 		const definitionLabel = tooltip.querySelector<HTMLElement>('[data-glossary-tooltip-definition]')!;
 		const link = tooltip.querySelector<HTMLAnchorElement>('[data-glossary-tooltip-link]')!;
@@ -53,9 +71,23 @@
 				? box.top - size.height - margin
 				: below;
 
-			// Centraliza no termo, mas nunca ultrapassa a viewport.
+			// Centraliza no termo e prefere ficar dentro da coluna de leitura.
+			//
+			// O limite anterior era a viewport, então a bolha de um termo perto da
+			// margem esquerda ia parar em cima da navegação. Ela agora só invade a
+			// sidebar quando não cabe de outro jeito — e, quando invade, pinta por
+			// cima, que é o comportamento normal de uma camada transitória.
 			const centered = box.left + box.width / 2 - size.width / 2;
-			const left = Math.max(margin, Math.min(centered, window.innerWidth - size.width - margin));
+
+			const reading = document.querySelector('.main-pane')?.getBoundingClientRect();
+			const roomInReading = reading !== undefined && size.width + margin * 2 <= reading.width;
+
+			const minLeft = roomInReading ? reading.left + margin : margin;
+			const maxLeft = roomInReading
+				? reading.right - size.width - margin
+				: window.innerWidth - size.width - margin;
+
+			const left = Math.max(minLeft, Math.min(centered, maxLeft));
 
 			tooltip.style.top = `${top + window.scrollY}px`;
 			tooltip.style.left = `${left + window.scrollX}px`;
@@ -149,7 +181,12 @@
 
 	.glossary-tooltip {
 		position: absolute;
-		z-index: 100;
+		/*
+		 * Acima da navegação da Starlight (`--sl-z-index-navbar: 10`) e abaixo do
+		 * link de pular para o conteúdo (`20`), que precisa continuar alcançável.
+		 * O valor sai dos tokens do tema para não descolar deles numa atualização.
+		 */
+		z-index: calc(var(--sl-z-index-navbar, 10) + 1);
 		max-width: min(22rem, calc(100vw - 2rem));
 		padding: 0.6rem 0.75rem;
 		background: var(--sl-color-black);

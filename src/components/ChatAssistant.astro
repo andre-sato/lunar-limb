@@ -23,15 +23,27 @@ interface Props {
 	 * barra lateral, como a capa, que de outro modo ficariam sem o assistente.
 	 */
 	variant?: 'panel' | 'dialog';
+	/**
+	 * Prende o gatilho no canto inferior direito, fora do cabeçalho.
+	 *
+	 * Vale para as páginas sem barra lateral. No cabeçalho, o botão dividia a
+	 * faixa com a busca e sobrava com 99px de largura — cabendo, mas espremido, e
+	 * competindo com o controle que a maioria procura primeiro ali. Solto no
+	 * canto, ele deixa de disputar espaço e vai para onde um assistente é
+	 * procurado.
+	 */
+	floating?: boolean;
 }
 
-const { variant = 'dialog' } = Astro.props;
+const { variant = 'dialog', floating = false } = Astro.props;
 const isPanel = variant === 'panel';
+// Flutuar só faz sentido no gatilho; o painel já mora na barra lateral.
+const isFloating = floating && !isPanel;
 const { t } = Astro.locals;
 ---
 
 <div
-	class:list={['doc-chat', isPanel && 'doc-chat--panel']}
+	class:list={['doc-chat', isPanel && 'doc-chat--panel', isFloating && 'doc-chat--floating']}
 	data-doc-chat
 	data-intro={t('chat.intro')}
 	data-thinking={t('chat.thinking')}
@@ -421,6 +433,59 @@ const { t } = Astro.locals;
 	.doc-chat__trigger:hover {
 		border-color: var(--sl-color-accent);
 		color: var(--sl-color-accent-high);
+	}
+
+	/*
+	 * O gatilho flutuante (issue #6).
+	 *
+	 * `fixed` no elemento externo, e não no botão: assim o `<dialog>` continua
+	 * irmão do gatilho e o `showModal()` segue indo para a camada de topo, sem
+	 * herdar posicionamento de ninguém.
+	 *
+	 * `z-index` abaixo do link de pular para o conteúdo (20) e acima da navegação
+	 * (10) — um botão de canto que cobre o skip link tira o atalho de quem navega
+	 * por teclado.
+	 */
+	.doc-chat--floating {
+		position: fixed;
+		inset-block-end: max(1rem, env(safe-area-inset-bottom));
+		inset-inline-end: max(1rem, env(safe-area-inset-right));
+		z-index: calc(var(--sl-z-index-navbar, 10) + 1);
+	}
+
+	.doc-chat--floating .doc-chat__trigger {
+		padding: 0.6rem 1rem;
+		font-size: var(--sl-text-sm);
+		box-shadow: var(--sl-shadow-md);
+		/* Opaco de propósito: ele flutua sobre conteúdo que não conhece. */
+		background: var(--sl-color-black);
+	}
+
+	.doc-chat--floating .doc-chat__trigger svg {
+		width: 1.15rem;
+		height: 1.15rem;
+	}
+
+	/*
+	 * Em tela estreita ele vira um círculo com só o ícone. O rótulo ao lado
+	 * ocuparia boa parte da largura, e um botão flutuante que tapa o texto é pior
+	 * que um botão sem rótulo — o `aria-label` continua lá para quem não vê o
+	 * ícone.
+	 */
+	@media (max-width: 30rem) {
+		.doc-chat--floating .doc-chat__trigger span {
+			position: absolute;
+			width: 1px;
+			height: 1px;
+			overflow: hidden;
+			clip-path: inset(50%);
+			white-space: nowrap;
+		}
+
+		.doc-chat--floating .doc-chat__trigger {
+			padding: 0.8rem;
+			border-radius: 999px;
+		}
 	}
 
 	.doc-chat__trigger svg {
