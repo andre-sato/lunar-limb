@@ -21,6 +21,8 @@
 		"history": "tsx scripts/history.ts",
 		"docs:code": "tsx scripts/docs-code.ts",
 		"governance": "tsx scripts/governance.ts",
+		"overlay": "tsx scripts/overlay.ts",
+		"api": "tsx scripts/api.ts",
 		"analytics": "tsx scripts/analytics.ts",
 		"ai:eval": "tsx scripts/ai-eval.ts",
 		"graph": "tsx scripts/graph.ts",

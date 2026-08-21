@@ -58,6 +58,8 @@ Arquivos Markdown e MDX dentro de `src/content/docs/` são publicados automatica
 | `npm run org` | Organização: repositórios, produtos, saúde agregada e busca global. |
 | `npm run heal` | Self-healing: detectar, diagnosticar, propor e validar correções. |
 | `npm run sdk` | SDK: gerar, verificar e comparar o cliente TypeScript da API. |
+| `npm run overlay` | Overlays: validar, prever, aplicar, comparar e rastrear proveniência. |
+| `npm run api` | API Views: listar, construir as especificações efetivas e verificar. |
 | `npm run docs:asyncapi` | Gera páginas de referência a partir de especificações AsyncAPI. |
 | `npm run user:create` | Cria um usuário do portal (ver *Usuários e controle de acesso*). |
 
@@ -286,6 +288,16 @@ Onde a especificação não diz o tipo, o código gerado diz `unknown`: um SDK q
 Em `npm run sdk` e no portão de revisão de PR.
 
 Detalhes em **[SDK](/guides/sdk/)**.
+
+#### Overlays e API Views
+
+A mesma OpenAPI origina `base`, `public` e `partner` sem duplicar uma linha de contrato. Um **overlay** descreve a transformação — remova este endpoint, reescreva aquela descrição — em vez de ser uma segunda cópia da especificação, que diverge no primeiro erro corrigido só de um lado.
+
+O motor entra **antes** do `parseOpenApi`, então a especificação efetiva alimenta documentação, contratos, SDK e Explorer como qualquer OpenAPI. E alvo que deixou de casar bloqueia a CI: é o defeito próprio desta camada — a ação que roda com sucesso e não faz efeito, deixando publicado um endpoint que deveria ter sumido.
+
+Em `npm run overlay` e `npm run api`.
+
+Detalhes em **[Overlays e API Views](/guides/overlays-e-api-views/)**.
 
 #### API Explorer
 

@@ -25,3 +25,6 @@ data/
 
 # Instâncias de verificação (PORTAL_DATA_DIR temporário).
 .verify-*/
+
+# Especificações efetivas: derivadas dos overlays, reconstruídas pelo build.
+.generated/

@@ -1,0 +1,31 @@
+# Aplicado depois do público: a visão de parceiro é a pública mais contexto.
+#
+# Ela existe para mostrar o encadeamento com um caso honesto — um overlay que
+# refina o resultado do anterior, em vez de disputar os mesmos nós com ele.
+
+overlay: 1.0.0
+
+info:
+  title: Portal API — visão de parceiro
+  version: 1.0.0
+
+x-lunar:
+  owner: platform
+  purpose: partner-api
+  environment: production
+
+actions:
+  - target: "$.info"
+    description: Identifica a view e o canal de suporte dedicado.
+    update:
+      title: API do portal (parceiros)
+      contact:
+        name: Suporte a parceiros
+        email: parceiros@exemplo.com
+
+  - target: "$.paths['/chat/message'].post"
+    description: >-
+      Parceiros integram a busca no próprio produto, e o limite de uso é a
+      primeira pergunta que fazem.
+    update:
+      x-rate-limit: 600 requisições por hora por organização

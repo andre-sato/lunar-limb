@@ -30,6 +30,8 @@ conjunto: que alguém já pensou nisso, com aqueles dados, e concluiu diferente.
 | [0014](0014-sdk-com-renderer-plugavel.md) | SDK com modelo intermediário e renderer plugável | Aceita |
 | [0015](0015-diagramas-como-svg-versionado.md) | Diagramas como SVG versionado, não imagem | Aceita |
 | [0016](0016-degradacao-em-vez-de-dependencia.md) | Degradar em vez de depender | Aceita |
+| [0017](0017-overlay-antes-do-apimodel.md) | Overlay é transformação antes do `ApiModel` | Aceita |
+| [0018](0018-alvo-sem-correspondencia.md) | Alvo sem correspondência bloqueia, e JSONPath é subconjunto declarado | Aceita |
 
 ## Formato
 

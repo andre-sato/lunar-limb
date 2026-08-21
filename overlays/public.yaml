@@ -1,0 +1,51 @@
+# A API que um consumidor externo enxerga.
+#
+# O portal expõe rotas de ferramenta interna — o editor e o linter — na mesma
+# especificação que documenta as rotas públicas. Elas precisam estar lá: o Digital
+# Twin as usa para saber o que o produto implementa. Mas publicá-las na referência
+# externa convida alguém a integrar com um endpoint que exige `editor.access` e
+# pode mudar de forma sem aviso.
+#
+# Este overlay resolve isso sem duplicar o contrato.
+
+overlay: 1.0.0
+
+info:
+  title: Portal API — visão pública
+  version: 1.0.0
+
+x-lunar:
+  owner: platform
+  purpose: public-api
+  environment: production
+
+actions:
+  - target: "$.paths['/editor/git/branches']"
+    description: >-
+      Ferramenta interna do editor. Exige `editor.access` e não faz sentido fora
+      do portal.
+    remove: true
+
+  - target: "$.paths['/editor/lint']"
+    description: >-
+      Idem. O linter é chamado pelo editor, não por integrações.
+    remove: true
+
+  - target: "$.info"
+    description: Enquadra a especificação para quem chega de fora.
+    update:
+      description: |
+        Endpoints públicos do portal de documentação.
+
+        Autenticação é por cookie de sessão, no mesmo domínio. Rotas de
+        ferramenta interna não aparecem aqui — elas existem, exigem permissão de
+        edição, e não têm estabilidade de contrato.
+
+  - target: "$.paths['/feedback'].post"
+    description: Deixa explícito que o endpoint é anônimo, que é o que mais gera dúvida.
+    update:
+      description: |
+        Registra o voto de utilidade de uma página.
+
+        Não exige sessão e não guarda nada sobre quem votou — só o caminho, o
+        voto e o instante.

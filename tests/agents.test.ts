@@ -338,8 +338,12 @@ describe('diff', () => {
 // ---------------------------------------------------------------------------
 
 describe('configuração do orquestrador', () => {
-	it('o padrão é validar, não abrir pull request', () => {
-		expect(DEFAULT_ORCHESTRATOR_CONFIG.autonomy).toBe(2);
+	it('o padrão vai até o pull request, e nunca até o merge', () => {
+		// Nível 3 — detectar, redigir, validar, abrir PR — é o que a spec de
+		// self-healing fixa como padrão e a ADR-0010 registra. O que não existe
+		// como padrão é o nível acima: nenhum nível de autonomia faz merge, e a
+		// aprovação humana continua sendo a única porta para o repositório.
+		expect(DEFAULT_ORCHESTRATOR_CONFIG.autonomy).toBe(3);
 	});
 
 	it('há teto de repetição — sem ele, um Writer que não satisfaz o Tester gira para sempre', () => {

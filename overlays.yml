@@ -1,0 +1,46 @@
+# OpenAPI Overlays e API Views.
+#
+# Uma **API View** é a abstração deste projeto acima do padrão: um nome e a lista
+# ordenada de overlays que a produzem. O padrão descreve um arquivo de
+# transformação; a view é o que permite `--view public` significar a mesma coisa
+# na documentação, no SDK, nos contratos e nos testes.
+#
+# A especificação em `api.specification` continua sendo a fonte de verdade do
+# contrato. Nenhum comando escreve nela.
+
+api:
+  specification: src/schemas/portal-api.yaml
+
+overlays:
+  enabled: true
+
+  # Onde `npm run api -- build` grava as especificações efetivas. O diretório é
+  # derivado e ignorado pelo Git: versioná-lo criaria uma segunda cópia do
+  # contrato, que envelhece quando alguém edita a base e esquece de rebuildar.
+  outputDir: .generated/openapi
+
+  views:
+    public:
+      description: O que um consumidor externo enxerga.
+      overlays:
+        - overlays/public.yaml
+
+    partner:
+      description: A visão pública, mais o contexto de quem integra sob contrato.
+      overlays:
+        - overlays/public.yaml
+        - overlays/partner.yaml
+
+  validation:
+    # Alvo que não casa é o defeito silencioso desta camada: o overlay "funciona",
+    # e o endpoint que deveria sumir continua publicado. Ninguém procura pela
+    # ausência de um efeito.
+    failOnUnmatchedTarget: true
+
+    # Conflito produz um documento que depende da ordem das views, e ordem
+    # raramente é uma decisão que alguém tomou ao escrever o segundo overlay.
+    failOnConflict: true
+
+    # Exigir `x-lunar.owner` e `x-lunar.purpose`. Um overlay sem dono é uma
+    # transformação de contrato que ninguém mantém.
+    requireGovernance: true
