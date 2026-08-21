@@ -392,6 +392,57 @@ Os plugins da comunidade Starlight em uso, com o que cada um resolve e por que f
 em vez das alternativas.
 Guia: **[Plugins da comunidade](/guides/plugins/)**. Notas de avaliação: [docs/plugins.md](docs/plugins.md).
 
+## Build e preview de produção
+
+O projeto usa `@astrojs/node` com `output: 'server'`, porque as rotas do editor precisam de execução sob demanda para ler e gravar arquivos no filesystem.
+
+```bash
+npm run build
+npm run preview
+```
+
+Também é possível iniciar diretamente o servidor standalone gerado:
+
+```bash
+node ./dist/server/entry.mjs
+```
+
+## Docker
+
+Há um `Dockerfile` de dois estágios (build + runtime) que empacota o portal como imagem Node 22 Alpine. O container roda como usuário não-root (`node`) e espera um volume persistente em `/app/data`, onde ficam usuários, sessões e auditoria.
+
+**Construir e rodar:**
+
+```bash
+docker build -t lunar-limb .
+docker run -d --name lunar-limb \
+  -p 4321:4321 \
+  --env-file .env \
+  -v lunar-limb-data:/app/data \
+  --restart unless-stopped \
+  lunar-limb
+```
+
+O portal fica em `http://localhost:4321`.
+
+**Variáveis de ambiente:** o container lê as mesmas variáveis do `.env` (veja [`.env.sample`](.env.sample)) — `AUTH_SECRET`, `PORTAL_ADMIN_EMAIL`, `PORTAL_ADMIN_PASSWORD`, `SITE_URL`, `PORTAL_DATA_DIR` etc. Com `--env-file .env`, basta preencher o arquivo local.
+
+**Volume de dados:** `data/` é o único estado persistente. Remover o volume (`docker volume rm lunar-limb-data`) apaga usuários e sessões e faz o portal semear um novo admin no primeiro request.
+
+**Perda de senha do admin:** como `users.json` guarda só o hash, a senha não é recuperável. Apague o volume e reinicie com `PORTAL_ADMIN_EMAIL`/`PORTAL_ADMIN_PASSWORD` definidas, ou crie outro admin por `npm run user:create`.
+
+> O seed do admin (`PORTAL_ADMIN_EMAIL`/`PORTAL_ADMIN_PASSWORD`) só roda quando não existe nenhum usuário. Depois que `users.json` é criado, mudar essas variáveis não tem efeito.
+
+## Dependências
+
+O projeto utiliza React, `@astrojs/react`, `@astrojs/node`, Monaco, `remark-mdx` e `js-yaml`. A Fase 5 adiciona `monaco-vim` como única dependência de runtime nova; as de desenvolvimento (`vitest`, `typescript`, `@astrojs/check`) vieram na Fase 4. Rode `npm install` sempre que o `package.json` mudar.
+
+> `astro check` depende de uma API programática que o compilador nativo do TypeScript 7 ainda não expõe, por isso o projeto fixa `typescript@^6` em devDependencies.
+
+## Limitações conhecidas
+
+O que o portal não faz hoje, e por quê, em **[docs/limitacoes.md](docs/limitacoes.md)**.
+
 ## Clean install
 
 Se o `node_modules`/lockfile ficarem inconsistentes com o `package.json` (por exemplo depois de puxar uma versão nova do editor):
