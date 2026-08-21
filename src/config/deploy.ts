@@ -54,6 +54,4 @@ export const serverFeatures = {
 	chat: !isStaticTarget,
 	/** Widget "esta página foi útil?" (`POST /api/feedback`). */
 	feedback: !isStaticTarget,
-	/** Analytics do Do11y, cuja configuração vem de uma rota de API. */
-	analytics: !isStaticTarget,
 } as const;

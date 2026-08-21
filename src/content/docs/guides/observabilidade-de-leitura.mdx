@@ -77,6 +77,45 @@ O nome de cada métrica carrega o seu limite:
 
 Portal sem buscas devolve `—`, não 0%: ele não tem 0% de sucesso, ele não tem busca.
 
+## Leitura por agentes
+
+Agentes de IA não executam JavaScript. Nenhum beacon dispara para eles, e por
+isso a camada os mede noutro lugar: **no servidor, pela própria rota que serve o
+conteúdo**.
+
+As três superfícies contadas são as que existem para serem lidas por máquina:
+
+| Superfície | O que é |
+| --- | --- |
+| `llms.txt` | O índice do portal |
+| `llms-full.txt` | O corpus inteiro numa requisição |
+| `/md/<página>` | O Markdown limpo de uma página |
+
+Em `npm run analytics -- agents` e em Settings → Observability.
+
+:::note[Por que não pelo referrer]
+A forma comum de detectar leitura por IA é olhar o referrer e reconhecer o
+domínio do ChatGPT ou do Claude. Isso vê **uma pessoa clicando num link dentro
+de um assistente** — que é leitura por pessoa, com um intermediário.
+
+Não vê o agente buscando `llms.txt`, que é como agentes realmente leem este
+portal. O portal já mediu dos dois jeitos e ficou com este; o registro está na
+[ADR-0019](https://github.com/andre-sato/lunar-limb/blob/master/docs/adr/0019-observabilidade-nativa-e-do11y.md).
+:::
+
+Duas fronteiras que o relatório declara:
+
+- **O servidor MCP fica de fora.** Ele lê o repositório direto, sem passar pelo
+  portal — não há requisição para contar.
+- **A fatia é aproximada.** O denominador soma requisições de agente com
+  visualizações de página, e uma pessoa abre uma página por vez enquanto um
+  agente pode levar tudo numa requisição. A fatia indica ordem de grandeza, não
+  proporção exata de leitores.
+
+E o que **não** é guardado continua o mesmo: sem IP, sem user-agent, sem
+identificar quem pediu. A pergunta é "quanto da leitura vem de máquina", e
+nenhum desses campos é necessário para respondê-la.
+
 ## Jornadas
 
 ```bash

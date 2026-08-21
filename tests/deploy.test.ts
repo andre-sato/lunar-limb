@@ -99,7 +99,9 @@ describe('alvo de publicação', () => {
 		// acontece com ele no Pages.
 		expect(Object.keys(serverFeatures).sort()).toEqual([
 			'accountMenu',
-			'analytics',
+			// 'analytics' saiu com a integração externa (ADR-0019): a
+			// observabilidade nativa mede no servidor e não injeta script no
+			// navegador de quem lê.
 			'auth',
 			'chat',
 			'editThisPage',

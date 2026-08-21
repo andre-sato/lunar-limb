@@ -5,8 +5,12 @@
 ## Contexto
 
 O portal integra com quatro serviços externos: a API da Anthropic para redação
-assistida, o Algolia DocSearch para busca hospedada, o Do11y para analytics, e o
-provedor de Git para pull requests.
+assistida, o Algolia DocSearch para busca hospedada, e o provedor de Git para
+pull requests.
+
+> A integração de analytics externo que existia aqui foi retirada pela
+> [ADR-0019](0019-observabilidade-nativa-e-do11y.md). O raciocínio desta ADR não
+> muda; o exemplo, sim.
 
 Cada integração melhora alguma coisa. Cada uma também é um serviço que pode
 estar fora, mudar de preço, ou simplesmente não ter sido contratado por quem
@@ -24,7 +28,6 @@ nunca a interrompe.**
 | --- | --- | --- |
 | `ANTHROPIC_API_KEY` | O assistente redige a partir dos trechos | Devolve os trechos e um resumo extrativo, com fontes |
 | Algolia DocSearch | Busca hospedada | Pagefind, local, gerado no build |
-| Do11y | Analytics externo | Observabilidade própria, em `data/` |
 | `GITHUB_TOKEN` | O portal abre o pull request | Prepara o corpo e abre o provedor no navegador |
 
 ```mermaid

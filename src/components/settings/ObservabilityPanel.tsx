@@ -49,6 +49,12 @@ interface Gap {
 interface Report {
 	pages: PageMetrics[];
 	search: SearchMetrics;
+	agents: {
+		reads: number;
+		bySurface: Array<{ surface: string; label: string; reads: number }>;
+		topPaths: Array<{ path: string; reads: number }>;
+		share: number | null;
+	};
 	journeys: Journey[];
 	gaps: Gap[];
 	sessions: number;
@@ -142,7 +148,55 @@ export default function ObservabilityPanel() {
 						<span className="stat-card-value">{data.pages.length}</span>
 						<span className="stat-card-label">Páginas com volume</span>
 					</div>
+					<div className="stat-card">
+						<span className="stat-card-value">
+							{data.agents.share === null ? '—' : `${Math.round(data.agents.share * 100)}%`}
+						</span>
+						<span className="stat-card-label">Leitura por agentes</span>
+						<span className="stat-card-hint">
+							{data.agents.reads} requisição(ões) a llms.txt e Markdown bruto.
+						</span>
+					</div>
 				</div>
+			</section>
+
+			<section>
+				<h3>Leitura por agentes</h3>
+				<p className="panel-note">
+					Contada no servidor, pelas próprias rotas: agentes não executam JavaScript, então nenhum
+					beacon dispara para eles. A fatia é aproximada — uma pessoa abre uma página por vez, um
+					agente pode levar o corpus inteiro numa requisição. O servidor MCP fica de fora, porque lê
+					o repositório direto.
+				</p>
+
+				{data.agents.reads === 0 ? (
+					<p className="panel-note">Nenhuma leitura por agente na janela.</p>
+				) : (
+					<>
+						<ul className="plain-list">
+							{data.agents.bySurface.map((entry) => (
+								<li key={entry.surface}>
+									<span>{entry.label}</span>
+									<strong>{entry.reads}</strong>
+								</li>
+							))}
+						</ul>
+
+						{data.agents.topPaths.length > 0 && (
+							<>
+								<h4>Páginas mais buscadas em Markdown bruto</h4>
+								<ul className="plain-list">
+									{data.agents.topPaths.map((entry) => (
+										<li key={entry.path}>
+											<span>{entry.path}</span>
+											<strong>{entry.reads}</strong>
+										</li>
+									))}
+								</ul>
+							</>
+						)}
+					</>
+				)}
 			</section>
 
 			<section>

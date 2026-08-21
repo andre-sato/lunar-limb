@@ -9,7 +9,7 @@
 
 import { readJson, withFileLock, writeJson } from '../auth/store';
 import { loadObservabilityConfig } from './config';
-import type { ObservedEvent, ObservedEventType } from './types';
+import type { AgentSurface, ObservedEvent, ObservedEventType } from './types';
 
 const FILE = 'observability.json';
 const MAX_EVENTS = 20_000;
@@ -30,7 +30,15 @@ interface ObservabilityFile {
 
 const EMPTY: ObservabilityFile = {
 	events: [],
-	totals: { 'page-view': 0, search: 0, 'search-click': 0, 'example-copy': 0, 'page-exit': 0, feedback: 0 },
+	totals: {
+		'page-view': 0,
+		search: 0,
+		'search-click': 0,
+		'example-copy': 0,
+		'page-exit': 0,
+		feedback: 0,
+		'agent-read': 0,
+	},
 	truncated: false,
 };
 
@@ -98,5 +106,33 @@ export async function readEvents(windowDays?: number): Promise<EventSnapshot> {
 export async function forgetObservations(): Promise<void> {
 	await withFileLock(FILE, async () => {
 		await writeJson(FILE, EMPTY);
+	});
+}
+
+/**
+ * Registra a leitura de uma superfície legível por máquina.
+ *
+ * Chamada pela própria rota que serve o conteúdo, porque é o único lugar onde a
+ * requisição é visível: agentes não executam JavaScript, e rotas
+ * pré-renderizadas são servidas como arquivo estático sem passar pelo
+ * middleware — verificado, o middleware não vê `/llms.txt`.
+ *
+ * O que **não** é gravado continua sendo o mesmo de sempre: sem IP, sem
+ * user-agent, sem identificar quem pediu. A pergunta que a métrica responde é
+ * "quanto da leitura vem de máquina", e nenhum desses campos é necessário para
+ * respondê-la.
+ *
+ * A gravação é disparada sem `await` por quem chama, para que a latência do
+ * arquivo não entre na resposta. A consequência é conhecida: numa rajada, dois
+ * eventos podem disputar a trava e um deles esperar — aceitável no volume de um
+ * portal de documentação, e o motivo de isto não ser um contador de alto tráfego.
+ */
+export async function recordAgentRead(surface: AgentSurface, path?: string): Promise<void> {
+	await recordEvent({
+		type: 'agent-read',
+		surface,
+		path: path ? sanitizePath(path) : undefined,
+		// Arredondado para o minuto, como todo evento desta camada.
+		at: Math.floor(Date.now() / 60_000) * 60_000,
 	});
 }

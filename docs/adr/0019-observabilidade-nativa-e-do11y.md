@@ -1,11 +1,11 @@
 # ADR-0019 — Observabilidade nativa e Do11y
 
-**Status:** Proposta · **Data:** 2026-08 · **Nível C4:** Contêiner
+**Status:** Aceita · **Data:** 2026-08 · **Nível C4:** Contêiner
 
 > Esta ADR responde à [issue #9](https://github.com/andre-sato/lunar-limb/issues/9):
 > *comparar se a observabilidade nativa já cobre o que o Do11y se propõe a fazer.*
-> Ela fica como **proposta** porque a conclusão implica retirar uma integração, e
-> essa é uma decisão de produto, não de implementação.
+> A comparação foi feita, a decisão foi tomada, e as três consequências abaixo
+> estão implementadas.
 
 ## Contexto
 
@@ -96,7 +96,7 @@ requisições a `/md/*`, `llms.txt` e às ferramentas do MCP é contagem por rot
 lado do servidor. Sem referrer, sem user-agent, sem identidade, sem serviço
 externo.
 
-## Decisão proposta
+## Decisão
 
 **A observabilidade nativa cobre o que decide trabalho de documentação, e o
 Do11y não acrescenta nada que o portal tenha decidido querer.**
@@ -111,6 +111,27 @@ Três consequências:
    que é o padrão — ela é um formulário de configuração e nada mais.
 3. **Medir leitura por agentes na origem certa**: contagem por rota das
    superfícies legíveis por máquina, alimentando a mesma camada nativa.
+
+### O que a implementação descobriu
+
+As três superfícies eram `prerender = true`, e uma rota pré-renderizada **não
+passa por código nenhum**: o servidor a entrega como arquivo estático. Verificado
+com uma sonda no middleware num build de produção — as requisições a `/llms.txt`
+responderam 200 e a sonda nunca disparou.
+
+Contar exigiu torná-las dinâmicas (`prerender = false`). O custo por requisição é
+absorvido por um cache em memória, montado na primeira requisição do processo: o
+conteúdo dessas rotas só muda quando o portal é reconstruído, então recalcular
+por requisição seria trabalho puro.
+
+Duas fronteiras ficam declaradas:
+
+- **O servidor MCP não é contado.** Ele lê o repositório direto, sem passar pelo
+  portal. Contá-lo exigiria que ele reportasse, e um processo separado
+  escrevendo no `data/` do portal é acoplamento que não vale a métrica.
+- **A fatia é aproximada.** O denominador soma requisições de agente com
+  visualizações de página, e uma pessoa abre uma página por vez enquanto um
+  agente pode levar o corpus inteiro numa requisição. O relatório diz isso.
 
 ## Consequências
 

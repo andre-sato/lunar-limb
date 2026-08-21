@@ -473,34 +473,20 @@ O voto é gravado no clique, antes do comentário — quem fechar a página em
 seguida continua contando. O comentário, quando vem, é anexado àquele voto, e
 não registrado à parte.
 
-### Analytics: leitura por pessoas e por IA
+### Leitura por pessoas e por agentes
 
-Integrado ao [Do11y](https://docservable.com/), que registra eventos de
-engajamento nas páginas e os grava no seu Supabase. O que ele acrescenta a um
-analytics comum é distinguir **de onde vem a leitura**: acesso direto, buscador
-ou plataforma de IA — e, nesse caso, qual delas.
+Em **Settings → Observability**. A camada mede o que decide trabalho de
+documentação — busca sem resultado, abandono, jornada, lacuna comportamental — e
+não guarda nada sobre quem leu: sem IP, sem cookie, sem user-agent.
 
-A tela mostra, de 24 horas a 90 dias: páginas mais vistas, origem das sessões,
-percentual vindo de IA, tipos de evento e dispositivos.
+Agentes de IA leem o portal por superfícies próprias, que não executam
+JavaScript: `llms.txt`, `llms-full.txt` e o Markdown bruto de cada página. Essas
+requisições são contadas no servidor, por rota, e aparecem separadas da leitura
+por pessoas.
 
-Para ligar, crie a tabela no Supabase com o SQL exibido na própria tela e cole
-as credenciais do projeto. Só as páginas de documentação são medidas — o editor
-e a área administrativa ficam de fora.
-
-:::caution[As duas chaves têm papéis diferentes]
-A chave **publishable** vai no HTML do portal: é pública por design, e a
-política do Supabase só a deixa inserir eventos. A chave **service_role** lê
-tudo e por isso fica só no servidor — ela nunca é enviada ao navegador, e a tela
-mostra apenas os últimos caracteres para você confirmar qual está gravada.
-:::
-
-Duas regras que o sistema aplica sozinho:
-
-:::caution[Proteções que não podem ser contornadas pela interface]
-O sistema recusa remover o **último administrador ativo** — rebaixar, desativar
-ou excluir. E alterar o grupo de alguém exige permissão própria: mesmo enviando
-a requisição por fora do navegador, um editor não consegue se promover.
-:::
+Havia aqui uma integração de analytics externo, retirada pela ADR-0019: ela
+detectava IA pelo referrer, o que via a pessoa clicando num link do ChatGPT e não
+via o agente lendo `llms.txt`.
 
 ### Desativar em vez de excluir
 

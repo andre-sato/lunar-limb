@@ -12,7 +12,10 @@
  * sustenta.
  */
 
+import { AGENT_SURFACE_LABEL } from './types';
 import type {
+	AgentMetrics,
+	AgentSurface,
 	BehavioralGap,
 	Journey,
 	ObservabilityConfig,
@@ -37,11 +40,17 @@ function rate(part: number, whole: number): number | null {
 	return whole === 0 ? null : Math.round((part / whole) * 100);
 }
 
-/** Os eventos de cada sessão, em ordem cronológica. */
+/**
+ * Os eventos de cada sessão, em ordem cronológica.
+ *
+ * Evento sem sessão fica de fora — é o caso de `agent-read`, que vem do servidor
+ * e não de um navegador. Ele tem a sua própria conta em `agentMetrics`.
+ */
 export function groupBySession(events: readonly ObservedEvent[]): Map<string, ObservedEvent[]> {
 	const sessions = new Map<string, ObservedEvent[]>();
 
 	for (const event of events) {
+		if (!event.session) continue;
 		const list = sessions.get(event.session) ?? [];
 		list.push(event);
 		sessions.set(event.session, list);
@@ -72,7 +81,7 @@ export function pageMetrics(events: readonly ObservedEvent[], minimumSessions: n
 
 		if (event.type === 'page-view') {
 			entry.views++;
-			entry.readers.add(event.session);
+			if (event.session) entry.readers.add(event.session);
 		} else if (event.type === 'page-exit' && typeof event.dwellSeconds === 'number') {
 			entry.dwell.push(event.dwellSeconds);
 		} else if (event.type === 'feedback') {
@@ -302,6 +311,41 @@ export interface AnalyzeInput {
 	now?: number;
 }
 
+/**
+ * Leitura por agentes, a partir dos eventos gravados pelas próprias rotas.
+ *
+ * Contar aqui é o que substitui a detecção por referrer que a integração
+ * externa fazia: aquela via uma pessoa clicando num link dentro do ChatGPT, e
+ * não via o agente buscando `llms.txt` — que é como agentes realmente leem.
+ */
+export function agentMetrics(events: readonly ObservedEvent[]): AgentMetrics {
+	const reads = events.filter((event) => event.type === 'agent-read');
+	const bySurfaceCount = new Map<AgentSurface, number>();
+	const byPath = new Map<string, number>();
+
+	for (const event of reads) {
+		if (event.surface) bySurfaceCount.set(event.surface, (bySurfaceCount.get(event.surface) ?? 0) + 1);
+		if (event.path) byPath.set(event.path, (byPath.get(event.path) ?? 0) + 1);
+	}
+
+	const humanViews = events.filter((event) => event.type === 'page-view').length;
+	const total = reads.length + humanViews;
+
+	return {
+		reads: reads.length,
+		bySurface: [...bySurfaceCount.entries()]
+			.map(([surface, count]) => ({ surface, label: AGENT_SURFACE_LABEL[surface], reads: count }))
+			.sort((a, b) => b.reads - a.reads),
+		topPaths: [...byPath.entries()]
+			.map(([path, count]) => ({ path, reads: count }))
+			.sort((a, b) => b.reads - a.reads || a.path.localeCompare(b.path, 'pt-BR'))
+			.slice(0, 10),
+		// Sem leitura nenhuma dos dois lados não há fração a informar — `null`,
+		// nunca 0%, pela mesma razão do resto da camada.
+		share: total === 0 ? null : reads.length / total,
+	};
+}
+
 export function analyzeObservability(input: AnalyzeInput): ObservabilityReport {
 	const now = input.now ?? Date.now();
 	const cutoff = now - input.config.windowDays * DAY;
@@ -309,7 +353,9 @@ export function analyzeObservability(input: AnalyzeInput): ObservabilityReport {
 
 	const pages = pageMetrics(events, input.config.minimumSessions);
 	const search = searchMetrics(events);
-	const sessions = new Set(events.map((event) => event.session)).size;
+	const agents = agentMetrics(events);
+	// Sessão de gente, só: `agent-read` não tem sessão e não é leitor.
+	const sessions = new Set(events.map((event) => event.session).filter(Boolean)).size;
 
 	const limitations: string[] = [];
 	if (!input.config.enabled) limitations.push('A coleta está desligada; o relatório mostra apenas o que já havia sido gravado.');
@@ -322,6 +368,7 @@ export function analyzeObservability(input: AnalyzeInput): ObservabilityReport {
 	return {
 		pages,
 		search,
+		agents,
 		journeys: journeys(events, input.config.minimumSessions),
 		gaps: behavioralGaps(events, pages, input.config),
 		sessions,

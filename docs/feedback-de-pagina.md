@@ -16,9 +16,10 @@ Forminit) são serviços de terceiros: exigem conta e enviam o retorno dos seus
 leitores para fora. Como o portal já tem camada de dados própria, o widget aqui
 é nativo — o dado fica no projeto.
 
-Com a integração do Do11y ligada, o mesmo clique também vira um evento
-`feedback` no Supabase, via `feedbackSelector`. As duas contagens coexistem: a
-do portal funciona sozinha, a do Do11y entra de bônus.
+O voto vai para a observabilidade nativa, e para lugar nenhum além dela. Havia
+uma integração de analytics externo que recebia o mesmo clique; ela foi retirada
+pela [ADR-0019](adr/0019-observabilidade-nativa-e-do11y.md) — duas contagens da
+mesma coisa divergem, e a segunda mandava o dado para fora.
 
 ---
 

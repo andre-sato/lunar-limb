@@ -12,7 +12,6 @@ type SettingsKey =
 	| 'overview'
 	| 'users'
 	| 'roles'
-	| 'analytics'
 	| 'feedback'
 	| 'health'
 	| 'intelligence'
@@ -92,7 +91,6 @@ const groups: NavGroup[] = [
 		// "Quem chega procurando resposta, encontra?"
 		label: 'Readers',
 		items: [
-			{ key: 'analytics', label: 'Analytics', href: '/settings/analytics' },
 			{ key: 'observability', label: 'Observability', href: '/settings/observability' },
 			{ key: 'chatbot', label: 'Search & assistant', href: '/settings/chatbot' },
 			{ key: 'ai-eval', label: 'AI Evaluation', href: '/settings/ai-eval' },

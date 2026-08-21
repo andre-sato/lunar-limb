@@ -615,7 +615,7 @@
 	}
 }
 
-/* ------------------------------------------------------ analytics (do11y) */
+/* ------------------------------------------- listas de contagem (painéis) */
 
 .breakdown-row--wide {
 	grid-template-columns: minmax(90px, 1fr) minmax(60px, 1.2fr) 52px;

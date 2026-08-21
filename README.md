@@ -297,6 +297,8 @@ Detalhes em **[Governança](/guides/governanca/)**.
 Mede se a documentação **resolve o problema de quem chegou**, não se ela está tecnicamente correta — e as duas notas ficam lado a lado, nunca somadas.
 Nada identifica uma pessoa: sem IP, sem id de usuário, sem cookie, sem user-agent. O que existe é uma sessão efêmera do navegador que some quando a aba fecha. Do Not Track, Global Privacy Control e a escolha do leitor desligam a coleta; o texto das buscas é desligado por padrão; uma linha só aparece com 3+ sessões distintas.
 Os nomes das métricas carregam os seus limites: "clique em resultado", não "taxa de sucesso" — clicar é o mais longe que a instrumentação enxerga.
+
+Agentes de IA são contados à parte, no servidor: eles não executam JavaScript, então a medição acontece nas próprias rotas de `llms.txt` e do Markdown bruto — e não pelo referrer, que veria a pessoa clicando num link do ChatGPT e não o agente lendo o índice.
 Em `npm run analytics` e em Settings → Observability.
 Detalhes em **[Observabilidade de leitura](/guides/observabilidade-de-leitura/)**.
 
@@ -317,11 +319,6 @@ Registra repositórios, produtos e times em `organization.yml` e agrega o que d�
 O portal **não busca repositório da rede**: registrado por `url`, ele é listado e não lido — clonar e ler conteúdo arbitrário a cada coleta é decisão de quem opera. A profundidade da leitura é declarada por repositório, e o que não foi medido fica fora da média: contá-lo como zero faria registrar um repositório baixar a nota da organização.
 Em `npm run org` e em Settings → Organization.
 Detalhes em **[Organização e múltiplos repositórios](/guides/organizacao/)**.
-
-#### Analytics da documentação (Do11y)
-
-Integração opcional com o Do11y para analytics de documentação. Desligada por padrão, e configurada por ambiente — nenhuma credencial vai para o repositório.
-Detalhes em **[Analytics da documentação (Do11y)](/guides/analytics-do11y/)**.
 
 ### Automação
 

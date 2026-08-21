@@ -23,7 +23,30 @@ export type ObservedEventType =
 	| 'search-click'
 	| 'example-copy'
 	| 'page-exit'
-	| 'feedback';
+	| 'feedback'
+	/**
+	 * Leitura por uma superfície legível por máquina.
+	 *
+	 * Agentes não executam JavaScript, então nenhum beacon dispara para eles: o
+	 * `llms.txt` e o Markdown bruto são buscados por HTTP e mais nada. Este evento
+	 * é gravado **no servidor**, pela própria rota que serve o conteúdo.
+	 */
+	| 'agent-read';
+
+/** As superfícies que existem para serem lidas por máquina. */
+export type AgentSurface =
+	/** `/llms.txt` — o índice. */
+	| 'llms-index'
+	/** `/llms-full.txt` — o corpus inteiro. */
+	| 'llms-full'
+	/** `/md/<página>` — o Markdown limpo de uma página. */
+	| 'markdown';
+
+export const AGENT_SURFACE_LABEL: Record<AgentSurface, string> = {
+	'llms-index': 'llms.txt',
+	'llms-full': 'llms-full.txt',
+	markdown: 'Markdown bruto',
+};
 
 /**
  * Um evento observado.
@@ -36,8 +59,14 @@ export interface ObservedEvent {
 	type: ObservedEventType;
 	/** Página, relativa a `src/content/docs`. Ausente em busca sem resultado. */
 	path?: string;
-	/** Sessão efêmera. Some quando a aba fecha; nunca liga duas visitas. */
-	session: string;
+	/**
+	 * Sessão efêmera. Some quando a aba fecha; nunca liga duas visitas.
+	 *
+	 * Ausente em `agent-read`: uma requisição de agente não tem sessão, e
+	 * inventar uma por requisição inflaria a contagem de leitores com um número
+	 * que não corresponde a ninguém.
+	 */
+	session?: string;
 	/** Epoch em milissegundos, arredondado para o minuto. */
 	at: number;
 	/** Quantos resultados a busca devolveu. Só para `search`. */
@@ -51,6 +80,8 @@ export interface ObservedEvent {
 	query?: string;
 	/** `up` ou `down`. Só para `feedback`. */
 	vote?: 'up' | 'down';
+	/** Qual superfície foi lida. Só para `agent-read`. */
+	surface?: AgentSurface;
 }
 
 // ---------------------------------------------------------------------------
@@ -123,9 +154,33 @@ export interface BehavioralGap {
 	evidence: string[];
 }
 
+/**
+ * Leitura por superfície legível por máquina.
+ *
+ * Fica **separada** das métricas de pessoas, e não somada a elas. Um `GET
+ * /llms-full.txt` traz o portal inteiro numa requisição; empilhá-lo com
+ * visualizações de página produziria um total que não significa nada.
+ */
+export interface AgentMetrics {
+	/** Requisições às superfícies de agente na janela. */
+	reads: number;
+	bySurface: Array<{ surface: AgentSurface; label: string; reads: number }>;
+	/** Páginas mais buscadas em Markdown bruto. */
+	topPaths: Array<{ path: string; reads: number }>;
+	/**
+	 * Fração das leituras que veio de agente, entre 0 e 1 — ou `null` quando não
+	 * houve leitura nenhuma dos dois lados.
+	 *
+	 * O denominador é `reads + page-view`. É uma aproximação declarada: uma
+	 * pessoa abre uma página por vez, um agente pode levar o corpus inteiro.
+	 */
+	share: number | null;
+}
+
 export interface ObservabilityReport {
 	pages: PageMetrics[];
 	search: SearchMetrics;
+	agents: AgentMetrics;
 	journeys: Journey[];
 	gaps: BehavioralGap[];
 	/** Sessões distintas no período. */

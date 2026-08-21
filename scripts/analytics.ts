@@ -3,6 +3,7 @@
  *
  *   npm run analytics -- overview
  *   npm run analytics -- search
+ *   npm run analytics -- agents
  *   npm run analytics -- journeys
  *   npm run analytics -- gaps
  *   npm run analytics -- forget
@@ -62,9 +63,9 @@ async function main(): Promise<number> {
 		return 0;
 	}
 
-	if (!['overview', 'search', 'journeys', 'gaps'].includes(command)) {
+	if (!['overview', 'search', 'journeys', 'gaps', 'agents'].includes(command)) {
 		console.error(`Subcomando desconhecido: ${command}`);
-		console.error('Use: overview, search, journeys, gaps, forget --yes.');
+		console.error('Use: overview, search, journeys, gaps, agents, forget --yes.');
 		return 2;
 	}
 
@@ -72,6 +73,64 @@ async function main(): Promise<number> {
 
 	if (json) {
 		console.log(JSON.stringify(report, null, 2));
+		return 0;
+	}
+
+	if (command === 'agents') {
+		const { agents } = report;
+
+		console.log('');
+		console.log(`${paint('Leitura por agentes', 'bold')}  ${paint(`últimos ${report.windowDays} dias`, 'dim')}`);
+		console.log(
+			paint(
+				'Contada no servidor, pelas próprias rotas: agentes não executam JavaScript, então nenhum beacon dispara para eles.',
+				'dim'
+			)
+		);
+		console.log('');
+		console.log(`  Leituras               ${agents.reads}`);
+		console.log(
+			`  Fatia da leitura       ${agents.share === null ? paint('—', 'dim') : `${Math.round(agents.share * 100)}%`}`
+		);
+
+		if (agents.bySurface.length > 0) {
+			console.log('');
+			console.log(paint('  Por superfície', 'bold'));
+			for (const entry of agents.bySurface) {
+				console.log(`    ${entry.label.padEnd(18)} ${entry.reads}`);
+			}
+		}
+
+		if (agents.topPaths.length > 0) {
+			console.log('');
+			console.log(paint('  Páginas mais buscadas em Markdown bruto', 'bold'));
+			for (const entry of agents.topPaths) {
+				console.log(`    ${String(entry.reads).padStart(4)}  ${entry.path}`);
+			}
+		}
+
+		if (agents.reads === 0) {
+			console.log('');
+			console.log(paint('  Nenhuma leitura por agente na janela.', 'dim'));
+		}
+
+		console.log('');
+		console.log(
+			paint(
+				'  A fatia é aproximada: uma pessoa abre uma página por vez, um agente pode levar o corpus inteiro numa requisição.',
+				'dim'
+			)
+		);
+		console.log('');
+		console.log(
+			paint(
+				'  O servidor MCP fica de fora — ele lê o repositório direto, sem passar pelo portal.',
+				'dim'
+			)
+		);
+
+		limitations(report);
+		console.log('');
 		return 0;
 	}
 

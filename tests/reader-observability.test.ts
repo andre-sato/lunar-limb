@@ -8,6 +8,7 @@
 
 import { describe, expect, it } from 'vitest';
 import {
+	agentMetrics,
 	analyzeObservability,
 	behavioralGaps,
 	confidenceFor,
@@ -316,5 +317,83 @@ describe('userSuccessScore', () => {
 
 		const report = analyzeObservability({ events, config, now: NOW });
 		expect(userSuccessScore(report)).toBe(100);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Leitura por agentes
+// ---------------------------------------------------------------------------
+
+describe('leitura por agentes', () => {
+	const read = (
+		surface: 'llms-index' | 'llms-full' | 'markdown',
+		path?: string,
+		at = 1_000
+	): ObservedEvent => ({ type: 'agent-read', surface, path, at });
+
+	const view = (session: string, path: string, at = 1_000): ObservedEvent => ({
+		type: 'page-view',
+		session,
+		path,
+		at,
+	});
+
+	it('conta por superfície', () => {
+		const metrics = agentMetrics([read('llms-index'), read('llms-index'), read('markdown', 'guides/x.md')]);
+
+		expect(metrics.reads).toBe(3);
+		expect(metrics.bySurface).toEqual([
+			{ surface: 'llms-index', label: 'llms.txt', reads: 2 },
+			{ surface: 'markdown', label: 'Markdown bruto', reads: 1 },
+		]);
+	});
+
+	it('lista as páginas mais buscadas em Markdown bruto', () => {
+		const metrics = agentMetrics([
+			read('markdown', 'guides/a.md'),
+			read('markdown', 'guides/a.md'),
+			read('markdown', 'guides/b.md'),
+			read('llms-index'),
+		]);
+
+		expect(metrics.topPaths).toEqual([
+			{ path: 'guides/a.md', reads: 2 },
+			{ path: 'guides/b.md', reads: 1 },
+		]);
+	});
+
+	it('calcula a fatia contra a leitura por pessoas', () => {
+		expect(agentMetrics([read('llms-index'), view('aaaa1111', 'guides/x.md')]).share).toBe(0.5);
+	});
+
+	it('devolve null quando não houve leitura nenhuma dos dois lados', () => {
+		// Denominador zero nunca vira 0%: um portal sem leitura não tem "0% de
+		// leitura por agente" — ele não tem leitura.
+		expect(agentMetrics([]).share).toBeNull();
+	});
+
+	it('evento de agente não conta como sessão nem como leitor', () => {
+		// É a razão de `session` ser opcional. Uma requisição de agente não tem
+		// sessão, e inventar uma por requisição inflaria a contagem de leitores
+		// com um número que não corresponde a ninguém.
+		const events = [read('llms-index'), read('markdown', 'guides/x.md'), view('aaaa1111', 'guides/x.md')];
+
+		expect(groupBySession(events).size).toBe(1);
+
+		const page = pageMetrics(events, 1).find((entry) => entry.path === 'guides/x.md');
+		expect(page?.readers).toBe(1);
+		// Ler o Markdown bruto não vira visualização de página.
+		expect(page?.views).toBe(1);
+	});
+
+	it('entra no relatório sem mexer nas métricas de pessoas', () => {
+		const report = analyzeObservability({
+			events: [read('llms-full'), view('aaaa1111', 'guides/x.md')],
+			config: { ...config, minimumSessions: 1 },
+			now: 2_000,
+		});
+
+		expect(report.agents.reads).toBe(1);
+		expect(report.sessions).toBe(1);
 	});
 });

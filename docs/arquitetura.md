@@ -45,7 +45,6 @@ flowchart TB
     git["<b>Repositório Git</b><br/><i>Sistema externo</i><br/>Conteúdo, especificações e código"]
     modelo["<b>API Anthropic</b><br/><i>Sistema externo</i><br/>Redação assistida — opcional"]
     busca["<b>Algolia DocSearch</b><br/><i>Sistema externo</i><br/>Busca hospedada — opcional"]
-    do11y["<b>Do11y</b><br/><i>Sistema externo</i><br/>Analytics — opcional"]
 
     leitor -->|lê, busca, pergunta, vota| portal
     autor -->|escreve e revisa| portal
@@ -55,14 +54,13 @@ flowchart TB
     portal -->|lê e escreve arquivos| git
     portal -.->|redige a partir de trechos| modelo
     portal -.->|indexa e consulta| busca
-    portal -.->|envia eventos agregados| do11y
 
     classDef pessoa fill:#08427b,stroke:#052e56,color:#fff
     classDef sistema fill:#1168bd,stroke:#0b4884,color:#fff
     classDef externo fill:#999,stroke:#6b6b6b,color:#fff
     class leitor,autor,admin,agente pessoa
     class portal sistema
-    class git,modelo,busca,do11y externo
+    class git,modelo,busca externo
 ```
 
 As três setas tracejadas são **opcionais e desligadas por padrão**. Sem nenhuma

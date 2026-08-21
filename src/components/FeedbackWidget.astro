@@ -13,15 +13,14 @@
  * mudando conforme o voto, porque "o que faltou?" só faz sentido depois de um
  * polegar para baixo.
  *
- * O `data-do11y-feedback` no contêiner é o gancho para o `feedbackSelector` do
- * Do11y: com a integração ligada, o mesmo clique também vira evento lá.
+ * O voto vai para a observabilidade nativa, e para lugar nenhum além dela.
  */
 const { t } = Astro.locals;
 ---
 
 <aside
 	class="page-feedback"
-	data-do11y-feedback
+	data-feedback
 	data-label-comment-up={t('feedback.commentUp')}
 	data-label-comment-down={t('feedback.commentDown')}
 	data-label-error={t('feedback.error')}
@@ -65,7 +64,7 @@ const { t } = Astro.locals;
 
 <script>
 	(() => {
-		const widget = document.querySelector<HTMLElement>('[data-do11y-feedback]');
+		const widget = document.querySelector<HTMLElement>('[data-feedback]');
 		if (!widget) return;
 
 		const steps = {
