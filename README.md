@@ -1,6 +1,6 @@
-# Developer Portal
+# Lunar
 
-Template white-label de documentação para desenvolvedores, construído com Astro e Starlight.
+Template white-label de documentação para desenvolvedores, construído com Astro e Starlight. Luna é uma ferramenta completa de engenharia de documentação. Indicando onde sua documentação falha e a mantendo sempre atualizada.
 
 O portal separa três tipos de conteúdo:
 
@@ -112,51 +112,41 @@ _Escrever, revisar e reaproveitar conteúdo._
 #### Editor de documentação
 
 Um editor Markdown/MDX completo em `/editor`, com Monaco, preview em tempo real, reuso de conteúdo, grafo de dependências bidirecional, paleta de comandos e consciência de Git. Ele lê e grava os arquivos de `src/content/docs` diretamente — não há banco de dados no meio.
-
 Detalhes em **[Editor de documentação](/guides/editor/)**.
 
 #### Linter e Quality Score
 
 Um revisor editorial automatizado que aponta problemas com id estável e calcula uma nota de 0 a 10 por dimensão. O style guide fica versionado em Git, e a nota não é `10 − nº de erros`: cada dimensão é pontuada isoladamente e o dano é normalizado por tamanho.
-
 Detalhes em **[Linter e Quality Score](/guides/linter-e-quality-score/)**.
 
 #### Navegação
 
 Sidebar por diretório, breadcrumbs, paginação, índice da página e navegação por tags — tudo derivado da estrutura de arquivos, sem um índice paralelo para manter sincronizado.
-
 Detalhes em **[Navegação](/guides/navegacao/)**.
 
 #### Documentação adaptativa
 
-A mesma página serve a quem programa, a quem atende cliente e a quem opera, sem duplicar arquivo — `authentication-developer.md` e `authentication-support.md` divergem no terceiro mês e ninguém percebe qual está certo.
-
-Nada é escondido: o conteúdo de outra audiência fica recolhido num `<details>` com rótulo, alcançável por teclado e pelo Ctrl+F. Quem lê escolhe o perfil; nada é inferido por comportamento.
-
+A mesma página serve a quem programa, a quem atende cliente e a quem opera, sem duplicar arquivo. Nada é escondido: o conteúdo de outra audiência fica recolhido num `<details>` com rótulo, alcançável por teclado e pelo Ctrl+F. Quem lê escolhe o perfil; nada é inferido por comportamento.
 Detalhes em **[Documentação adaptativa](/guides/documentacao-adaptativa/)**.
 
 #### Busca
 
 Busca local com Pagefind por padrão, Algolia DocSearch opcional, e a busca "warp drive" que cai direto no melhor resultado.
-
 Detalhes em **[Busca](/guides/busca/)**.
 
 #### Versionamento da documentação
 
 Versões da documentação com seletor, aviso de versão antiga e congelamento. A versão é um diretório de conteúdo, não um branch — o que permite ler duas versões lado a lado.
-
 Detalhes em **[Versionamento da documentação](/guides/versionamento/)**.
 
 #### Glossário
 
-Um arquivo Markdown por termo em `src/content/glossary/`, versionado pelo Git. Um termo cadastrado é destacado nas páginas, explicado numa bolha, listado em `/glossary` e **usado pelo linter** para avaliar consistência de terminologia — o glossário é a fonte, e o linter é consumidor dela.
-
+Um arquivo Markdown por termo em `src/content/glossary/`, versionado pelo Git. Um termo cadastrado é destacado nas páginas, listado em `/glossary` e **usado pelo linter** para avaliar consistência de terminologia — o glossário é a fonte, e o linter é consumidor dela.
 Detalhes em **[Mantenha o glossário](/guides/glossario/)**. Arquitetura em [docs/glossario.md](docs/glossario.md).
 
 #### Testes de documentação
 
 O linter pergunta "isto está bem escrito?". A suíte pergunta "isto **funciona**?" — um link para página inexistente passa em qualquer regra de estilo, e um exemplo que não bate mais com o schema está impecavelmente redigido.
-
 Verifica links, âncoras, Content Graph e exemplos de API, em três perfis do mais barato ao mais caro. A execução de snippets fica desligada por padrão: rodar código vindo de arquivo de conteúdo é execução arbitrária.
 
 ```bash
@@ -167,42 +157,33 @@ Detalhes em **[Testes de documentação](/guides/testes-de-documentacao/)**.
 
 #### Contratos de documentação
 
-A suíte pergunta "este exemplo funciona?". Esta camada pergunta "ele representa o **contrato** de verdade?". O caso que as separa: a API exige `amount` e `currency`, a documentação mostra só `amount` — o exemplo roda, e está incompleto.
+A suíte pergunta _"este exemplo funciona?"_. Esta camada pergunta _"ele representa o **contrato** de verdade?"_. O caso que as separa: a API exige `amount` e `currency`, a documentação mostra só `amount` — o exemplo roda, e está incompleto.
 
 A comparação corre nos **dois sentidos**, e o segundo é o que quase nenhuma ferramenta faz: campo que o exemplo mostra e o contrato não tem. É assim que documentação envelhece sem quebrar nenhum teste.
-
 Detalhes em **[Contratos de documentação](/guides/contratos-de-documentacao/)**.
 
 #### Análise de impacto
 
 O Content Graph responde "quem usa o quê" — informação. O Impact Engine responde "se eu mudar isso, o que preciso revisar?" — decisão. Aparece no editor e no corpo do pull request.
-
 A razão de o motor existir é a dependência **indireta**: A inclui B, que inclui o bloco que você está editando, e não há aresta entre os dois. A contagem de um salto respondia "nenhuma página afetada" com convicção e errada.
-
 Detalhes em **[Análise de impacto](/guides/analise-de-impacto/)**.
 
 #### Confiança e proveniência
 
 Uma página pode dizer "chaves expiram em 90 dias" sem que exista registro de onde isso veio, quem confirmou e quando. A proveniência é declarada no próprio conteúdo e versionada no Git.
-
 **O limite do selo vem antes da funcionalidade.** "Verificado" quer dizer que a evidência citada existe e confere — o endpoint está na especificação, o arquivo e a linha estão no código. **Não** quer dizer que a frase é verdadeira.
-
 Detalhes em **[Confiança e proveniência](/guides/confianca-e-proveniencia/)**.
 
 #### Observabilidade e SLOs
 
 Dez dimensões, SLOs, orçamento de erro e regressão entre medições — a pergunta de segunda-feira, que nenhuma das outras camadas responde: **a documentação está saudável, e o que fazemos primeiro?**
-
 Ela não mede nada de novo; consulta as camadas que já medem. E a idade sozinha não determina obsolescência: o que empurra uma página para vermelho é evidência de divergência, não o calendário.
-
 Detalhes em **[Observabilidade e SLOs](/guides/observabilidade/)**.
 
 #### Avaliação de IA
 
 Mede o assistente contra conjuntos de perguntas versionados em `evals/`. A camada separa **verificável** de **inferido** e só mede o primeiro: citação aponta para página que existe, página esperada foi citada, termo exigido apareceu. Por isso a métrica se chama "termos presentes", não "correção" — uma resposta pode conter todas as palavras e estar errada.
-
 Em `npm run ai:eval` e em Settings → AI Evaluation.
-
 Detalhes em **[Avaliação de IA](/guides/avaliacao-de-ia/)**.
 
 ### Qualidade e verificação
@@ -247,9 +228,7 @@ O porquê está em [ADR-0004](docs/adr/0004-uma-leitura-do-openapi.md).
 #### Digital Twin
 
 O Content Graph responde sobre a documentação. O Twin sobe um nível e responde sobre o **produto**: o que está documentado, o que a documentação descreve e não existe mais, e o que quebra se um endpoint mudar.
-
 O grafo de código é **exato**, não heurístico — a Astro mapeia arquivo para rota de forma determinística, então `src/pages/api/auth/me.ts` que exporta `GET` implementa `GET /api/auth/me`. Implementação sem documentação é dívida certa; documentação sem implementação é *potencialmente* obsoleta, porque a página pode descrever comportamento histórico.
-
 Detalhes em **[Digital Twin](/guides/digital-twin/)**.
 
 #### Vínculo com o código
@@ -266,27 +245,20 @@ documentation:
 A CI cobra a partir daí: entidade pública alterada sem página vinculada bloqueia o merge. Menção em texto não conta — só o vínculo declarado e resolvido contra o Digital Twin. E ele vive na documentação, nunca no código: o produto não deve depender de Markdown.
 
 Em `npm run docs:code` e em Settings → Code Loop.
-
 Detalhes em **[Vínculo com o código](/guides/vinculo-com-o-codigo/)**.
 
 #### Knowledge Graph
 
 Estende o Digital Twin com time, release, lacuna e contrato — **não** é um segundo grafo: duas estruturas com as mesmas entidades divergiriam na primeira semana.
-
 Nem toda aresta propaga impacto. Se um endpoint muda, as páginas que o documentam são afetadas; a especificação que o define não é. Quando uma camada não carrega, o grafo é montado sem ela e declara a degradação, porque um grafo sem a governança responde "ninguém é dono disto" com a mesma confiança de um completo.
-
 Em `npm run graph` e em Settings → Knowledge Graph.
-
 Detalhes em **[Knowledge Graph](/guides/knowledge-graph/)**.
 
 #### SDK
 
 Gera um cliente TypeScript a partir da **mesma** especificação que já move a documentação, os contratos e o Digital Twin — sem segundo parser, segundo engine de contrato nem segundo engine de impacto.
-
 Onde a especificação não diz o tipo, o código gerado diz `unknown`: um SDK que finge saber faz o compilador aprovar uma chamada errada. O diff deriva do contrato, não da comparação textual dos arquivos gerados.
-
 Em `npm run sdk` e no portão de revisão de PR.
-
 Detalhes em **[SDK](/guides/sdk/)**.
 
 #### Overlays e API Views
@@ -302,13 +274,11 @@ Detalhes em **[Overlays e API Views](/guides/overlays-e-api-views/)**.
 #### API Explorer
 
 Um console de requisições embutido, derivado da mesma especificação OpenAPI que move os contratos, o Digital Twin e o SDK. Nenhum endpoint é redigido de novo para ele.
-
 Detalhes em **[API Explorer](/guides/api-explorer/)**.
 
 #### Referência de API a partir de especificação
 
 Páginas de referência geradas a partir de OpenAPI e AsyncAPI. O portal exige que a especificação se declare — um arquivo AsyncAPI aceito em silêncio por um gerador de OpenAPI produz uma página que parece certa e está errada.
-
 Detalhes em **[Referência de API a partir de especificação](/guides/referencia-de-api/)**.
 
 ### Operação
@@ -318,53 +288,39 @@ _Quem é dono do quê, o que os leitores fazem e onde estão os buracos._
 #### Governança
 
 Cada página declara dono, revisor e intervalo de revisão no frontmatter; o `governance.yml` preenche o resto por regra de caminho, e a regra mais específica vence.
-
 "Revisada" é o que alguém declarou, nunca a data do último commit — corrigir uma vírgula não reinicia o relógio de uma página que ninguém leu. E vencida (foi revisada, o intervalo passou) é contada à parte de nunca revisada (entrou no regime, nunca teve revisão): somar as duas acusaria a equipe de atraso no primeiro dia de qualquer regime.
-
 Em `npm run governance` e em Settings → Governance.
-
 Detalhes em **[Governança](/guides/governanca/)**.
 
 #### Observabilidade de leitura
 
 Mede se a documentação **resolve o problema de quem chegou**, não se ela está tecnicamente correta — e as duas notas ficam lado a lado, nunca somadas.
-
 Nada identifica uma pessoa: sem IP, sem id de usuário, sem cookie, sem user-agent. O que existe é uma sessão efêmera do navegador que some quando a aba fecha. Do Not Track, Global Privacy Control e a escolha do leitor desligam a coleta; o texto das buscas é desligado por padrão; uma linha só aparece com 3+ sessões distintas.
-
 Os nomes das métricas carregam os seus limites: "clique em resultado", não "taxa de sucesso" — clicar é o mais longe que a instrumentação enxerga.
-
 Em `npm run analytics` e em Settings → Observability.
-
 Detalhes em **[Observabilidade de leitura](/guides/observabilidade-de-leitura/)**.
 
 #### Lacunas de documentação
 
 Saber que uma página teve dez mil acessos não diz o que falta. Esta camada pergunta **que informação as pessoas procuram e não encontram**, cruzando busca, assistente, MCP, feedback, contratos e o Digital Twin num backlog priorizado.
-
 **Publicar não é resolver.** `start` registra o sinal de hoje como linha de base; depois de publicar, `resolve` compara — e recusa se o sinal não caiu. Não se exige queda a zero: a pergunta continua sendo feita mesmo quando a resposta existe.
-
 Detalhes em **[Lacunas de documentação](/guides/lacunas-de-documentacao/)**.
 
 #### Feedback de página
 
 Um widget de utilidade no rodapé de cada página. Ele guarda o voto e o caminho, e nada sobre quem votou.
-
 Detalhes em **[Feedback de página](/guides/feedback/)**.
 
 #### Organização e múltiplos repositórios
 
 Registra repositórios, produtos e times em `organization.yml` e agrega o que dá para agregar sem mentir.
-
 O portal **não busca repositório da rede**: registrado por `url`, ele é listado e não lido — clonar e ler conteúdo arbitrário a cada coleta é decisão de quem opera. A profundidade da leitura é declarada por repositório, e o que não foi medido fica fora da média: contá-lo como zero faria registrar um repositório baixar a nota da organização.
-
 Em `npm run org` e em Settings → Organization.
-
 Detalhes em **[Organização e múltiplos repositórios](/guides/organizacao/)**.
 
 #### Analytics da documentação (Do11y)
 
 Integração opcional com o Do11y para analytics de documentação. Desligada por padrão, e configurada por ambiente — nenhuma credencial vai para o repositório.
-
 Detalhes em **[Analytics da documentação (Do11y)](/guides/analytics-do11y/)**.
 
 ### Automação
@@ -373,48 +329,37 @@ _O que o portal faz sozinho — e onde ele para para pedir aprovação._
 
 #### Agentes de documentação
 
-O objetivo não é outro chatbot. Cinco agentes especializados usam as ferramentas que o portal já tem — Twin, Content Graph, glossário, linter, testes, contratos — e produzem mudanças **verificáveis**. Quatro dos cinco funcionam sem provedor nenhum.
-
+Cinco agentes especializados usam as ferramentas que o portal já tem — Twin, Content Graph, glossário, linter, testes, contratos — e produzem mudanças **verificáveis**. Quatro dos cinco funcionam sem provedor nenhum.
 Os guardrails são **código, não instrução de prompt**: allowlist de ferramentas, escrita restrita a um workspace isolado, e nada publicado sem aprovação humana. O guardrail de descarte nasceu de um defeito real — a primeira execução substituiu uma página inteira por um esqueleto, e passou por revisão, testes e auditoria, porque esqueleto bem formado é Markdown válido.
-
 Detalhes em **[Agentes de documentação](/guides/agentes-de-documentacao/)**.
 
 #### Self-healing
 
 Detectar → diagnosticar → propor → validar → revisar → PR. Nunca `detectar → corrigir`.
-
 Nada é escrito fora do workspace isolado dos agentes, nada é publicado sem aprovação humana, e nenhum nível de autonomia faz merge. O diagnóstico recusa sem fonte autoritativa; quando fontes autoritativas discordam, o ciclo declara conflito e para, em vez de escolher uma — documentação errada com ar de certeza é pior que a lacuna.
-
 Validação que não roda vale "não verificado", nunca "aprovado".
-
 Em `npm run heal` e em Settings → Self-Healing.
-
 Detalhes em **[Self-healing](/guides/self-healing/)**.
 
 #### Time Machine
 
 Como esta página evoluiu, como o portal estava em maio, o que mudou de **comportamento** entre dois pontos, e o que aquele commit afetou.
-
 O Git continua sendo a fonte: cada consulta reconstrói do repositório, e nada aqui escreve, faz checkout ou muda de branch. O que não dá para reconstruir vem ausente, não estimado — o Health Score de uma data passada não é recalculado, porque ele dependia das ferramentas daquela época.
-
 Detalhes em **[Time Machine](/guides/time-machine/)**.
 
 #### Assistente de documentação
 
 Um chatbot que responde a partir da documentação e cita as fontes. Sem chave de provedor ele devolve trechos e um resumo extrativo, sem redigir nada; com chave, o mesmo pipeline redige a resposta atravessando os guardrails.
-
 Detalhes em **[Assistente de documentação](/guides/assistente/)**.
 
 #### Documentação legível por máquina
 
 `llms.txt`, Markdown bruto em cada página e metadados estruturados — para que um agente leia a documentação sem raspar HTML.
-
 Detalhes em **[Documentação legível por máquina](/guides/documentacao-legivel-por-maquina/)**.
 
 #### Consulta pelo terminal (MCP)
 
 Um servidor MCP e uma CLI que expõem a documentação para agentes e para o terminal, com os mesmos filtros de público e versão do portal.
-
 Detalhes em **[Consulta pelo terminal (MCP)](/guides/mcp/)**.
 
 ### Plataforma
@@ -424,32 +369,27 @@ _Acesso, fluxo de trabalho e publicação._
 #### Usuários e controle de acesso
 
 Três papéis — viewer, editor e admin. A leitura é pública; editar e administrar exigem entrar. A autorização é por capacidade, aplicada num único middleware, e os dados de usuário ficam fora do Git.
-
 Detalhes em **[Usuários e controle de acesso](/guides/usuarios-e-acesso/)**.
 
 #### Workflow de Git
 
 Branch, diff, portão de qualidade e preparação de pull request a partir do editor — com o corpo do PR montado a partir do que os motores de análise já sabem.
-
 Detalhes em **[Workflow de Git](/guides/workflow-de-git/)**.
 
 #### Publicação no GitHub Pages
 
 Publicação automatizada no GitHub Pages, com o caminho base tratado e a distinção entre o site estático e o modo servidor.
-
 Detalhes em **[Publicação no GitHub Pages](/guides/publicacao-no-github-pages/)**.
 
 #### Atualizações recentes
 
 Uma lista do que mudou recentemente, derivada do Git — não uma lista mantida à mão que alguém esquece de atualizar.
-
 Detalhes em **[Atualizações recentes](/guides/atualizacoes-recentes/)**.
 
 #### Plugins da comunidade
 
 Os plugins da comunidade Starlight em uso, com o que cada um resolve e por que foi escolhido
 em vez das alternativas.
-
 Guia: **[Plugins da comunidade](/guides/plugins/)**. Notas de avaliação: [docs/plugins.md](docs/plugins.md).
 
 ## Clean install

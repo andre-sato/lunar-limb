@@ -82,7 +82,7 @@ documentation:
     # perguntou, truncada, com credenciais redigidas e com teto de registros.
     # Desligado, as lacunas continuam sendo detectadas pelos outros sinais:
     # endpoint sem página, voto negativo, evidência inválida, teste falhando.
-    storeUnansweredQuestions: false
+    storeUnansweredQuestions: true
 
     # Observabilidade de leitura (P3.2).
     #
