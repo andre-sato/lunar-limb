@@ -22,6 +22,7 @@
 		"docs:code": "tsx scripts/docs-code.ts",
 		"governance": "tsx scripts/governance.ts",
 		"overlay": "tsx scripts/overlay.ts",
+		"changelog": "tsx scripts/changelog.ts",
 		"api": "tsx scripts/api.ts",
 		"analytics": "tsx scripts/analytics.ts",
 		"ai:eval": "tsx scripts/ai-eval.ts",

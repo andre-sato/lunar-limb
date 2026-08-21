@@ -190,6 +190,12 @@ export interface CommitInfo {
 	files: string[];
 	tags: string[];
 	pullRequest?: number;
+	/**
+	 * Corpo da mensagem, sem o assunto. Só é preenchido por `commitsInRange`,
+	 * que o busca numa segunda chamada — o corpo é multilinha e, no formato de
+	 * `parseCommits`, ele se confundiria com a lista de arquivos.
+	 */
+	body?: string;
 }
 
 export async function commitsBetween(from: string, to = 'HEAD', limit = 200): Promise<CommitInfo[]> {
@@ -202,6 +208,49 @@ export async function commitsBetween(from: string, to = 'HEAD', limit = 200): Pr
 	]);
 
 	return parseCommits(stdout);
+}
+
+/**
+ * Os commits de uma janela de datas, com o corpo da mensagem.
+ *
+ * `commitsBetween` recebe refs; um changelog mensal precisa de datas. As duas
+ * usam o mesmo parser, e a diferença é só o recorte — reescrever a leitura aqui
+ * daria duas respostas para "quais commits existem neste intervalo".
+ *
+ * `--since`/`--until` do Git são inclusivos no início e exclusivos no fim, então
+ * quem chama passa o primeiro instante do mês seguinte como `until`.
+ */
+export async function commitsInRange(since: string, until: string, limit = 500): Promise<CommitInfo[]> {
+	const stdout = await git([
+		'log',
+		`-${limit}`,
+		'--name-only',
+		`--since=${since}`,
+		`--until=${until}`,
+		`--format=${RECORD}%H${SEPARATOR}%aI${SEPARATOR}%an${SEPARATOR}%s${SEPARATOR}%D`,
+	]);
+
+	const commits = parseCommits(stdout);
+	if (commits.length === 0) return commits;
+
+	// Segunda chamada só para os corpos, indexados por hash.
+	const bodies = await git([
+		'log',
+		`-${limit}`,
+		`--since=${since}`,
+		`--until=${until}`,
+		`--format=${RECORD}%H${SEPARATOR}%b`,
+	]);
+
+	const byHash = new Map<string, string>();
+	for (const block of bodies.split(RECORD)) {
+		if (block.trim() === '') continue;
+		const index = block.indexOf(SEPARATOR);
+		if (index === -1) continue;
+		byHash.set(block.slice(0, index).trim(), block.slice(index + 1).trim());
+	}
+
+	return commits.map((commit) => ({ ...commit, body: byHash.get(commit.commit) ?? '' }));
 }
 
 export async function commitInfo(ref: string): Promise<CommitInfo | undefined> {

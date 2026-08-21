@@ -59,6 +59,7 @@ Arquivos Markdown e MDX dentro de `src/content/docs/` são publicados automatica
 | `npm run heal` | Self-healing: detectar, diagnosticar, propor e validar correções. |
 | `npm run sdk` | SDK: gerar, verificar e comparar o cliente TypeScript da API. |
 | `npm run overlay` | Overlays: validar, prever, aplicar, comparar e rastrear proveniência. |
+| `npm run changelog` | Changelog mensal a partir dos commits, com filtro de ruído e links de endpoint. |
 | `npm run api` | API Views: listar, construir as especificações efetivas e verificar. |
 | `npm run docs:asyncapi` | Gera páginas de referência a partir de especificações AsyncAPI. |
 | `npm run user:create` | Cria um usuário do portal (ver *Usuários e controle de acesso*). |
@@ -260,6 +261,16 @@ Gera um cliente TypeScript a partir da **mesma** especificação que já move a 
 Onde a especificação não diz o tipo, o código gerado diz `unknown`: um SDK que finge saber faz o compilador aprovar uma chamada errada. O diff deriva do contrato, não da comparação textual dos arquivos gerados.
 Em `npm run sdk` e no portão de revisão de PR.
 Detalhes em **[SDK](/guides/sdk/)**.
+
+#### Changelog automático
+
+Todo dia 1º uma automação lê os commits do mês anterior e abre um **pull request** com a página daquele mês. Ela não publica: o texto vem de mensagens escritas para desenvolvedores, e o changelog é o que um cliente lê para decidir se precisa mexer no código dele.
+
+O filtro é a maior parte do valor — de 97 commits num mês, quase todos são manutenção. Mudança incompatível entra sempre, mesmo com tipo de manutenção. Endpoint citado só vira link se existir na especificação.
+
+Em `npm run changelog`.
+
+Detalhes em **[Changelog automático](/guides/changelog-automatico/)**.
 
 #### Overlays e API Views
 

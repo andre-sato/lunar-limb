@@ -1,0 +1,91 @@
+# Changelog mensal (issue #15).
+#
+# Roda no dia 1º às 08:00 e recolhe o mês anterior. `workflow_dispatch` permite
+# rodar à mão, com um período qualquer — útil para gerar um mês que passou.
+#
+# **Ela abre um pull request; não publica.** A issue pede publicação automática,
+# e o pull request é a leitura honesta desse pedido: o changelog é o documento
+# que um cliente lê para decidir se precisa mexer no código dele, e o texto vem
+# de mensagens de commit que ninguém escreveu pensando num cliente. A automação
+# faz o trabalho todo e para no último passo, que é onde alguém confere se a
+# tradução ficou de pé.
+#
+# É a mesma regra dos agentes e do self-healing neste projeto — ADR-0010.
+
+name: Changelog mensal
+
+on:
+  schedule:
+    # 08:00 no dia 1º. O cron do GitHub é sempre UTC.
+    - cron: '0 11 1 * *'
+  workflow_dispatch:
+    inputs:
+      period:
+        description: 'Período no formato AAAA-MM. Vazio usa o mês anterior.'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  gerar:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # O gerador lê o histórico por data: um clone raso não teria os
+          # commits do mês passado, e o changelog sairia vazio sem dizer por quê.
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Gerar
+        id: gerar
+        run: |
+          PERIODO="${{ inputs.period }}"
+          if [ -n "$PERIODO" ]; then
+            npm run changelog -- --period "$PERIODO" --write
+          else
+            npm run changelog -- --write
+          fi
+          # Saída 1 significa "nada a publicar", que é um desfecho normal.
+          CODIGO=$?
+          echo "vazio=$([ $CODIGO -eq 1 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+        continue-on-error: true
+
+      - name: Verificar o que foi gerado
+        if: steps.gerar.outputs.vazio != 'true'
+        run: |
+          npm run build
+          npm run docs:test -- --standard
+
+      - name: Abrir pull request
+        if: steps.gerar.outputs.vazio != 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: changelog/automatico
+          title: 'Changelog do mês'
+          commit-message: 'Changelog gerado automaticamente'
+          body: |
+            Gerado por `npm run changelog`, a partir das mensagens de commit do
+            período.
+
+            **Revise antes de aprovar.** O texto vem de mensagens escritas para
+            outros desenvolvedores, não para quem integra com o produto. Confira
+            em especial:
+
+            - as mudanças marcadas como incompatíveis, e se a nota explica o que quebra;
+            - as depreciações, e se a data de fim de vida está correta;
+            - se sobrou jargão interno.
+
+            Rode `npm run changelog -- --period AAAA-MM` localmente para ver as
+            pendências que a geração registrou.
+          labels: changelog, automação
