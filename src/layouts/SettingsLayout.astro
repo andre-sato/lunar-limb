@@ -26,6 +26,7 @@ type SettingsKey =
 	| 'organization'
 	| 'healing'
 	| 'quality'
+	| 'glossary'
 	| 'chatbot'
 	| 'audit';
 
@@ -72,6 +73,7 @@ const groups: NavGroup[] = [
 		label: 'Content',
 		items: [
 			{ key: 'quality', label: 'Quality', href: '/settings/quality' },
+				{ key: 'glossary', label: 'Glossary', href: '/settings/glossary' },
 			{ key: 'health', label: 'Health', href: '/settings/health' },
 			{ key: 'gaps', label: 'Gaps', href: '/settings/gaps' },
 			{ key: 'feedback', label: 'Feedback', href: '/settings/feedback' },

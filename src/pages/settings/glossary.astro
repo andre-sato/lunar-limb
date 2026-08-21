@@ -1,0 +1,14 @@
+---
+import SettingsLayout from '../../layouts/SettingsLayout.astro';
+import GlossaryPanel from '../../components/settings/GlossaryPanel';
+
+export const prerender = false;
+---
+
+<SettingsLayout
+	title="Glossary"
+	description="A terminologia canônica do portal: alcance de cada termo, conflitos e o que ninguém usa."
+	active="glossary"
+>
+	<GlossaryPanel client:load />
+</SettingsLayout>

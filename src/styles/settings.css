@@ -779,3 +779,97 @@
 	color: var(--sl-color-gray-2);
 	overflow-wrap: anywhere;
 }
+
+/* ---------------------------------------------- primitivas dos painéis
+ *
+ * Estas classes eram usadas por oito painéis de administração e não existiam em
+ * folha de estilo nenhuma (issue #14). O efeito era silencioso: uma `<ul
+ * class="plain-list">` renderiza com marcador e recuo padrão do navegador, e os
+ * pares rótulo/valor dentro dela ficam colados em vez de nas pontas.
+ *
+ * Ficam aqui, e não em cada painel, porque a repetição é o que as tornou
+ * primitivas: quem escreveu o oitavo painel usou o nome esperando que ele já
+ * significasse alguma coisa.
+ */
+
+.panel-stack {
+	display: flex;
+	flex-direction: column;
+	gap: 20px;
+}
+
+.panel-note {
+	margin: 8px 0 0;
+	font-size: 0.85rem;
+	line-height: 1.55;
+	color: var(--sl-color-gray-3);
+}
+
+.panel-error {
+	margin: 8px 0 0;
+	font-size: 0.85rem;
+	color: var(--sl-color-red-high, #f28b82);
+}
+
+.panel-notice {
+	margin: 8px 0 0;
+	padding: 10px 12px;
+	border-radius: 8px;
+	border: 1px solid var(--sl-color-gray-5);
+	background: var(--sl-color-gray-6);
+	font-size: 0.85rem;
+	line-height: 1.55;
+}
+
+.plain-list {
+	list-style: none;
+	margin: 12px 0 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+/* Rótulo à esquerda, valor à direita — o par que estas listas quase sempre são. */
+.plain-list li {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 6px 0;
+	border-bottom: 1px solid var(--sl-color-gray-6);
+	font-size: 0.88rem;
+}
+
+.plain-list li:last-child {
+	border-bottom: none;
+}
+
+/* O texto pode ser longo; o valor à direita não deve ser espremido nem quebrado. */
+.plain-list li > span:first-child {
+	min-width: 0;
+	color: var(--sl-color-gray-2);
+}
+
+.plain-list li > strong,
+.plain-list li > a {
+	flex: none;
+}
+
+.badge {
+	display: inline-block;
+	padding: 1px 7px;
+	border-radius: 999px;
+	border: 1px solid var(--sl-color-gray-5);
+	background: var(--sl-color-gray-6);
+	font-size: 0.7rem;
+	font-weight: 600;
+	letter-spacing: 0.02em;
+	color: var(--sl-color-gray-2);
+	vertical-align: middle;
+}
+
+.badge--danger {
+	border-color: var(--sl-color-red, #c8553d);
+	color: var(--sl-color-red-high, #f28b82);
+}
