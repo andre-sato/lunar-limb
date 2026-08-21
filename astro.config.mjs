@@ -321,7 +321,114 @@ export default defineConfig({
 				{
 					label: 'Guias',
 					translations: { en: 'Guides', es: 'Guías' },
-					items: [{ autogenerate: { directory: 'guides' } }],
+					/*
+					 * Sete subseções em vez de uma lista de 45 itens (issue #11).
+					 *
+					 * O eixo é o que a pessoa está tentando fazer agora, não a família de
+					 * feature a que a página pertence: agrupar por família resolveria o
+					 * problema de quem construiu o portal, não o de quem o usa.
+					 *
+					 * Os grupos são declarados aqui e **não** movem arquivo. O caminho de
+					 * uma página vem do disco, então mover `guides/sdk.mdx` para
+					 * `guides/produto/sdk.mdx` trocaria `/guides/sdk/` por
+					 * `/guides/produto/sdk/` — e há links internos, links externos e
+					 * históricos de conversa apontando para os caminhos atuais.
+					 */
+					items: [
+						{
+							label: 'Comece por aqui',
+							translations: { en: 'Start here', es: 'Empieza aquí' },
+							collapsed: false,
+							items: [
+								'guides/getting-started',
+								'guides/configure-your-portal',
+								'guides/publish-documentation',
+								'guides/manual',
+							],
+						},
+						{
+							label: 'Escrever',
+							translations: { en: 'Writing', es: 'Escribir' },
+							collapsed: true,
+							items: [
+								'guides/editor',
+								'guides/conteudo-reutilizavel',
+								'guides/conteudo-condicional',
+								'guides/diagramas',
+								'guides/glossario',
+								'guides/documentacao-adaptativa',
+								'guides/versionamento',
+							],
+						},
+						{
+							label: 'Verificar',
+							translations: { en: 'Verifying', es: 'Verificar' },
+							collapsed: true,
+							items: [
+								'guides/linter-e-quality-score',
+								'guides/testes-de-documentacao',
+								'guides/contratos-de-documentacao',
+								'guides/confianca-e-proveniencia',
+								'guides/analise-de-impacto',
+								'guides/saude-da-documentacao',
+							],
+						},
+						{
+							label: 'Ligar ao produto',
+							translations: { en: 'Connecting to the product', es: 'Conectar al producto' },
+							collapsed: true,
+							items: [
+								'guides/digital-twin',
+								'guides/vinculo-com-o-codigo',
+								'guides/referencia-de-api',
+								'guides/overlays-e-api-views',
+								'guides/api-explorer',
+								'guides/sdk',
+							],
+						},
+						{
+							label: 'Operar',
+							translations: { en: 'Operating', es: 'Operar' },
+							collapsed: true,
+							items: [
+								'guides/usuarios-e-acesso',
+								'guides/governanca',
+								'guides/workflow-de-git',
+								'guides/publicacao-no-github-pages',
+								'guides/organizacao',
+								'guides/plugins',
+							],
+						},
+						{
+							label: 'Entender o uso',
+							translations: { en: 'Understanding usage', es: 'Entender el uso' },
+							collapsed: true,
+							items: [
+								'guides/navegacao',
+								'guides/busca',
+								'guides/feedback',
+								'guides/observabilidade',
+								'guides/observabilidade-de-leitura',
+								'guides/lacunas-de-documentacao',
+								'guides/atualizacoes-recentes',
+							],
+						},
+						{
+							label: 'IA e automação',
+							translations: { en: 'AI and automation', es: 'IA y automatización' },
+							collapsed: true,
+							items: [
+								'guides/assistente',
+								'guides/documentacao-legivel-por-maquina',
+								'guides/mcp',
+								'guides/agentes-de-documentacao',
+								'guides/avaliacao-de-ia',
+								'guides/self-healing',
+								'guides/knowledge-graph',
+								'guides/time-machine',
+							],
+						},
+					],
 				},
 				{
 					label: 'Exemplos',

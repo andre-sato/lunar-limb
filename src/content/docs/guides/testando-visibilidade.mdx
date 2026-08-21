@@ -1,6 +1,11 @@
 ---
 title: Página publicada mas não visível na navegação
 description: Testando feature de visibilidade
+# A página se chama "publicada mas não visível" e não declarava a flag: ela
+# aparecia na navegação, demonstrando o contrário do que o título diz. Com os
+# guias agrupados à mão (issue #11) ela sairia da barra lateral por omissão —
+# e sumir por esquecimento não é a mesma coisa que sumir por decisão.
+visible: false
 ---
 
 import IncludePage from '../../../components/content/IncludePage.astro';
