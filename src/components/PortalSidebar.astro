@@ -13,6 +13,7 @@
 import Default from '@astrojs/starlight/components/Sidebar.astro';
 import ChatAssistant from './ChatAssistant.astro';
 import AudienceSwitcher from './adaptive/AudienceSwitcher.astro';
+import ProductSwitcher from './adaptive/ProductSwitcher.astro';
 import { serverFeatures } from '../config/deploy';
 ---
 
@@ -20,6 +21,11 @@ import { serverFeatures } from '../config/deploy';
 
 {serverFeatures.chat && <ChatAssistant variant="panel" />}
 
-{/* O seletor fica depois do chat: é preferência de leitura, consultada uma vez,
-    não uma ferramenta de uso contínuo. */}
+{/* Os seletores ficam depois do chat: são preferência de leitura, consultada uma
+    vez, não ferramenta de uso contínuo.
+
+    Produto vem antes de audiência porque decide *que* documentação existe; a
+    audiência decide *como* ela é apresentada. Escolher o assunto antes do
+    enquadramento é a ordem em que a pergunta aparece. */}
+<ProductSwitcher />
 <AudienceSwitcher />

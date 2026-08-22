@@ -31,9 +31,13 @@ function yamlString(value: string): string {
 	return `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
 }
 
-function renderEntry(entry: ChangelogEntry): string {
+function renderEntry(entry: ChangelogEntry, underProductHeading = false): string {
 	const parts: string[] = [];
-	const scope = entry.scope ? `**${entry.scope}** — ` : '';
+	// Sob um subtítulo de produto, repetir o escopo escreveria o nome do produto
+	// duas vezes na mesma linha — o escopo *é* o produto quando ele foi o que
+	// produziu o agrupamento.
+	const redundant = underProductHeading && entry.scope === entry.product;
+	const scope = entry.scope && !redundant ? `**${entry.scope}** — ` : '';
 
 	parts.push(`- ${entry.breaking ? '**Mudança incompatível.** ' : ''}${scope}${entry.text}`);
 
@@ -61,6 +65,48 @@ function renderEntry(entry: ChangelogEntry): string {
 export interface RenderOptions {
 	/** Quantas páginas de changelog já existem, para a ordem na navegação. */
 	order: number;
+	/** Rótulos dos produtos, por id, para os subtítulos (issue #18). */
+	productLabels?: Record<string, string>;
+}
+
+/**
+ * Agrupa as entradas de uma seção por produto (issue #18).
+ *
+ * O que **não** é feito aqui: dividir o changelog em um arquivo por produto. A
+ * issue pede explicitamente um arquivo único com os impactos mensais de todos os
+ * produtos — quem lê changelog quer saber o que mudou no mês, e ter de abrir
+ * cinco páginas para montar essa resposta é pior do que ler uma com cinco
+ * subtítulos.
+ *
+ * As entradas sem produto vêm **primeiro**, sem subtítulo. Elas valem para todo
+ * mundo, e enterrá-las depois dos produtos faria quem lê só a sua seção perder o
+ * que era justamente transversal.
+ */
+export function groupByProduct(
+	entries: readonly ChangelogEntry[]
+): Array<{ product?: string; entries: ChangelogEntry[] }> {
+	const shared: ChangelogEntry[] = [];
+	const byProduct = new Map<string, ChangelogEntry[]>();
+
+	for (const entry of entries) {
+		if (!entry.product) {
+			shared.push(entry);
+			continue;
+		}
+		const bucket = byProduct.get(entry.product);
+		if (bucket) bucket.push(entry);
+		else byProduct.set(entry.product, [entry]);
+	}
+
+	const groups: Array<{ product?: string; entries: ChangelogEntry[] }> = [];
+	if (shared.length > 0) groups.push({ entries: shared });
+	// Ordem alfabética por id: a ordem de aparição no histórico faria o mesmo mês
+	// sair diferente conforme a ordem dos commits, e não há razão para isso.
+	for (const product of [...byProduct.keys()].sort()) {
+		groups.push({ product, entries: byProduct.get(product)! });
+	}
+
+	return groups;
 }
 
 export function renderChangelog(changelog: MonthlyChangelog, options: RenderOptions): string {
@@ -98,10 +144,28 @@ export function renderChangelog(changelog: MonthlyChangelog, options: RenderOpti
 		);
 	}
 
+	const labels = options.productLabels ?? {};
+
 	for (const section of changelog.sections) {
 		if (section.entries.length === 0) continue;
 		lines.push(`## ${CATEGORY_LABEL[section.category]}`, '');
-		for (const entry of section.entries) lines.push(renderEntry(entry), '');
+
+		const groups = groupByProduct(section.entries);
+		// Um grupo só e sem produto é o changelog de sempre: nada de subtítulo,
+		// que só existiria para dizer "todos" num portal de um produto só.
+		const labelled = groups.length > 1 || groups[0]?.product !== undefined;
+
+		for (const group of groups) {
+			if (labelled) {
+				lines.push(
+					`### ${group.product ? (labels[group.product] ?? group.product) : 'Todos os produtos'}`,
+					''
+				);
+			}
+			for (const entry of group.entries) {
+				lines.push(renderEntry(entry, labelled && group.product !== undefined), '');
+			}
+		}
 	}
 
 	// O rodapé diz de onde a página veio. Um documento gerado que não se declara

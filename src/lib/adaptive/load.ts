@@ -50,17 +50,43 @@ export function parsePageMeta(relative: string, raw: string): PageContextMeta {
 	}
 
 	const tags = Array.isArray(frontmatter.tags) ? frontmatter.tags.map(String) : [];
+	const product = typeof frontmatter.product === 'string' ? frontmatter.product : undefined;
 
 	return {
 		path: relative,
 		title: typeof frontmatter.title === 'string' ? frontmatter.title : undefined,
 		url: urlFor(relative),
+		slug: typeof frontmatter.slug === 'string' ? frontmatter.slug : undefined,
 		audiences: parseAudiences(frontmatter),
 		tags,
 		version: typeof frontmatter.version === 'string' ? frontmatter.version : undefined,
-		product: typeof frontmatter.product === 'string' ? frontmatter.product : undefined,
+		product,
+		products: parseProducts(frontmatter, product),
 		experience: isExperience(frontmatter.experience) ? frontmatter.experience : undefined,
 	};
+}
+
+/**
+ * Os produtos da página, nas duas formas que o frontmatter aceita.
+ *
+ *     products: [portal, payments]
+ *     product: portal
+ *
+ * A lista é a forma da issue #18; o escalar já existia e continua valendo, para
+ * não invalidar frontmatter escrito antes desta mudança. Lista vazia é o padrão
+ * e significa **compartilhada** — a ausência do campo não pode ser confundida
+ * com "não pertence a nenhum produto", que esconderia a página de todo mundo.
+ */
+function parseProducts(
+	frontmatter: Record<string, unknown>,
+	product: string | undefined
+): string[] {
+	const declared = Array.isArray(frontmatter.products)
+		? frontmatter.products.filter((entry): entry is string => typeof entry === 'string')
+		: [];
+
+	const all = product === undefined ? declared : [...declared, product];
+	return [...new Set(all.map((entry) => entry.trim()).filter((entry) => entry !== ''))];
 }
 
 export interface AdaptiveIndex {

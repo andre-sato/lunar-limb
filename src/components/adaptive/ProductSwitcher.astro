@@ -1,0 +1,237 @@
+---
+/**
+ * Seletor de produto (issue #18).
+ *
+ * O portal documenta mais de um produto, e quem trabalha com o produto A não
+ * quer navegar pelos guias do B. Escolher um produto tira da navegação as
+ * páginas dos outros.
+ *
+ * **Por que esconder aqui, se o resto da adaptação nunca esconde.** O
+ * `AudienceSwitcher` recolhe blocos e não remove nada, porque audiência é
+ * *perspectiva sobre o mesmo assunto* — o guia de webhooks é o mesmo guia para
+ * quem desenvolve e para quem dá suporte. Produto é outra coisa: é *assunto
+ * diferente*. Uma página do produto B não é uma visão alternativa da
+ * documentação do A, é documentação de outra coisa. Deixá-la na navegação do A
+ * não preserva informação, só enche a lista de respostas para perguntas que
+ * ninguém fez.
+ *
+ * **O que continua garantido.** Nada some da URL. Quem chega numa página de
+ * outro produto por link, busca externa ou histórico lê a página inteira, com um
+ * aviso dizendo de que produto ela é — ver `ProductNotice.astro`. Nenhuma página
+ * fica inacessível por causa da escolha, que é o que a §12 exige.
+ *
+ * **A filtragem é no navegador, e não por escolha de estilo.** As páginas de
+ * documentação são pré-renderizadas (ADR-0003): existe um HTML só, gerado no
+ * build, servido igual para todo mundo. Não há requisição por leitor em que o
+ * servidor pudesse montar uma navegação diferente. O servidor publica o mapa; o
+ * cliente aplica a escolha. É o mesmo arranjo do `AudienceSwitcher`.
+ */
+import { loadProducts } from '../../lib/products/registry';
+import { buildScopeMap } from '../../lib/products/scope';
+
+const registry = await loadProducts();
+const scope = await buildScopeMap();
+
+// Com um produto só declarado não há o que escolher, e um seletor de uma opção
+// é ruído. O portal continua igual ao que era antes desta funcionalidade.
+const enabled = registry.products.length > 1;
+
+const payload = JSON.stringify({
+	scope,
+	labels: Object.fromEntries(registry.products.map((product) => [product.id, product.label])),
+});
+---
+
+{
+	enabled && (
+		<section class="product-switcher" aria-labelledby="product-switcher-title">
+			<h2 id="product-switcher-title" class="product-switcher-title">
+				Produto
+			</h2>
+
+			<label class="product-switcher-field">
+				<span class="product-switcher-label">Mostrar</span>
+				<select id="product-select" data-context-field="product">
+					<option value="">Todos os produtos</option>
+					{registry.products.map((product) => (
+						<option value={product.id}>{product.label}</option>
+					))}
+				</select>
+			</label>
+
+			<p class="product-switcher-note">
+				A navegação passa a mostrar só este produto. Páginas dos outros continuam acessíveis por
+				link direto.
+			</p>
+		</section>
+	)
+}
+
+{/* Mapa inerte: `application/json` não executa, e o script lê com `JSON.parse`.
+    Serializar como JavaScript faria conteúdo de frontmatter virar código. */}
+<script type="application/json" id="ll-product-scope" set:html={payload} />
+
+<script>
+	const COOKIE = 'll_context';
+
+	interface ScopeData {
+		scope: Record<string, string[]>;
+		labels: Record<string, string>;
+	}
+
+	function readScope(): ScopeData {
+		const node = document.getElementById('ll-product-scope');
+		if (!node?.textContent) return { scope: {}, labels: {} };
+		try {
+			return JSON.parse(node.textContent) as ScopeData;
+		} catch {
+			return { scope: {}, labels: {} };
+		}
+	}
+
+	function readContext(): Record<string, string> {
+		const raw = document.cookie
+			.split('; ')
+			.find((entry) => entry.startsWith(`${COOKIE}=`))
+			?.slice(COOKIE.length + 1);
+
+		if (!raw) return {};
+		try {
+			return JSON.parse(decodeURIComponent(raw));
+		} catch {
+			return {};
+		}
+	}
+
+	function writeContext(context: Record<string, string>) {
+		document.cookie = `${COOKIE}=${encodeURIComponent(JSON.stringify(context))}; path=/; max-age=31536000; samesite=lax`;
+	}
+
+	/** Mesma normalização de `src/lib/products/scope.ts`, do lado do navegador. */
+	function normalizeHref(href: string): string {
+		const withoutOrigin = href.replace(/^https?:\/\/[^/]+/i, '');
+		const withoutQuery = withoutOrigin.split(/[?#]/)[0] ?? '';
+		if (withoutQuery === '') return '/';
+		const withLeading = withoutQuery.startsWith('/') ? withoutQuery : `/${withoutQuery}`;
+		return withLeading.endsWith('/') ? withLeading : `${withLeading}/`;
+	}
+
+	function belongs(products: string[] | undefined, active: string): boolean {
+		if (active === '') return true;
+		if (!products || products.length === 0) return true;
+		return products.includes(active);
+	}
+
+	/**
+	 * Esconde os links que não são do produto ativo.
+	 *
+	 * Só a **navegação** — barra lateral e menu do topo. O corpo da página nunca é
+	 * tocado: quem já está numa página do outro produto continua lendo-a inteira.
+	 *
+	 * Um grupo que fica sem nenhum link visível também some, senão a navegação
+	 * ganharia títulos apontando para lista vazia.
+	 */
+	function applyProduct(active: string, scope: Record<string, string[]>) {
+		const containers = document.querySelectorAll<HTMLElement>(
+			'.sidebar-content, nav.sidebar, [data-top-nav]'
+		);
+
+		for (const container of containers) {
+			for (const link of container.querySelectorAll<HTMLAnchorElement>('a[href]')) {
+				const products = scope[normalizeHref(link.getAttribute('href') ?? '')];
+				const item = link.closest('li') ?? link;
+				item.classList.toggle('product-hidden', !belongs(products, active));
+			}
+
+			for (const group of container.querySelectorAll<HTMLElement>('details')) {
+				const links = [...group.querySelectorAll<HTMLAnchorElement>('a[href]')];
+				const allHidden =
+					links.length > 0 &&
+					links.every((link) => link.closest('li')?.classList.contains('product-hidden'));
+				group.classList.toggle('product-hidden', allHidden);
+			}
+		}
+	}
+
+	function init() {
+		const { scope } = readScope();
+		const context = readContext();
+		const select = document.querySelector<HTMLSelectElement>('#product-select');
+
+		// A query vence o cookie: um link "veja isto no produto X" precisa
+		// funcionar para quem já tem outro produto salvo. É a precedência que
+		// `contextFromQuery` documenta em src/lib/adaptive/context.ts.
+		const fromQuery = new URLSearchParams(window.location.search).get('product');
+		const active = fromQuery ?? (typeof context.product === 'string' ? context.product : '');
+
+		if (select) select.value = active;
+		applyProduct(active, scope);
+
+		select?.addEventListener('change', () => {
+			const next = readContext();
+			if (select.value === '') delete next.product;
+			else next.product = select.value;
+
+			writeContext(next);
+			applyProduct(select.value, scope);
+			document.dispatchEvent(new CustomEvent('ll:context-changed', { detail: next }));
+		});
+	}
+
+	if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+	else init();
+
+	// A Starlight troca de página sem recarregar quando há view transitions.
+	document.addEventListener('astro:after-swap', init);
+</script>
+
+<style is:global>
+	.product-hidden {
+		display: none !important;
+	}
+</style>
+
+<style>
+	.product-switcher {
+		margin-top: 1.25rem;
+		padding-top: 1rem;
+		border-top: 1px solid var(--sl-color-gray-5);
+		font-size: var(--sl-text-xs);
+	}
+
+	.product-switcher-title {
+		margin: 0 0 0.5rem;
+		font-size: var(--sl-text-xs);
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+		color: var(--sl-color-gray-2);
+	}
+
+	.product-switcher-field {
+		display: flex;
+		flex-direction: column;
+		gap: 0.2rem;
+		margin-bottom: 0.5rem;
+	}
+
+	.product-switcher-label {
+		color: var(--sl-color-gray-2);
+	}
+
+	.product-switcher select {
+		width: 100%;
+		padding: 0.3rem 0.4rem;
+		font-size: var(--sl-text-xs);
+		color: var(--sl-color-white);
+		background: var(--sl-color-black);
+		border: 1px solid var(--sl-color-gray-5);
+		border-radius: 0.25rem;
+	}
+
+	.product-switcher-note {
+		margin: 0.5rem 0 0;
+		color: var(--sl-color-gray-3);
+		line-height: 1.5;
+	}
+</style>

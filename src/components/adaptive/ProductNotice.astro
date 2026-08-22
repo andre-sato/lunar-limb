@@ -1,0 +1,150 @@
+---
+/**
+ * Aviso de página de outro produto (issue #18).
+ *
+ * Escolher um produto tira as páginas dos outros da **navegação**, e só de lá.
+ * Um link antigo, um resultado de busca externa ou o histórico do navegador
+ * continuam levando à página, e ela é servida inteira. O que faltava era dizer
+ * ao leitor por que aquela página não aparecia no menu que ele estava usando.
+ *
+ * É o mesmo papel do `VersionNotice`: quem chega em conteúdo fora do escopo que
+ * escolheu precisa saber disso antes da primeira instrução, não depois de
+ * seguir três passos que não valiam para o produto dele.
+ *
+ * Página sem `products` no frontmatter é compartilhada e nunca recebe aviso —
+ * avisar sobre ela seria ruído em toda a documentação transversal.
+ *
+ * O aviso nasce escondido e é revelado pelo script: o produto ativo está num
+ * cookie do navegador, e a página é pré-renderizada (ADR-0003), então o servidor
+ * não tem como saber para quem renderizar o quê.
+ */
+import { loadProducts, labelFor } from '../../lib/products/registry';
+
+const data = Astro.locals.starlightRoute?.entry.data as { products?: string[] } | undefined;
+const products = data?.products ?? [];
+
+const registry = await loadProducts();
+
+// Com um produto só declarado não existe "outro produto", e o aviso nunca teria
+// motivo para aparecer.
+const enabled = registry.products.length > 1 && products.length > 0;
+
+const owners = products.map((id) => labelFor(registry, id)).join(', ');
+---
+
+{
+	enabled && (
+		<aside
+			class="product-notice product-hidden"
+			role="note"
+			data-product-notice
+			data-products={products.join(',')}
+		>
+			<p>
+				Esta página é do produto <strong>{owners}</strong>, e você está navegando por outro. O
+				conteúdo abaixo continua completo.{' '}
+				<button type="button" data-product-switch={products[0]}>
+					Mudar para {labelFor(registry, products[0]!)}
+				</button>
+			</p>
+		</aside>
+	)
+}
+
+<script>
+	const COOKIE = 'll_context';
+
+	function readContext(): Record<string, string> {
+		const raw = document.cookie
+			.split('; ')
+			.find((entry) => entry.startsWith(`${COOKIE}=`))
+			?.slice(COOKIE.length + 1);
+
+		if (!raw) return {};
+		try {
+			return JSON.parse(decodeURIComponent(raw));
+		} catch {
+			return {};
+		}
+	}
+
+	function activeProduct(): string {
+		// Mesma precedência do seletor: query antes do cookie.
+		const fromQuery = new URLSearchParams(window.location.search).get('product');
+		if (fromQuery) return fromQuery;
+		const context = readContext();
+		return typeof context.product === 'string' ? context.product : '';
+	}
+
+	function apply() {
+		const notice = document.querySelector<HTMLElement>('[data-product-notice]');
+		if (!notice) return;
+
+		const products = (notice.dataset.products ?? '').split(',').filter(Boolean);
+		const active = activeProduct();
+
+		// Sem produto escolhido não há "outro produto" — o padrão do portal é a
+		// documentação inteira, e avisar aí seria avisar sobre nada.
+		const foreign = active !== '' && products.length > 0 && !products.includes(active);
+		notice.classList.toggle('product-hidden', !foreign);
+	}
+
+	function init() {
+		apply();
+
+		document.querySelector<HTMLButtonElement>('[data-product-switch]')?.addEventListener(
+			'click',
+			(event) => {
+				const target = (event.currentTarget as HTMLElement).dataset.productSwitch;
+				if (!target) return;
+
+				const next = readContext();
+				next.product = target;
+				document.cookie = `${COOKIE}=${encodeURIComponent(JSON.stringify(next))}; path=/; max-age=31536000; samesite=lax`;
+
+				// Recarrega em vez de reaplicar no lugar: a query da URL tem
+				// precedência sobre o cookie, e um `?product=` antigo continuaria
+				// vencendo a escolha que a pessoa acabou de fazer no botão.
+				const url = new URL(window.location.href);
+				url.searchParams.delete('product');
+				window.location.href = url.toString();
+			},
+			{ once: true }
+		);
+	}
+
+	if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+	else init();
+
+	document.addEventListener('astro:after-swap', init);
+	document.addEventListener('ll:context-changed', apply);
+</script>
+
+<style>
+	.product-notice {
+		margin-block-end: 1.5rem;
+		padding: 0.7rem 0.9rem;
+		border-inline-start: 3px solid var(--sl-color-blue);
+		border-radius: 0.3rem;
+		background: var(--sl-color-blue-low);
+		font-size: var(--sl-text-sm);
+	}
+
+	.product-notice p {
+		margin: 0;
+	}
+
+	.product-notice button {
+		padding: 0.15rem 0.5rem;
+		font: inherit;
+		color: var(--sl-color-white);
+		background: transparent;
+		border: 1px solid var(--sl-color-gray-4);
+		border-radius: 0.25rem;
+		cursor: pointer;
+	}
+
+	.product-notice button:hover {
+		background: var(--sl-color-gray-6);
+	}
+</style>

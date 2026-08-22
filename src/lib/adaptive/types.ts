@@ -96,10 +96,25 @@ export interface PageContextMeta {
 	path: string;
 	title?: string;
 	url?: string;
+	/**
+	 * `slug` declarado no frontmatter, quando há. A URL publicada vem dele e não
+	 * do caminho do arquivo — quem monta URL a partir desta estrutura precisa
+	 * saber disso para não apontar para uma rota que dá 404.
+	 */
+	slug?: string;
 	audiences: AudienceTarget[];
 	tags: string[];
 	version?: string;
 	product?: string;
+	/**
+	 * Produtos declarados pela página (issue #18). Lista **vazia** significa
+	 * compartilhada: a página vale para todos os produtos.
+	 *
+	 * Convive com `product`, que é o campo escalar que a adaptação já pontuava
+	 * antes de existir navegação por produto. `products` é a lista normalizada
+	 * dos dois — quem filtra lê esta, quem pontua continua podendo ler aquele.
+	 */
+	products: string[];
 	experience?: Experience;
 }
 

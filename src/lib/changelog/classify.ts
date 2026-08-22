@@ -33,6 +33,26 @@ export interface Classified {
 }
 
 /**
+ * O produto de um commit, quando dá para saber (issue #18).
+ *
+ * O escopo do Conventional Commit é a única pista que o histórico oferece:
+ * `feat(payments): ...` é sobre o produto `payments` **se** `payments` for um
+ * produto declarado. Escopo que não casa com nenhum id continua sendo só escopo
+ * — `feat(editor)` é sobre o editor, que é parte do portal, não um produto.
+ *
+ * Deliberadamente conservador: inventar produto a partir de escopo livre
+ * espalharia o changelog em seções que não correspondem a nada, e a seção sem
+ * produto ("todos") é um destino correto, não uma falha de classificação.
+ */
+export function productFor(
+	scope: string | undefined,
+	knownProducts: readonly string[]
+): string | undefined {
+	if (!scope) return undefined;
+	return knownProducts.includes(scope) ? scope : undefined;
+}
+
+/**
  * Todos os arquivos tocados são ruído?
  *
  * Um commit que só mexe em `package-lock.json` não muda nada para quem integra.
@@ -95,6 +115,7 @@ export function classify(commit: CommitInfo, config: ChangelogConfig): Classifie
 			text: parsed.description,
 			original: commit.subject,
 			scope: parsed.scope,
+			product: productFor(parsed.scope, config.products),
 			breaking: parsed.breaking,
 			breakingNote: parsed.breakingNote,
 			pullRequest: commit.pullRequest,

@@ -34,6 +34,7 @@ conjunto: que alguém já pensou nisso, com aqueles dados, e concluiu diferente.
 | [0018](0018-alvo-sem-correspondencia.md) | Alvo sem correspondência bloqueia, e JSONPath é subconjunto declarado | Aceita |
 | [0019](0019-observabilidade-nativa-e-do11y.md) | Observabilidade nativa e Do11y | Aceita |
 | [0020](0020-changelog-para-em-pull-request.md) | O changelog gerado para num pull request | Aceita |
+| [0021](0021-produto-particiona-a-navegacao.md) | Produto particiona a navegação, não o acesso | Aceita |
 
 ## Formato
 

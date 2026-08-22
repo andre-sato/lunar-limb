@@ -1,0 +1,128 @@
+---
+title: Navegação por produto
+description: Como um portal documenta vários produtos, o seletor, o que fica compartilhado e o aviso de página de outro produto.
+sidebar:
+  order: 34
+tags: [guia, portal]
+owner: Time de Documentação
+audiences: [developer, product]
+governance:
+  owner:
+    type: team
+    id: documentation
+  review:
+    interval: 180d
+    at: 2026-08-21
+    by: mestre
+---
+
+Um portal pode documentar mais de um produto. Escolher um produto tira da
+navegação os guias, exemplos e páginas de API dos outros.
+
+`organization.yml` é o registro: quais produtos existem, com que rótulo e de que
+time.
+
+```yaml
+organization:
+  products:
+    - id: portal
+      label: Portal de documentação
+      owner: documentation
+    - id: payments
+      label: Pagamentos
+      owner: payments-team
+```
+
+O mesmo arquivo já declarava os produtos para o painel de organização. Não há um
+segundo registro: dois lugares dizendo quais produtos existem só divergem no dia
+em que alguém edita um e esquece o outro.
+
+## Declarar o produto de uma página
+
+No frontmatter, com a lista dos produtos a que a página serve:
+
+```yaml
+---
+title: Autenticação por token
+products: [payments]
+---
+```
+
+Uma página pode servir mais de um produto sem ser duplicada:
+
+```yaml
+products: [portal, payments]
+```
+
+**Página sem `products` é compartilhada** e aparece na navegação de todos os
+produtos. É o caso da maior parte da documentação — primeiros passos, glossário,
+autenticação — e é o padrão de propósito: o custo de esquecer o campo é uma
+página a mais na lista, não uma página que some.
+
+O id precisa existir em `organization.yml`. Um erro de digitação prende a página
+a um produto que ninguém pode selecionar, e ela sai da navegação de todo mundo —
+por isso o build avisa, dizendo a página e o produto.
+
+## O que o seletor faz, e o que ele não faz
+
+O seletor fica na barra lateral e grava a escolha num cookie do navegador. Com um
+produto só declarado ele não aparece: um seletor de uma opção é ruído.
+
+**Ele esconde da navegação.** A barra lateral e o menu do topo passam a listar só
+o produto escolhido, mais o que é compartilhado.
+
+**Ele não esconde a página.** Nenhuma URL deixa de funcionar. Quem chega numa
+página de outro produto por link, busca externa ou histórico lê a página inteira
+e recebe um aviso no topo dizendo de que produto ela é, com um botão para trocar.
+
+A distinção é deliberada e está registrada na
+[ADR-0021](https://github.com/andre-sato/lunar-limb/blob/master/docs/adr/0021-produto-particiona-a-navegacao.md):
+audiência é perspectiva sobre o mesmo assunto, e por isso o `AudienceSwitcher`
+apenas recolhe blocos sem remover nada. Produto é assunto diferente, e manter a
+documentação do produto B na navegação do A não preserva informação — só enche a
+lista de respostas para perguntas que ninguém fez.
+
+## Compartilhar um link já filtrado
+
+`?product=payments` na URL vence o cookie. É a mesma precedência da documentação
+adaptativa: um link "veja isto no produto X" precisa funcionar para quem já tem
+outro produto salvo.
+
+## Changelog
+
+O changelog continua sendo **um arquivo por mês, com todos os produtos** — quem
+o lê quer saber o que mudou no mês, e ter de abrir cinco páginas para montar essa
+resposta é pior que ler uma com cinco subtítulos.
+
+Dentro de cada seção do mês, as entradas são agrupadas por produto. O produto vem
+do escopo do commit quando ele casa com um id declarado:
+
+```
+feat(payments): novo endpoint de estorno
+```
+
+Escopo que não é um produto continua sendo só escopo — `feat(editor)` é sobre o
+editor, que é parte do portal e não um produto. As entradas sem produto aparecem
+primeiro, sem subtítulo: elas valem para todo mundo, e enterrá-las depois dos
+produtos faria quem lê só a sua seção perder justamente o que era transversal.
+
+### O que está feito e o que não está
+
+Feito: o registro de produtos alimentado pelo `organization.yml`, o campo
+`products` no frontmatter com validação no build, o seletor, a filtragem da barra
+lateral e do menu do topo, o aviso de página de outro produto, o link com
+`?product=`, e o agrupamento por produto dentro do changelog mensal.
+
+**Não feito**, e vale saber antes de contar com isso:
+
+- **A busca não é filtrada por produto.** O índice do Pagefind é único e
+  construído no build. Uma busca por termo do produto B devolve resultados do
+  produto B mesmo com o produto A selecionado.
+- **Assistente, MCP e linter operam sobre o conteúdo inteiro** — a mesma
+  limitação que o [versionamento](/guides/versionamento/) já declara.
+- **Não há versão semântica por produto.** Cada produto tem sua *visão* do
+  portal, não seu próprio `v1`/`v2`. O `versions.yml` continua com um eixo só, e
+  dar-lhe um eixo de produto exigiria redesenhar o espaço de URL.
+- **A referência de API não casa produto com schema.** Um `src/schemas/<nome>.yaml`
+  vira páginas sozinho, mas o produto delas precisa ser declarado à mão nas
+  páginas de `api-reference/`.
