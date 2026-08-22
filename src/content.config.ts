@@ -31,6 +31,12 @@ export const collections = {
 				 * (§16). O padrão é ligado.
 				 */
 				glossary: z.boolean().optional(),
+				/**
+				 * Produtos a que a página pertence (issue #18). Ausente significa
+				 * **compartilhada**: a página aparece na navegação de todos os
+				 * produtos. Os ids vêm de `organization.yml`.
+				 */
+				products: z.array(z.string()).optional(),
 			}),
 		}),
 	}),

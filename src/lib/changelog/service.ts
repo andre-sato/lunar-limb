@@ -15,6 +15,7 @@ import path from 'node:path';
 import { commitsInRange } from '../history/git';
 import { parseOpenApi, type ApiModel } from '../api-explorer/model';
 import { classify, orderEntries } from './classify';
+import { loadProducts } from '../products/registry';
 import { findEndpoints, linkEndpoints } from './endpoints';
 import { fileNameFor } from './render';
 import {
@@ -68,6 +69,14 @@ export async function generateChangelog(
 ): Promise<MonthlyChangelog> {
 	const config = { ...DEFAULT_CONFIG, ...overrides };
 	const { from, to } = monthWindow(period);
+
+	// Os produtos vêm do registro, e não de configuração própria do changelog: é
+	// o mesmo `organization.yml` que a navegação lê, e duas listas de produto que
+	// divergem produziriam um changelog agrupado por produtos que o portal não
+	// reconhece. Quem passa `products` no override manda — é o que os testes usam.
+	if (overrides.products === undefined) {
+		config.products = (await loadProducts()).products.map((product) => product.id);
+	}
 
 	const [commits, model] = await Promise.all([commitsInRange(from, to), loadModel(config)]);
 

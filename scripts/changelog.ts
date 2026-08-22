@@ -18,6 +18,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { generateChangelog, nextOrder, outputPathFor, previousMonth } from '../src/lib/changelog/service';
 import { periodLabel, renderChangelog } from '../src/lib/changelog/render';
+import { loadProducts } from '../src/lib/products/registry';
 import { CATEGORY_LABEL, DEFAULT_CONFIG } from '../src/lib/changelog/types';
 
 const COLORS = {
@@ -110,7 +111,18 @@ async function main(): Promise<number> {
 	const output = outputPathFor(period);
 	const target = path.resolve(process.cwd(), output);
 	await mkdir(path.dirname(target), { recursive: true });
-	await writeFile(target, renderChangelog(changelog, { order: await nextOrder(DEFAULT_CONFIG) }), 'utf-8');
+	// Os rótulos vêm do registro para o subtítulo dizer "Portal de documentação"
+	// e não `portal`: o id serve à máquina, o rótulo é o que a pessoa lê.
+	const registry = await loadProducts();
+	const productLabels = Object.fromEntries(
+		registry.products.map((product) => [product.id, product.label])
+	);
+
+	await writeFile(
+		target,
+		renderChangelog(changelog, { order: await nextOrder(DEFAULT_CONFIG), productLabels }),
+		'utf-8'
+	);
 
 	console.log(`  ${paint('✓', 'green')} ${output}`);
 	console.log(paint('    Revise antes de publicar — o texto vem de mensagens de commit.', 'dim'));

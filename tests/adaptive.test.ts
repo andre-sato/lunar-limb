@@ -30,6 +30,7 @@ function page(partial: Partial<PageContextMeta> = {}): PageContextMeta {
 		url: '/guides/a/',
 		audiences: [],
 		tags: [],
+		products: [],
 		...partial,
 	};
 }

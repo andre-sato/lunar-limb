@@ -47,6 +47,16 @@ export interface ChangelogEntry {
 	/** O texto original do commit, guardado para revisão. */
 	original: string;
 	scope?: string;
+	/**
+	 * Produto afetado (issue #18), inferido do escopo do commit quando ele casa
+	 * com um id declarado em `organization.yml`.
+	 *
+	 * Ausente significa "vale para o portal todo", e é o caso comum: a maioria
+	 * dos commits não é de um produto só. O changelog continua sendo **um
+	 * arquivo por mês** com todos os produtos — este campo agrupa dentro do mês,
+	 * não divide em arquivos.
+	 */
+	product?: string;
 	breaking: boolean;
 	breakingNote?: string;
 	pullRequest?: number;
@@ -102,6 +112,14 @@ export interface ChangelogConfig {
 	apiReferenceBase: string;
 	/** Enriquecer o texto com modelo de linguagem, quando houver chave. */
 	enrich: boolean;
+	/**
+	 * Ids de produto declarados em `organization.yml` (issue #18). Um escopo de
+	 * commit que casa com um deles vira o produto da entrada.
+	 *
+	 * Lista vazia desliga a inferência — que é o comportamento de quem só tem um
+	 * produto, e o mesmo changelog de antes desta funcionalidade.
+	 */
+	products: string[];
 }
 
 export const DEFAULT_CONFIG: ChangelogConfig = {
@@ -117,4 +135,7 @@ export const DEFAULT_CONFIG: ChangelogConfig = {
 	// chave ele reescreve. Ligar por padrão faria o resultado depender de um
 	// segredo que nem toda instalação tem — ADR-0016.
 	enrich: false,
+	// Preenchido por quem gera, a partir do registro. O padrão vazio mantém o
+	// changelog idêntico ao de antes para quem tem um produto só.
+	products: [],
 };
