@@ -1,0 +1,140 @@
+---
+type: Guide
+title: Lacunas de documentação
+description: Como o portal descobre o que as pessoas procuram e não encontram, prioriza o trabalho e confere se a lacuna realmente sumiu.
+resource: https://docs.suaempresa.com/guides/lacunas-de-documentacao/
+tags:
+  - guia
+  - qualidade
+  - portal
+status: stable
+generated:
+  by: process:okf-export
+  at: '2026-08-22T12:12:38.074Z'
+sources:
+  - id: repo
+    resource: src/content/docs/guides/lacunas-de-documentacao.mdx
+    title: src/content/docs/guides/lacunas-de-documentacao.mdx no repositório
+    last_modified: '2026-08-22T00:41:25.390Z'
+audiences:
+  - product
+  - developer
+owner:
+  type: team
+  id: documentation
+---
+
+Saber que uma página teve dez mil acessos não diz nada sobre o que falta. A
+pergunta desta camada é outra:
+
+**Que informação as pessoas procuram e não encontram?**
+
+Ela cruza busca, assistente, MCP, feedback, contratos e o Digital Twin, e devolve
+um backlog priorizado — em **Settings → Gaps** e na linha de comando.
+
+```bash
+npm run gaps -- analyze
+npm run gaps -- show <id>
+npm run gaps -- start <id>
+npm run gaps -- resolve <id>
+```
+
+## Publicar não é resolver
+
+É a regra que dá sentido ao resto. Um gap **não** sai da fila porque alguém criou
+uma página — sai quando o sinal que o originou cai.
+
+O fluxo é: `começar` registra o sinal de hoje como linha de base; a equipe
+escreve, revisa e publica; depois, `resolver` compara. Se as consultas e as
+respostas sem lastro não caíram pelo menos dois terços, o comando **recusa** e
+diz por quê.
+
+Não se exige queda a zero: uma pergunta continua sendo feita mesmo quando a
+resposta existe, e esperar zero manteria todo gap aberto para sempre.
+
+## Os seis tipos
+
+Cada um leva a uma ação diferente — que é por que a camada classifica em vez de
+contar "faltando".
+
+| Tipo | Quando | O que fazer |
+| --- | --- | --- |
+| **Falta documentação** | nada relevante existe | criar página, ou documentar o endpoint |
+| **Incompleta** | existe e responde em parte | acrescentar a seção que falta |
+| **Desatualizada** | o Twin ou o Contract Testing acusaram divergência | atualizar o conteúdo |
+| **Pouco clara** | existe e as pessoas continuam perguntando, com grafias concorrentes | padronizar a terminologia |
+| **Difícil de achar** | a página responde e ninguém chega até ela | mexer na navegação, não no texto |
+| **Contraditória** | duas páginas dizem coisas diferentes | conferir no produto e corrigir a divergente |
+
+### Cobertura não é relevância de busca
+
+A distinção decidiu a utilidade da camada inteira. A busca **sempre devolve
+algo**: o BM25 normaliza pelo melhor resultado, então o primeiro colocado marca
+perto de 1 mesmo quando o portal não tem uma linha sobre o assunto.
+
+Na primeira execução real, "como rotacionar a chave de API" — sobre a qual não
+existe nada aqui — foi classificada como *difícil de achar*, com 100% de
+cobertura.
+
+O que a camada mede agora é a **presença dos termos da pergunta** nas páginas
+encontradas. A relevância entra como tempero.
+
+## Agrupamento
+
+"How rotate API key?", "Can I change API key?" e "Where can I regenerate API
+key?" são a mesma dúvida. Sem agrupar, o sistema criaria três tarefas para um
+problema.
+
+O agrupamento é lexical, com dobra de acento e o mesmo radicalizador leve que a
+busca usa. A §13 da spec sugere embeddings, e o projeto tem a infraestrutura de
+RAG — mas embeddings aqui significariam chamar um provedor a cada análise para
+separar frases de cinco palavras, e a estrutura aceita trocar a métrica sem mexer
+no resto.
+
+**A limitação honesta**: sinônimos que não compartilham radical não se juntam.
+"chave" e "key" ficam em grupos diferentes. É o caso em que embeddings ajudariam.
+
+O limiar é alto de propósito: agrupar demais funde dúvidas diferentes numa tarefa
+só, e o resultado é uma página que responde metade de cada uma.
+
+### Termos de admissão e termos de cobertura
+
+O grupo admite novas perguntas pela **interseção** dos termos, e mede cobertura
+pela **união**. Usar a interseção nos dois lugares deu um erro real: juntando
+"rotacionar a chave de api" com "trocar a chave de api", o que sobra é `chave,
+api` — que o portal documenta — e a cobertura saía 100% para rotação de chave.
+
+## Score e prioridade
+
+Combina demanda, falha do assistente, cobertura baixa, insatisfação e contrato
+quebrado. Cada fator aparece com pontos e motivo: um número que ninguém consegue
+conferir é um número que a equipe reordena por conta própria.
+
+Contrato quebrado pesa muito, e por um motivo específico: documentação que
+diverge do produto é **pior** que documentação ausente — ela leva a pessoa a fazer
+a coisa errada com confiança.
+
+As faixas são `90–100 → P0`, `70–89 → P1`, `40–69 → P2`, `0–39 → P3`.
+
+## Privacidade
+
+O texto das perguntas continua **desligado por padrão**, pela decisão que este
+portal já tinha tomado: o histórico de perguntas é o dado mais sensível daqui — é
+onde as pessoas escrevem o que não sabem.
+
+Ligado (`documentation.analytics.storeUnansweredQuestions` em `health.yml`), o
+registro guarda apenas a pergunta que **não** foi respondida, sem quem perguntou,
+truncada, com credenciais redigidas e com botão de apagar.
+
+Desligado, a camada continua funcionando com os sinais estruturais — endpoint sem
+página, contrato quebrado, voto negativo, proveniência inválida — e o relatório
+diz, na primeira linha, que está trabalhando com menos.
+
+## Rascunho por IA
+
+A spec prevê que a IA gere um rascunho para a lacuna. O que existe hoje é a
+**recomendação estruturada**: a ação, o arquivo sugerido e o roteiro em tópicos.
+
+O rascunho gerado não foi implementado, e quando for, o fluxo é o que a spec fixa
+e este portal já tem: rascunho → revisão humana → linter → testes de documentação
+→ testes de contrato → pull request. **Nunca publicação automática.**

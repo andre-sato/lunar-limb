@@ -1,0 +1,183 @@
+---
+type: Guide
+title: Changelog automático
+description: Como o changelog mensal é gerado a partir dos commits, o que ele filtra, e por que ele para antes de publicar.
+resource: https://docs.suaempresa.com/guides/changelog-automatico/
+tags:
+  - guia
+  - portal
+  - api
+status: stable
+generated:
+  by: process:okf-export
+  at: '2026-08-22T12:12:38.074Z'
+verified:
+  - by: human:mestre
+    at: '2026-08-21T00:00:00.000Z'
+stale_after: '2027-02-17T00:00:00.000Z'
+sources:
+  - id: repo
+    resource: src/content/docs/guides/changelog-automatico.mdx
+    title: src/content/docs/guides/changelog-automatico.mdx no repositório
+    last_modified: '2026-08-22T00:41:25.384Z'
+audiences:
+  - developer
+  - product
+  - operations
+owner:
+  type: team
+  id: documentation
+---
+
+Todo dia 1º, uma automação lê os commits do mês anterior e abre um pull request
+com a página de changelog daquele mês.
+
+O que ela produz **não** é o histórico do Git formatado. É um documento de gestão
+de mudança, escrito para quem integra com o produto — e a maior parte dos commits
+de um mês não pertence a ele.
+
+## O que ela filtra, e por quê
+
+De 97 commits deste repositório num mês, quase todos são manutenção: dependência
+atualizada, módulo reorganizado, teste acrescentado. Nada disso muda uma linha do
+código de quem integra.
+
+```text
+commits do mês  ──►  filtro  ──►  tradução  ──►  documento
+     97                            2 itens
+```
+
+Sai de fora, por padrão:
+
+| Descartado | Por quê |
+| --- | --- |
+| `chore`, `refactor`, `test`, `ci`, `build`, `style`, `perf` | Manutenção: não muda nada para quem integra |
+| Escopo `deps`, `deps-dev`, `release` | Idem, mesmo com tipo relevante |
+| Commits que só tocam `package-lock.json`, `.github/` | Nenhum efeito visível de fora |
+| Mensagens fora de Conventional Commits | Não há como saber o que são |
+
+**Na dúvida, fora**
+Os custos não são simétricos. Um item de manutenção que escapa custa a atenção de
+todo leitor daquele mês; um item relevante filtrado por engano custa uma linha que
+alguém acrescenta na revisão do pull request.
+
+**Uma exceção, e ela importa**: uma mudança incompatível entra sempre, mesmo com
+tipo de manutenção. Um `refactor!` que altera um contrato é o item mais caro do
+mês, e filtrá-lo pelo tipo publicaria silêncio justamente sobre ele.
+
+## O que ela precisa de você
+
+A automação só consegue separar o que interessa quando a mensagem do commit diz o
+que é. O formato é o [Conventional Commits](https://www.conventionalcommits.org/):
+
+```text
+feat(auth): expõe o perfil da sessão em GET /auth/me
+fix(chat): corrige limite de uso em POST /chat/message
+chore(deps): atualiza vitest
+```
+
+### Mudança incompatível
+
+Três formas, todas equivalentes — mas a nota é o que o leitor lê:
+
+```text
+feat(feedback)!: exige `path` em POST /feedback
+
+BREAKING CHANGE: chamadas sem `path` passam a devolver 400. Antes o campo era
+opcional e o voto era registrado sem página.
+```
+
+Sem a nota, o item sai marcado como incompatível e com um aviso de que ninguém
+explicou o que quebra. Ele é publicável; só não é útil.
+
+### Depreciação
+
+```text
+docs(api): anuncia a saída do endpoint antigo de branches
+
+DEPRECATED: GET /editor/git/branches
+END-OF-LIFE: 2027-03-01
+MIGRATION: /guides/workflow-de-git/
+```
+
+`END-OF-LIFE` precisa ser uma data. `em breve` é rejeitado — um prazo que não
+permite planejar, registrado como se fosse um, dá falsa precisão a um aviso que
+as pessoas usam para agendar trabalho.
+
+Depreciações vão sempre para a seção de ciclo de vida, qualquer que seja o tipo
+do commit. É onde o leitor as procura.
+
+## Endpoints viram link — só os que existem
+
+Uma citação como `POST /feedback` é resolvida contra a especificação OpenAPI. O
+que existe vira link para a referência; o que não existe sai como código, e a
+geração registra a pendência.
+
+```text
+1 pendência(s) antes de publicar
+    2e83fcf: `POST /v9/inexistente` não existe na especificação — saiu sem link.
+```
+
+Um regex que transformasse qualquer `POST /alguma-coisa` em link produziria
+páginas com links quebrados — e o changelog é lido justamente por quem vai
+tentar usar aquilo.
+
+A validação usa o mesmo `ApiModel` que move o Explorer, os contratos e o SDK.
+
+## Por que ela abre um pull request em vez de publicar
+
+O changelog é o documento que um cliente lê para decidir se precisa mexer no
+código dele. O texto vem de mensagens de commit que ninguém escreveu pensando num
+cliente.
+
+A automação faz o trabalho todo e para no último passo. No pull request, confira:
+
+- as mudanças marcadas como incompatíveis, e se a nota explica o que quebra;
+- as depreciações, e se a data de fim de vida está correta;
+- se sobrou jargão interno.
+
+É a mesma regra dos [agentes](/guides/agentes-de-documentacao.md) e do
+[self-healing](/guides/self-healing.md): nada é publicado sem aprovação humana.
+
+## Mês vazio não vira página
+
+Se nenhum commit do mês interessa ao leitor, nada é gerado — e a saída diz por
+quê:
+
+```text
+Nenhuma mudança de interesse de quem integra neste mês.
+97 de 97 commits não seguem Conventional Commits e ficaram de fora.
+```
+
+Essa distinção é o ponto. Um mês vazio por falta de convenção e um mês vazio
+porque nada aconteceu produzem a mesma página em branco, e levam a conclusões
+opostas: "a automação quebrou" e "o produto está estável".
+
+Publicar "nenhuma mudança relevante" todo mês tem um custo pior: ensina o leitor
+a não abrir o changelog — e aí ele não abre no mês em que algo quebra.
+
+## Uso
+
+```bash
+npm run changelog                        # mês anterior, só mostra
+npm run changelog -- --period 2026-07    # um mês específico
+npm run changelog -- --period 2026-07 --write
+npm run changelog -- --json
+```
+
+O padrão é **mostrar, não gravar**. Códigos de saída: `0` ok, `1` nada a
+publicar, `2` uso inválido, `3` erro.
+
+A automação vive em `.github/workflows/changelog.yml` e aceita disparo manual
+com um período qualquer — útil para gerar um mês que passou.
+
+## O que ela não faz
+
+- **Não inventa contexto de negócio.** Se o commit diz "corrige limite de uso", é
+  isso que sai. Enriquecer com modelo de linguagem é opcional e desligado por
+  padrão, pela mesma razão de sempre: o resultado não deve depender de um segredo
+  que nem toda instalação tem.
+- **Não lê Jira, Linear ou Trello.** A spec da issue os menciona como fonte de
+  contexto; o gerador ainda não os consulta.
+- **Não corrige a sua mensagem de commit.** O que você escreveu é o que o cliente
+  lê, depois da revisão.

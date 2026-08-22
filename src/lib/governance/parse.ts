@@ -82,8 +82,7 @@ interface RawGovernance {
 
 export function parseGovernance(path: string, raw: string): PageGovernance {
 	const body = frontmatterOf(raw);
-	const page: PageGovernance = { path, inherited: {} };
-	if (!body) return page;
+	if (!body) return { path, inherited: {} };
 
 	let parsed: Record<string, unknown> | null | undefined;
 	try {
@@ -92,8 +91,25 @@ export function parseGovernance(path: string, raw: string): PageGovernance {
 		// Frontmatter ilegível: a página continua publicável, só fica sem governança
 		// declarada. Derrubar a leitura inteira trocaria um defeito pequeno por um
 		// grande.
-		return page;
+		return { path, inherited: {} };
 	}
+
+	return governanceFromFrontmatter(path, parsed);
+}
+
+/**
+ * A mesma leitura, a partir do frontmatter **já interpretado**.
+ *
+ * Existe para quem chega com o objeto na mão em vez do arquivo cru — o gerador
+ * de OKF (issue #16) é o primeiro caso. A alternativa seria ele re-serializar o
+ * frontmatter só para esta função tornar a interpretá-lo, e aí duas leituras de
+ * governança conviveriam no repositório esperando para divergir.
+ */
+export function governanceFromFrontmatter(
+	path: string,
+	parsed: Record<string, unknown> | null | undefined
+): PageGovernance {
+	const page: PageGovernance = { path, inherited: {} };
 	if (!parsed) return page;
 
 	const block = (parsed.governance ?? {}) as RawGovernance;

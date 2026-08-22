@@ -1,0 +1,264 @@
+---
+type: Guide
+title: Edite os diagramas
+description: Como os diagramas do portal são feitos, como alterar um e como criar outro sem quebrar o tema, a acessibilidade nem o build.
+resource: https://docs.suaempresa.com/guides/diagramas/
+tags:
+  - guia
+  - conteudo
+  - portal
+status: stable
+generated:
+  by: process:okf-export
+  at: '2026-08-22T12:12:38.074Z'
+sources:
+  - id: repo
+    resource: src/content/docs/guides/diagramas.mdx
+    title: src/content/docs/guides/diagramas.mdx no repositório
+    last_modified: '2026-08-22T01:44:56.370Z'
+owner:
+  type: team
+  id: documentation
+translations:
+  en: /en/guides/diagramas/
+  es: /es/guides/diagramas/
+---
+
+Os diagramas deste portal não são imagens. Cada um é um componente Astro com SVG
+escrito à mão, em `src/components/docs/`:
+
+```text
+src/components/docs/
+├── DiagramaArquitetura.astro    # portal, editor e arquivos
+├── DiagramaLayoutEditor.astro   # painéis do editor
+└── DiagramaReuso.astro          # duplicação contra reuso
+```
+
+## Por que não uma imagem
+
+Uma imagem PNG exportada de uma ferramenta de desenho resolve o primeiro dia e
+cobra depois. Ela não acompanha o tema claro e escuro, aparece borrada em tela de
+alta densidade e não tem texto que a busca encontre nem que um leitor de tela
+anuncie.
+
+Pior: ela vira um binário no repositório. Ninguém revisa a mudança de um diagrama
+num pull request — só vê que "a imagem mudou".
+
+O SVG resolve os quatro. As cores vêm das variáveis do tema, o texto é texto, e a
+alteração aparece no diff linha a linha.
+
+O custo é escrever coordenadas à mão. Para os diagramas de caixas e setas que a
+documentação técnica usa, é um custo pequeno — e este guia é o atalho.
+
+## Use um diagrama em uma página
+
+Importe o componente e escreva a tag. Só funciona em arquivos `.mdx`: um `.md`
+puro não tem componentes.
+
+```mdx
+---
+title: Minha página
+---
+
+Texto que introduz o diagrama.
+
+```
+
+O caminho relativo tem três níveis porque a página está em
+`src/content/docs/guides/`. De uma pasta mais rasa ou mais funda, ajuste a
+quantidade de `../`.
+
+O resultado:
+
+**No editor você não vê o desenho**
+O preview do editor mostra componentes como uma caixa com o nome deles — ele não
+executa componentes Astro. Para ver o diagrama, rode `npm run dev` e abra a
+página no navegador.
+
+## A anatomia de um diagrama
+
+Abra `DiagramaReuso.astro` e você encontra três partes.
+
+### O sistema de coordenadas
+
+O `viewBox` define a área de desenho, e o CSS faz o SVG ocupar a largura
+disponível. As coordenadas não são pixels da tela: são unidades do desenho,
+esticadas junto com ele.
+
+```astro
+<svg viewBox="0 0 620 300" role="img" aria-labelledby="reuso-titulo reuso-desc">
+```
+
+Lê-se assim: a área vai de `(0, 0)` a `(620, 300)`. O `y` **cresce para baixo** —
+é a inversão que mais confunde quem começa.
+
+### Os elementos
+
+Uma caixa é um `rect` com canto arredondado; um rótulo é um `text`; uma ligação é
+uma `line` com ponta de seta.
+
+```astro
+<rect x="356" y="112" width="132" height="46" rx="6" class="caixa caixa--destaque" />
+<text x="422" y="132" class="rotulo rotulo--forte">aviso.md</text>
+<line x1="488" y1="135" x2="536" y2="135" class="seta" marker-end="url(#ponta2)" />
+```
+
+O `x`/`y` de um `rect` é o canto superior esquerdo. O de um `text` é a **linha de
+base**, e a classe `.rotulo` centraliza na horizontal com `text-anchor: middle`.
+Na prática: para centralizar um rótulo numa caixa, use o `x` do meio da caixa e
+um `y` cerca de 4 unidades abaixo do meio dela.
+
+### A ponta da seta
+
+A ponta é um `marker` declarado dentro de `defs`, e cada linha aponta para ele
+por `marker-end`.
+
+## As classes disponíveis
+
+| Classe | Para quê |
+| --- | --- |
+| `caixa` | Retângulo padrão, cinza |
+| `caixa--destaque` | Borda de acento, para o elemento central |
+| `caixa--erro` | Borda vermelha tracejada, para o que não se deve fazer |
+| `rotulo` | Texto centralizado |
+| `rotulo--forte` | Negrito, para o nome do elemento |
+| `rotulo--fraco` | Menor e apagado, para a explicação |
+| `rotulo--titulo` | Caixa alta espaçada, para título de área |
+| `seta` | Linha de ligação |
+| `divisoria` | Linha tracejada que separa áreas |
+
+Cada diagrama declara as suas no próprio arquivo. Ao criar um novo, copie o bloco
+de estilo de um existente: você evita reinventar os nomes e mantém os diagramas
+parecidos entre si.
+
+## Cores: use as variáveis, nunca um hex
+
+Esta é a regra sem exceção — a diferença entre um diagrama que acompanha o tema
+e um que só existe no escuro:
+
+```css
+/* certo — acompanha o tema */
+.caixa { fill: var(--sl-color-gray-6); stroke: var(--sl-color-gray-5); }
+
+/* errado — some no tema claro */
+.caixa { fill: #1b2331; stroke: #2a3446; }
+```
+
+As variáveis úteis:
+
+| Variável | Uso |
+| --- | --- |
+| `--sl-color-white` | Texto principal |
+| `--sl-color-gray-2` | Texto secundário |
+| `--sl-color-gray-5` | Bordas |
+| `--sl-color-gray-6` | Preenchimento de caixa |
+| `--sl-color-accent` | Destaque |
+| `--sl-color-red` | O que está errado |
+
+Evite `--sl-color-gray-3` para texto: sobre o preenchimento da caixa ele dá
+1,97:1 de contraste no tema claro, contra 4,73:1 do `--sl-color-gray-2`. Os
+diagramas deste portal já tiveram esse defeito, e ele só apareceu quando alguém
+abriu a página no tema claro.
+
+É por isso que a conferência nos dois temas não é formalidade. O alternador fica
+no topo da página, e um diagrama que ficou bom no escuro pode sumir no claro.
+
+## Acessibilidade
+
+Todo diagrama declara três coisas:
+
+```astro
+<svg viewBox="0 0 620 300" role="img" aria-labelledby="reuso-titulo reuso-desc">
+	<title id="reuso-titulo">Duplicação contra reuso</title>
+	<desc id="reuso-desc">
+		À esquerda, três páginas com o mesmo texto copiado, que saem de sincronia.
+		À direita, um bloco canônico referenciado pelas três páginas.
+	</desc>
+```
+
+O `title` é o nome; a `desc` conta o que o desenho mostra, para quem não o vê.
+Escreva a descrição como você explicaria o diagrama por telefone — sem repetir o
+título e sem listar as caixas uma a uma.
+
+## A armadilha dos identificadores
+
+Identificadores de SVG são **globais na página**, não locais ao componente. Dois
+diagramas na mesma página, cada um com um marcador chamado `ponta`, colidem: o
+segundo é ignorado e as setas dele ficam sem ponta.
+
+É por isso que os arquivos deste portal usam `ponta` e `ponta2`. Ao criar um
+diagrama com setas, dê ao marcador um nome que ninguém mais vá usar:
+
+```astro
+<marker id="ponta-fluxo-pagamento" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+	<path d="M0 0 L10 5 L0 10 z" fill="var(--sl-color-gray-4)" />
+</marker>
+```
+
+O mesmo vale para os identificadores de `title` e `desc`, que o `aria-labelledby`
+referencia. Prefixe com o nome do diagrama.
+
+## Crie um diagrama novo
+
+1. Copie o arquivo mais parecido em `src/components/docs/` com um nome novo.
+2. Troque os identificadores: o do marcador, o do título e o da descrição.
+3. Ajuste o `viewBox` para a proporção que você quer. Comece largo e baixo, como
+   `0 0 620 300`: um diagrama alto demais fica pequeno na largura do texto.
+4. Reposicione as caixas. Trabalhe com números redondos nas coordenadas — são
+   mais fáceis de alinhar de cabeça.
+5. Escreva o `title` e a `desc`.
+6. Importe na página e confira nos dois temas.
+
+O esqueleto abaixo tem uma caixa de origem, uma de destino e a seta entre elas —
+o suficiente para começar a mover coordenadas:
+
+```astro
+---
+// Uma linha dizendo o que este diagrama mostra.
+---
+
+<figure class="diagrama">
+	<svg viewBox="0 0 620 200" role="img" aria-labelledby="meu-titulo meu-desc">
+		<title id="meu-titulo">Título curto</title>
+		<desc id="meu-desc">O que o desenho mostra, em uma ou duas frases.</desc>
+
+		<rect x="40" y="60" width="140" height="48" rx="6" class="caixa" />
+		<text x="110" y="90" class="rotulo">origem</text>
+
+		<line x1="180" y1="84" x2="260" y2="84" class="seta" marker-end="url(#ponta-meu)" />
+
+		<rect x="260" y="60" width="140" height="48" rx="6" class="caixa caixa--destaque" />
+		<text x="330" y="90" class="rotulo rotulo--forte">destino</text>
+
+		<defs>
+			<marker id="ponta-meu" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+				<path d="M0 0 L10 5 L0 10 z" fill="var(--sl-color-gray-4)" />
+			</marker>
+		</defs>
+	</svg>
+</figure>
+
+<style>
+	.diagrama svg { width: 100%; height: auto; }
+	.caixa { fill: var(--sl-color-gray-6); stroke: var(--sl-color-gray-5); }
+	.caixa--destaque { stroke: var(--sl-color-accent); stroke-width: 2; }
+	.rotulo { fill: var(--sl-color-white); font-size: 13px; font-family: var(--sl-font); text-anchor: middle; }
+	.rotulo--forte { font-weight: 600; }
+	.seta { stroke: var(--sl-color-gray-4); stroke-width: 1.5; }
+</style>
+```
+
+## Quando o SVG à mão não compensa
+
+Um diagrama de caixas e setas cabe bem nesse formato. Três casos em que não vale
+insistir:
+
+- **Grafo grande**, com dezenas de nós e cruzamentos. Posicionar à mão vira
+  trabalho de layout, não de documentação.
+- **Fluxograma que muda toda semana.** Cada alteração mexe em coordenadas.
+- **Captura de tela.** Aí a imagem é a informação, e um PNG é o formato certo:
+  guarde em `src/assets/` e use Markdown normal.
+
+Para grafo e fluxograma, avalie uma linguagem de diagrama antes de desenhar. O
+portal não traz nenhuma instalada hoje, e adicionar uma é decisão para se tomar
+com a necessidade concreta na mão, não por antecipação.

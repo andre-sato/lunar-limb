@@ -37,6 +37,13 @@ export const collections = {
 				 * produtos. Os ids vêm de `organization.yml`.
 				 */
 				products: z.array(z.string()).optional(),
+				/**
+				 * Tipo do conceito na exportação para Open Knowledge Format (issue
+				 * #16). Ausente, o tipo é derivado da pasta — `guides/` vira
+				 * `Guide`. Declare quando a derivação errar: um runbook dentro de
+				 * `guides/` é `Runbook`, e é a página que sabe disso, não o gerador.
+				 */
+				type: z.string().optional(),
 			}),
 		}),
 	}),

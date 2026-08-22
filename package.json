@@ -20,6 +20,8 @@
 		"agent": "tsx scripts/agent.ts",
 		"history": "tsx scripts/history.ts",
 		"docs:code": "tsx scripts/docs-code.ts",
+		"okf": "tsx scripts/okf.ts",
+		"okf:check": "tsx scripts/okf.ts --check",
 		"governance": "tsx scripts/governance.ts",
 		"overlay": "tsx scripts/overlay.ts",
 		"changelog": "tsx scripts/changelog.ts",

@@ -1,0 +1,128 @@
+---
+type: Guide
+title: Open Knowledge Format
+description: O portal exporta o que sabe como um bundle OKF v0.2 — markdown com frontmatter que um agente consome sem conhecer esta plataforma.
+resource: https://docs.suaempresa.com/guides/open-knowledge-format/
+tags:
+  - guia
+  - portal
+status: stable
+generated:
+  by: process:okf-export
+  at: '2026-08-22T12:12:38.074Z'
+verified:
+  - by: human:mestre
+    at: '2026-08-22T00:00:00.000Z'
+stale_after: '2027-02-18T00:00:00.000Z'
+sources:
+  - id: repo
+    resource: src/content/docs/guides/open-knowledge-format.mdx
+    title: src/content/docs/guides/open-knowledge-format.mdx no repositório
+    last_modified: '2026-08-22T12:02:21.013Z'
+audiences:
+  - developer
+  - product
+owner:
+  type: team
+  id: documentation
+---
+
+O [Open Knowledge Format](https://github.com/GoogleCloudPlatform/knowledge-catalog/tree/main/okf)
+é um formato aberto para entregar conhecimento curado a sistemas de IA: um
+diretório de markdown com frontmatter YAML, sem depender de nuvem, banco ou
+framework. O portal exporta o que sabe nesse formato.
+
+```bash
+npm run okf            # gera o bundle em okf/
+npm run okf:check      # confere se o bundle comitado está em dia
+npm run okf -- validate   # valida a conformidade do que está no disco
+```
+
+## O que o formato exige
+
+Pouca coisa, e de propósito. Um bundle é conformante quando:
+
+1. todo `.md` que não seja `index.md` ou `log.md` tem frontmatter YAML legível;
+2. esse frontmatter tem um campo `type` não vazio;
+3. os arquivos reservados têm a forma descrita pela spec.
+
+`type` é o **único** campo obrigatório do formato inteiro. Todo o resto —
+`title`, `description`, `resource`, `tags`, confiança, procedência — é
+recomendado ou opcional, e um consumidor conformante não pode recusar um
+conceito por falta deles.
+
+## De onde vem cada campo
+
+Nada aqui é inventado na exportação. O portal já registrava esses fatos; o
+bundle só os diz no vocabulário da spec.
+
+| Campo OKF | Vem de |
+| --- | --- |
+| `type` | `type` no frontmatter, ou derivado da pasta (`guides/` → `Guide`) |
+| `title`, `description`, `tags` | os campos de mesmo nome |
+| `resource` | a URL pública da página |
+| `status` | `governance.review.state`, ou `deprecated: true` |
+| `verified[]` | `governance.review.by` e `.at` |
+| `stale_after` | `review.at` mais o intervalo de revisão |
+| `generated` | o exportador, no momento da geração |
+| `sources[]` | o arquivo do repositório que originou o conceito |
+
+Quando a derivação por pasta erra — um runbook dentro de `guides/`, por
+exemplo — declare o tipo na página:
+
+```yaml
+---
+title: Restaurar o índice de busca
+type: Runbook
+---
+```
+
+## Níveis de confiança
+
+A spec deriva confiança de `verified`, e não de um campo que alguém escreve à
+mão:
+
+- sem `verified` → **unverified**
+- só atores de máquina → **machine-confirmed**
+- algum ator `human:<id>` → **human-reviewed**
+
+Por isso `review.by` importa. Uma página com `review.at` mas sem `review.by`
+sai sem `verified`: houve revisão, ninguém assinou, e escrever o **time** dono
+naquele lugar afirmaria que uma pessoa chamada `documentation` revisou o texto.
+
+## O que não atravessa
+
+**`sidebar`, `hero`, `template`.** São decisões de apresentação da Starlight. Um
+conceito descreve conhecimento, não a ordem dele num menu.
+
+**Os espelhos de idioma.** `en/` e `es/` não viram conceitos separados — o
+original entra uma vez, e as traduções viram um campo `translations` com a URL
+de cada uma. Três nós quase idênticos dariam três respostas para a mesma
+pergunta, que é o defeito que este portal existe para evitar.
+
+**A vitrine dos índices.** `index.md` é nome reservado pela spec para listagem
+de diretório, então os `index.mdx` da Starlight viram listagens e perdem o
+texto de vitrine.
+
+## Links entre conceitos
+
+O corpo das páginas aponta para rotas do portal (`/guides/editor/`). Dentro do
+bundle isso não resolve, e o grafo de links é metade do que o OKF entrega —
+então a exportação reescreve o que reconhece para o caminho do arquivo
+(`/guides/editor.md`), preservando âncoras.
+
+O que aponta para fora do bundle fica como está: uma página de aplicação
+(`/settings/`), um arquivo do repositório (`tags.yml`), uma imagem. O validador
+avisa sobre esses links, mas não reprova — a spec manda o consumidor tolerar
+link quebrado, e transformá-los em caminhos inexistentes trocaria um link que
+funciona no portal por um que não funciona em lugar nenhum.
+
+## Por que o bundle é comitado
+
+Porque o ponto do formato é ser compartilhável: dá para clonar o diretório,
+empacotar num tarball ou apontar um agente para ele. Um bundle que só existisse
+depois de `npm run build` não seria compartilhável — seria um artefato de build.
+
+O preço é ele poder ficar velho, e quem cobra esse preço é `npm run okf:check`,
+que compara o bundle no disco com o que a geração produziria agora. A
+comparação ignora o carimbo de `generated.at`, senão falharia sempre.

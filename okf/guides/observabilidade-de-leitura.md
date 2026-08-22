@@ -1,0 +1,153 @@
+---
+type: Guide
+title: Observabilidade de leitura
+description: O que os leitores fazem no portal — busca, jornada, abandono — e o que o produto deliberadamente não guarda sobre eles.
+resource: https://docs.suaempresa.com/guides/observabilidade-de-leitura/
+tags:
+  - guia
+  - qualidade
+  - portal
+status: stable
+generated:
+  by: process:okf-export
+  at: '2026-08-22T12:12:38.074Z'
+verified:
+  - by: human:mestre
+    at: '2026-08-18T00:00:00.000Z'
+stale_after: '2027-02-14T00:00:00.000Z'
+sources:
+  - id: repo
+    resource: src/content/docs/guides/observabilidade-de-leitura.mdx
+    title: src/content/docs/guides/observabilidade-de-leitura.mdx no repositório
+    last_modified: '2026-08-22T00:41:25.391Z'
+audiences:
+  - developer
+  - product
+owner:
+  type: team
+  id: documentation
+---
+
+O resto do portal responde *"a documentação está correta?"*. Esta camada responde outra pergunta:
+
+**A documentação resolve o problema de quem chegou aqui?**
+
+São perguntas diferentes, e o portal não as soma numa nota só — um portal tecnicamente impecável e inútil pareceria saudável.
+
+## Comece pelo que não é guardado
+
+Antes de qualquer métrica, o que a camada **não** coleta:
+
+- Nenhum IP. O evento não tem campo para isso.
+- Nenhum id de usuário, nem para quem está autenticado.
+- Nenhum cookie, nenhum user-agent, nenhum referrer.
+- Nenhum texto de busca, por padrão.
+
+O que existe é uma sessão efêmera gerada no navegador, guardada em `sessionStorage`. Ela some quando a aba fecha e nunca liga duas visitas da mesma pessoa: é o suficiente para costurar uma jornada e insuficiente para reconhecer alguém.
+
+Três desligamentos valem em cascata:
+
+- `Do Not Track` e `Global Privacy Control` — honrados no navegador antes do primeiro envio, e de novo no servidor.
+- `localStorage.setItem('portal:no-analytics', '1')` — a escolha do leitor, e o único dado persistente que o beacon grava.
+- `observability.enabled: false` no `health.yml` — desliga tudo.
+
+O evento é reconstruído campo a campo no servidor, e não gravado como veio. Se alguém acrescentar `email` ao beacon amanhã, ele é descartado ali e não vira um vazamento silencioso.
+
+## Agregação, não observação
+
+```yaml
+observability:
+  minimumSessions: 3
+  retentionDays: 90
+```
+
+Uma linha só aparece no relatório com pelo menos `minimumSessions` sessões distintas. Com 1, “quem leu esta página” pode ser uma pessoa identificável para quem conhece a equipe, e a agregação deixa de agregar. O valor nunca desce abaixo de 2.
+
+A retenção é aplicada **na escrita**, não por um processo de limpeza separado. Um processo que alguém precisa lembrar de rodar é um processo que não roda, e o dado que deveria ter sido apagado fica.
+
+## As métricas, e o que elas não dizem
+
+```bash
+npm run analytics -- search
+```
+
+O nome de cada métrica carrega o seu limite:
+
+- **Clique em resultado** — não “taxa de sucesso”. Clicar é o mais longe que a instrumentação enxerga. Quem clicou pode ter resolvido o problema na primeira linha ou desistido do produto; o portal não distingue os dois, e chamar isso de sucesso já seria uma inferência.
+- **Sem resultado** — busca que não devolveu nada. É o sinal mais confiável da camada.
+- **Refinou** — buscou de novo. Um clique que acontece depois da busca seguinte pertence àquela busca, não a esta.
+- **Abandonou** — nem clique nem nova busca.
+
+Portal sem buscas devolve `—`, não 0%: ele não tem 0% de sucesso, ele não tem busca.
+
+## Leitura por agentes
+
+Agentes de IA não executam JavaScript. Nenhum beacon dispara para eles, e por
+isso a camada os mede noutro lugar: **no servidor, pela própria rota que serve o
+conteúdo**.
+
+As três superfícies contadas são as que existem para serem lidas por máquina:
+
+| Superfície | O que é |
+| --- | --- |
+| `llms.txt` | O índice do portal |
+| `llms-full.txt` | O corpus inteiro numa requisição |
+| `/md/<página>` | O Markdown limpo de uma página |
+
+Em `npm run analytics -- agents` e em Settings → Observability.
+
+**Por que não pelo referrer**
+A forma comum de detectar leitura por IA é olhar o referrer e reconhecer o
+domínio do ChatGPT ou do Claude. Isso vê **uma pessoa clicando num link dentro
+de um assistente** — que é leitura por pessoa, com um intermediário.
+
+Não vê o agente buscando `llms.txt`, que é como agentes realmente leem este
+portal. O portal já mediu dos dois jeitos e ficou com este; o registro está na
+[ADR-0019](https://github.com/andre-sato/lunar-limb/blob/master/docs/adr/0019-observabilidade-nativa-e-do11y.md).
+
+Duas fronteiras que o relatório declara:
+
+- **O servidor MCP fica de fora.** Ele lê o repositório direto, sem passar pelo
+  portal — não há requisição para contar.
+- **A fatia é aproximada.** O denominador soma requisições de agente com
+  visualizações de página, e uma pessoa abre uma página por vez enquanto um
+  agente pode levar tudo numa requisição. A fatia indica ordem de grandeza, não
+  proporção exata de leitores.
+
+E o que **não** é guardado continua o mesmo: sem IP, sem user-agent, sem
+identificar quem pediu. A pergunta é "quanto da leitura vem de máquina", e
+nenhum desses campos é necessário para respondê-la.
+
+## Jornadas
+
+```bash
+npm run analytics -- journeys
+```
+
+Sequências de páginas percorridas na mesma sessão, agrupadas. Recarregar a mesma página não vira um passo.
+
+“Sem sinal de conclusão” é a **ausência** de clique de busca e de voto positivo — não a afirmação de que o leitor foi embora frustrado.
+
+## Lacunas comportamentais
+
+```bash
+npm run analytics -- gaps
+```
+
+Busca sem resultado, saída em massa de uma página, voto negativo repetido. A confiança cresce com a repetição e satura em 0,9: comportamento é evidência de atrito, nunca prova de causa.
+
+Só **busca sem resultado e com texto** alimenta o [Gap Mining](/guides/lacunas-de-documentacao.md). A restrição custou uma tentativa errada: passar todo sinal comportamental por lá produziu recomendações sem sentido — uma página com quatro votos negativos virou “criar `guides-manual-mdx.md`”. Sinal ancorado numa página existente diz que o conteúdo está lá e não serviu, e a recomendação é revisar, não criar.
+
+Com o texto desligado, a lacuna continua aparecendo — só que sem nome, e dizendo qual chave ligar para saber o quê. Omiti-la esconderia o problema mais grave que a camada consegue ver.
+
+## Saúde técnica e sucesso do leitor
+
+As duas aparecem lado a lado e **não** são somadas numa média. E o sucesso do leitor é `null` sem volume: um portal recém instrumentado teria “sucesso 0” e derrubaria a nota de saúde por ausência de dado — o oposto do que a nota deveria dizer.
+
+## Apagar
+
+```bash
+npm run analytics -- forget --yes
+```
+
+Existe porque a exclusão foi prometida, e um botão de apagar que ninguém implementou é uma promessa de privacidade que o produto não cumpre. A operação fica no log de auditoria.

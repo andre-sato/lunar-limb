@@ -1,0 +1,141 @@
+---
+type: Guide
+title: Análise de impacto
+description: O motor que responde "se eu mudar isso, o que preciso revisar?" — dependências indiretas, quebra de contrato de API, terminologia e checklist de revisão.
+resource: https://docs.suaempresa.com/guides/analise-de-impacto/
+tags:
+  - guia
+  - qualidade
+  - portal
+status: stable
+generated:
+  by: process:okf-export
+  at: '2026-08-22T12:12:38.074Z'
+sources:
+  - id: repo
+    resource: src/content/docs/guides/analise-de-impacto.mdx
+    title: src/content/docs/guides/analise-de-impacto.mdx no repositório
+    last_modified: '2026-08-22T00:41:25.381Z'
+owner:
+  type: team
+  id: documentation
+---
+
+O Content Graph responde **quem usa o quê**. É informação. O Impact Engine
+responde a pergunta seguinte, que é a que decide trabalho:
+
+**"Se eu mudar isso, o que preciso revisar?"**
+
+## Onde ele aparece
+
+**No editor**, no painel de referências, botão **Impacto**. A análise roda sob
+demanda — não a cada tecla — e responde sobre o arquivo como ele está, antes de
+salvar. Cada página listada é clicável: dá para ir do impacto até a origem.
+
+**No pull request**, na tela de revisão. Contagem por severidade, Impact Score,
+escopo estimado, o que quebra contrato de API e o checklist. Tudo isso vai também
+para o corpo do PR, para quem revisa ler antes de abrir os arquivos.
+
+## As quatro severidades
+
+| | Significado | Exemplo |
+| --- | --- | --- |
+| 🔴 crítico | A mudança pode **invalidar** a documentação | endpoint removido; bloco incluído que deixou de existir |
+| 🟠 alto | Provavelmente exige revisão | bloco reutilizável alterado; parâmetro que passou a ser obrigatório |
+| 🟡 médio | Potencialmente relevante | grafia canônica de um termo mudou; consumidor a dois níveis de distância |
+| 🟢 baixo | Sem impacto funcional significativo | definição de glossário ajustada |
+
+`critical` fica reservado ao que torna o texto publicado **falso**, não ao que
+apenas dá trabalho. Classificar tudo como crítico é o mesmo que não classificar
+nada: a equipe aprende a ignorar a cor.
+
+A severidade também **cai com a distância**. Consumidor direto de um endpoint
+removido tem documentação provavelmente errada; o mesmo endpoint três níveis de
+inclusão adiante, provavelmente só menciona o assunto de passagem.
+
+## Dependência indireta
+
+É a razão de o motor existir separado do Content Graph. Considere:
+
+```
+guides/conteudo-reutilizavel.mdx
+  └── api-essentials            (bloco)
+        └── authentication-warning   (bloco)
+```
+
+Editar `authentication-warning` altera o texto publicado de
+`guides/conteudo-reutilizavel.mdx`, e **não existe aresta entre os dois**. Uma
+análise de um salto responde "nenhuma página afetada" — com convicção e errada.
+Foi exatamente isso que a versão anterior fazia.
+
+O relatório mostra por onde o impacto passou (`via 2 níveis`), porque "revise esta
+página" sem o caminho é um palpite pedindo confiança.
+
+## Quebra de contrato de API
+
+A comparação acontece sobre a especificação **interpretada**, não sobre o texto do
+arquivo. Reordenar chaves do YAML são vinte linhas no `git diff` e mudança
+nenhuma; renomear um parâmetro é uma linha e quebra total.
+
+O que é tratado como quebra:
+
+- operação removida
+- parâmetro removido, renomeado, com tipo diferente ou que passou a ser obrigatório
+- corpo de requisição que passou a ser obrigatório
+- autenticação diferente
+- URL base diferente
+- resposta `2xx` que deixou de ser documentada
+
+O renome é reconhecido como renome: quando o parâmetro que saiu e o que entrou têm
+o mesmo lugar, tipo e obrigatoriedade, o relatório diz `id → userId` em vez de
+listar uma remoção e uma adição sem relação aparente.
+
+E o que **não** é quebra: operação nova, parâmetro opcional novo, parâmetro que
+deixou de ser obrigatório, resposta nova, depreciação (que é aviso, não emergência).
+
+### Como o motor sabe qual página documenta qual endpoint
+
+Duas fontes, em ordem de confiança. A primeira é **declarada** — um
+`<TryIt schema="portal-api.yaml" operation="getCurrentUser" />` na página diz
+explicitamente qual operação ela exercita. A segunda é **inferida**: a página que
+escreve o caminho literal (`/users/{id}`) provavelmente fala dele.
+
+A inferência é conservadora de propósito: exige o caminho, não o nome do recurso.
+Sem isso, toda página que diz "usuário" seria acusada de documentar a API de
+usuários.
+
+## Terminologia
+
+Mudar a grafia canônica de um termo do glossário alcança as páginas que o
+mencionam — inclusive pelos **aliases e pelas grafias desaconselhadas**, que são
+justamente as páginas que escrevem o termo "errado" e as que mais precisam de
+revisão. A comparação dobra acento e caixa, como o resto do portal.
+
+## Impact Score
+
+Um número de 0 a 100, e **cada fator vem com os pontos que somou e o motivo**:
+
+```
+Impact Score: 54/100
+  +20  Itens críticos            (1 item crítico)
+  +24  Quebra de contrato de API (2 mudanças incompatíveis)
+  +2   Consumidores atingidos    (1 página afetada)
+  ...
+```
+
+Um score sem decomposição não se audita, e um número que ninguém consegue
+conferir é o tipo de métrica que a equipe passa a ignorar na terceira vez que ele
+discorda da intuição.
+
+Quando não há consequência apurada, o score é **zero** — inclusive o fator de
+tamanho. Um PR que mexe só em `astro.config.mjs` não deve pontuar por "tamanho da
+mudança": não há nada a revisar na documentação.
+
+## Checklist
+
+Só entra no checklist o que dá para conferir: uma página, uma operação, um termo.
+"Revisar a documentação" não é item de checklist — é o nome do trabalho, e um item
+que não se consegue marcar como feito treina a equipe a marcar tudo sem ler.
+
+Impacto de severidade baixa também não entra. Ele aparece na lista de itens, onde
+serve de contexto, e fora do checklist, onde só faria volume.

@@ -1,0 +1,100 @@
+---
+type: Guide
+title: Organização e múltiplos repositórios
+description: Documentação distribuída por repositórios, produtos e times — com a profundidade de leitura declarada em vez de disfarçada.
+resource: https://docs.suaempresa.com/guides/organizacao/
+tags:
+  - guia
+  - portal
+status: stable
+generated:
+  by: process:okf-export
+  at: '2026-08-22T12:12:38.074Z'
+verified:
+  - by: human:mestre
+    at: '2026-08-19T00:00:00.000Z'
+stale_after: '2027-02-15T00:00:00.000Z'
+sources:
+  - id: repo
+    resource: src/content/docs/guides/organizacao.mdx
+    title: src/content/docs/guides/organizacao.mdx no repositório
+    last_modified: '2026-08-22T00:41:25.391Z'
+audiences:
+  - developer
+  - product
+owner:
+  type: team
+  id: documentation
+---
+
+Uma organização mantém documentação espalhada por vários repositórios, produtos e times. Esta camada dá um lugar de onde olhar todos.
+
+## Dois limites, declarados antes do primeiro número
+
+**O portal não busca repositório da rede.** Um repositório registrado com `url` é listado e não é lido. Fazer o portal clonar e ler repositório remoto por conta própria seria buscar conteúdo arbitrário da rede a cada coleta — quem clona é a pessoa que opera, e o portal lê o que já está em disco.
+
+**A profundidade da leitura varia, e o relatório diz qual cada um recebeu.**
+
+| Profundidade | O que é medido |
+| --- | --- |
+| Completa | O repositório onde o portal roda: Digital Twin, contratos, lacunas, saúde. |
+| Pelos arquivos | Contagem de páginas, dono declarado, links internos quebrados. |
+| Não lido | Nada. O registro existe, o conteúdo não foi alcançado. |
+
+Um repositório vizinho é lido como **texto**: nada é importado, executado, nem interpretado como configuração deste portal.
+
+## Registro
+
+```yaml
+organization:
+  id: lunar-limb
+  label: Lunar Limb
+
+  products:
+    - id: portal
+      label: Portal de documentação
+      owner: documentation
+
+  repositories:
+    - id: lunar-limb
+      product: portal
+      owner: documentation
+      path: .
+      docs: src/content/docs
+```
+
+`visibleTo` restringe um repositório a papéis específicos. O filtro acontece **antes** de qualquer leitura de disco, não na exibição: um repositório invisível para o papel não deve nem ter os arquivos lidos, senão a contagem agregada denunciaria a existência dele.
+
+## Não medido fica fora da média
+
+A nota da organização é a média dos repositórios **medidos**. Um repositório lido só pelos arquivos não entra.
+
+Contá-lo como zero faria registrar um repositório baixar a nota da organização — e o efeito prático disso é ninguém registrar repositório nenhum, que é o oposto do que a camada existe para permitir.
+
+Pela mesma razão, o portal não inventa uma nota a partir de contagem de páginas: ela seria comparável com a nota real e não teria nada por trás.
+
+## Referências cruzadas
+
+```markdown
+Veja o [fluxo de checkout](repo://checkout/fluxo).
+```
+
+A forma é explícita de propósito. Adivinhar que um link relativo aponta para outro repositório produziria falso positivo em todo link quebrado.
+
+“Resolvida” significa apenas que o **repositório de destino está registrado**. Conferir se a página existe lá exigiria ler o outro repositório, e o relatório não afirma o que não conferiu.
+
+## Busca global
+
+```bash
+npm run org -- search "payments"
+```
+
+Busca literal nos arquivos, não a busca do portal — sem índice, sem ranqueamento, sem recorte por relevância. A busca do portal só conhece este repositório, e estendê-la aos vizinhos exigiria indexá-los, o que é o oposto de “ler sem executar”.
+
+## CLI
+
+```bash
+npm run org -- status
+```
+
+`repositories` lista o registro, `health` resume as notas, `gaps` mostra as referências cruzadas sem destino, `search` procura em tudo que é legível.

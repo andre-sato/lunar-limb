@@ -1,0 +1,635 @@
+---
+type: Guide
+title: Manual do portal e do editor
+description: Guia completo do Developer Portal e do editor de documentação — recursos, atalhos de teclado, fluxos de trabalho e casos de uso.
+resource: https://docs.suaempresa.com/guides/manual/
+tags:
+  - guia
+  - portal
+  - editor
+  - ia
+status: stable
+generated:
+  by: process:okf-export
+  at: '2026-08-22T12:12:38.074Z'
+sources:
+  - id: repo
+    resource: src/content/docs/guides/manual.mdx
+    title: src/content/docs/guides/manual.mdx no repositório
+    last_modified: '2026-08-22T00:41:25.391Z'
+owner:
+  type: team
+  id: documentation
+---
+
+Este projeto tem duas metades que compartilham os mesmos arquivos: o **portal
+publicado**, que o leitor acessa, e o **editor** em `/editor`, onde a
+documentação é escrita.
+
+A regra que organiza tudo: os arquivos `.md` e `.mdx` em `src/content/` são a
+fonte de verdade. O editor lê e escreve neles diretamente, sem banco de dados
+intermediário. Isso significa que você pode abrir o mesmo arquivo no VS Code,
+mandar um agente de código alterá-lo ou revisar a mudança num pull request — o
+editor não é dono de nada.
+
+---
+
+## Parte 1 — O portal publicado
+
+### Estrutura do conteúdo
+
+O portal separa três áreas, cada uma com sua pasta:
+
+```text
+src/content/docs/
+├── guides/         # tutoriais e tarefas de integração
+├── api-reference/  # contratos, autenticação, erros
+├── changelog/      # alterações por versão ou data
+└── index.mdx       # página inicial
+```
+
+A navegação tem dois níveis. O **menu do topo** lista as seções: cada pasta vira
+um item, e as páginas de dentro formam o submenu. A **barra lateral** mostra as
+páginas da seção que você está lendo, e só dela. Criar um arquivo já o publica —
+não há passo de registro em lugar nenhum.
+
+Uma pasta aninhada vira um título dentro do painel do submenu, em vez de um
+submenu dentro do submenu. Menu suspenso encaixado é difícil de operar com o
+mouse e pior com o teclado, então a árvore é achatada em dois níveis.
+
+### Recursos de leitura
+
+Além do conteúdo, o portal traz alguns recursos que valem conhecer:
+
+| Recurso | Como usar |
+| --- | --- |
+| **Voltar ao topo** | Aparece depois de rolar a página, com um anel que mostra o progresso da leitura. |
+| **Tags** | Páginas declaram `tags: [api, seguranca]` no frontmatter. O índice fica em [`/tags`](/tags), e a taxonomia — rótulos por idioma, descrições, cores — no `tags.yml`. As tags também pesam na busca do assistente. |
+| **Atualizações recentes** | [`/atualizacoes`](/atualizacoes) lista o que mudou nos últimos 30 dias, da mudança mais recente para a mais antiga, agrupada por dia. As datas vêm do histórico do Git. |
+| **Busca warp** | `/warp?q=termo` pula a lista e abre direto o melhor resultado. O portal também se registra como buscador do navegador, então dá para pesquisar a documentação pela barra de endereços. |
+| **Links validados** | Todo link interno é verificado no build. Um link para uma página que não existe reprova o build em vez de virar 404 para o leitor. |
+
+### Idiomas
+
+Português (Brasil) é o idioma nativo e fica na raiz, sem prefixo de URL. As
+traduções ficam em `/en/` e `/es/`, com o seletor nativo da Starlight.
+
+Para o seletor associar corretamente uma página à sua tradução, use **o mesmo
+caminho relativo** nas três pastas:
+
+```text
+src/content/docs/guides/webhooks.md       → /guides/webhooks/
+src/content/docs/en/guides/webhooks.md    → /en/guides/webhooks/
+src/content/docs/es/guides/webhooks.md    → /es/guides/webhooks/
+```
+
+Uma página que existe só em português continua funcionando; ela apenas não terá
+equivalente no seletor. Por isso o editor cria os três arquivos de uma vez —
+veja [Criando uma página](#criando-uma-página).
+
+Um arquivo criado por espelhamento traz `translationPending: true` no
+frontmatter. É o que permite achar o que falta traduzir com uma busca, em vez de
+comparar pastas à mão.
+
+## Teste escrita bi-direcional
+
+Testando conteúdo que pode ser editado tanto via repositório (GitHub) ou via editor de texto com sync no repositório.
+
+### Recursos de IA
+
+Duas funcionalidades voltadas a quem lê a documentação com ajuda de um
+assistente:
+
+**Compartilhar com IA** aparece em todas as páginas. Copia título, URL e
+conteúdo da página em um formato pronto para colar em um chat, ou copia e já
+abre o cliente escolhido.
+
+Os clientes oferecidos (ChatGPT, Claude, Gemini, Copilot) são configuráveis.
+
+**Fale com o chatbot** fica no rodapé da barra lateral, aberto, e recolhe no
+título quando você quiser espaço — a escolha acompanha a navegação. Nas páginas
+sem barra lateral, como a capa, ele aparece como botão no cabeçalho.
+
+Aceita a pergunta em linguagem natural — em português, inglês ou espanhol — e responde em três
+partes, nesta ordem:
+
+1. **um resumo curto** do que foi encontrado;
+2. os **trechos** das páginas publicadas do seu idioma que mais se aproximam;
+3. os **links** das páginas de onde vieram.
+
+Cada busca aceita 👍 ou 👎, e essa contagem aparece em **Settings → Chatbot**.
+
+O resumo cita: ele reproduz a primeira frase do trecho mais relevante, entre
+aspas, dizendo de qual página e seção ela saiu. Não é uma paráfrase, porque não
+há modelo de linguagem para escrevê-la — e uma frase escrita por outro caminho
+seria invenção. Quando nenhum trecho tem uma frase citável — o mais relevante é
+uma tabela de erros, um exemplo de código —, o resumo apenas diz quantos trechos
+foram encontrados. Dizer menos é melhor que dizer errado.
+
+O ponto importante é o que a busca **não** faz: nada é redigido ou interpretado.
+Todo texto que aparece na tela está publicado em alguma página, e o link prova
+onde — então a busca não tem como afirmar algo que a documentação não diga.
+
+As **tags** do frontmatter entram na busca com o mesmo peso do título: uma
+pergunta sobre autenticação encontra a página marcada com `autenticacao` mesmo
+que use outras palavras. Para isso funcionar, a busca dobra acentos e reduz as
+formas da palavra — `autenticar`, `autenticação` e `autenticacao` chegam ao
+mesmo radical, e sem isso a tag nunca casaria com o texto que ela descreve.
+
+Isso muda o modo de usar. Uma pergunta com o nome exato de um campo, de um erro
+ou de um comando encontra o trecho certo na primeira tentativa; uma pergunta
+conceitual larga costuma exigir outros termos. Quando nada passa do limiar de
+relevância, a busca diz que não encontrou em vez de mostrar o trecho menos ruim.
+
+Um detalhe que confunde se não for dito: um bloco de conteúdo reutilizável não
+tem página própria. Quando o trecho encontrado vem de um bloco, o link leva a uma
+página que o inclui, e o cabeçalho do trecho avisa qual é.
+
+### Consulta pelo terminal
+
+Quem prefere não sair do terminal tem a mesma documentação disponível por linha
+de comando:
+
+```bash
+doc ask "Como funciona o rate limit?"
+```
+
+Por trás disso há um servidor que fala o Model Context Protocol, o que significa
+que a CLI é apenas um dos clientes possíveis: uma IDE ou um agente de código
+consultam o mesmo servidor, com as mesmas ferramentas. Também é somente leitura,
+também cita as fontes, e entende os blocos reutilizáveis — a fonte citada é a
+página que consome o bloco, não o arquivo do bloco.
+
+O índice é atualizado por `doc-index update`, que reprocessa só o que mudou. O
+que você escreve no editor fica consultável na atualização seguinte. Instalação
+e configuração ficam no `mcp-docs/README.md` do repositório.
+
+### Personalização
+
+| O quê | Onde |
+| --- | --- |
+| Empresa, nome do portal, descrição, URL da API, e-mail de suporte | `src/config/portal.ts` |
+| Clientes de IA oferecidos | `src/config/portal.ts` (`aiClients`) |
+| Cores e tipografia | `src/styles/custom.css` |
+| Títulos por idioma, seções do menu do topo | `astro.config.mjs` |
+| Textos da interface (rótulos, avisos) | `src/content/i18n/*.json` |
+
+---
+
+## Parte 2 — O editor
+
+Suba o ambiente e abra `http://localhost:4321/editor/`:
+
+```bash
+npm install
+npm run dev
+```
+
+**O editor grava no repositório**
+Ele não tem autenticação própria e tem permissão de escrita nos arquivos de
+conteúdo. Use localmente ou atrás de alguma proteção em um servidor interno —
+nunca exposto publicamente.
+
+### O layout
+
+Os painéis aparecem conforme fazem sentido: metadados sempre, referências apenas
+quando a página participa do grafo, problemas apenas quando há algo errado.
+
+### Trabalhando com arquivos
+
+O **File Explorer** tem duas árvores empilhadas: `Documentação`
+(`src/content/docs/`, incluindo `en/` e `es/`) e `Conteúdo reutilizável`
+(`src/content/snippets/`).
+
+Ao lado de cada arquivo, uma letra indica o estado no Git:
+
+| Letra | Significado |
+| --- | --- |
+| `M` | Modificado no working tree |
+| `A` | Adicionado ao índice |
+| `D` | Excluído |
+| `U` | Ainda não versionado |
+| `R` | Renomeado |
+
+O editor **só lê** o Git. Ele nunca faz commit, stage ou checkout — isso fica
+com você, no terminal.
+
+#### Criando uma página
+
+O botão de nova página pede idioma, caminho, título e descrição. Duas opções
+importam:
+
+- **Criar como `.mdx`** já vem marcado. Páginas `.mdx` aceitam componentes,
+  conteúdo reutilizável e condicionais; `.md` não aceita nada disso. Não custa
+  nada começar em `.mdx` mesmo sem usar esses recursos.
+- **Visível para o leitor**, desmarcado, publica a página fora da navegação e
+  da busca (veja [Visibilidade](#visibilidade-de-página)).
+
+Criar uma página no idioma raiz (português) cria também a entrada
+correspondente em **inglês e espanhol**. O texto não é traduzido: o que se cria
+é o lugar da tradução, com o mesmo título, um aviso de tradução pendente e o
+conteúdo original. O editor avisa quais arquivos apareceram.
+
+Isso existe porque a navegação da Starlight é por idioma: sem o arquivo
+correspondente, quem lê em inglês simplesmente não vê que a página existe — e
+ninguém descobre que falta traduzir. Com o espelho, a ausência invisível vira
+uma fila de trabalho visível.
+
+Se a tradução já existir, o espelho não é criado: o trabalho de quem traduziu
+vale mais que a consistência automática. E criar um arquivo já dentro de `en/`
+ou `es/` não gera espelho nenhum.
+
+#### Metadados
+
+O painel **Metadados da página** edita `title`, `description`, o rótulo e a
+ordem na sidebar, a visibilidade e o `showIf`, sem você precisar mexer no YAML.
+
+Campos que o formulário não conhece — seus ou de plugins — são **preservados
+intactos**. Editar pelo painel nunca apaga metadata existente.
+
+### Preview e salvamento
+
+O preview atualiza sozinho, com um atraso curto após você parar de digitar. Ele
+resolve conteúdo reutilizável e condicionais, então mostra a página já composta.
+
+Componentes da Starlight (`<Aside>`, `<Tabs>`) aparecem como uma caixa com o
+nome e as props, não renderizados de verdade — executá-los exigiria rodar o
+build do Astro dentro do preview. O conteúdo Markdown dentro deles é renderizado
+normalmente.
+
+O **autosave** grava um segundo depois da última tecla. O estado aparece na
+toolbar e na barra de status: `Não salvo`, `Salvando…`, `Salvo` ou `Erro ao
+salvar`. Fechar a aba com alterações pendentes dispara o aviso do navegador, e
+trocar de arquivo com alterações não salvas pede confirmação.
+
+Erros de sintaxe (MDX malformado, YAML inválido) aparecem no preview **e** como
+marcador vermelho na linha correspondente do editor.
+
+---
+
+## Reuso de conteúdo
+
+O recurso que diferencia este editor de um editor de Markdown comum.
+
+Um bloco reutilizável é um arquivo em `src/content/snippets/`. Seu **id** é o
+caminho sem a extensão: `snippets/rate-limit.md` tem o id `rate-limit`. O id não
+depende do título — renomear o título não quebra nada.
+
+### Inserir
+
+O botão **Inserir conteúdo reutilizável** abre uma busca por título ou id entre
+blocos e páginas existentes. Ao escolher, o editor insere a tag e adiciona o
+`import` necessário sozinho:
+
+```mdx
+
+```
+
+Itens que criariam uma **referência circular** aparecem desabilitados, com a
+cadeia culpada no tooltip — o erro é barrado antes de acontecer.
+
+Para incluir uma página inteira, o componente é `<IncludePage id="..." />`.
+
+### Extrair
+
+Selecione um trecho e use **Extrair**. O editor pede um id e um título, cria o
+arquivo em `src/content/snippets/`, e substitui a seleção pela referência.
+
+### Destacar (detach)
+
+O caminho de volta: **Destacar referência** copia o conteúdo canônico para
+dentro da página, no lugar da tag. A partir daí a página deixa de acompanhar
+mudanças no original — por isso o comando pede confirmação e nunca acontece
+sozinho.
+
+### Ver quem usa o quê
+
+O painel **Referências**, acima do editor, mostra os dois lados:
+
+- **Esta página usa** — com o número da linha de cada tag. Clicar no nome abre o
+  conteúdo original; clicar em `L37` leva o cursor até a tag.
+- **Usado por N páginas** — clicar abre a página consumidora.
+
+Quando a página aberta é consumida por outras, o painel avisa **antes** de você
+digitar, com a contagem de impacto — incluindo o efeito **indireto**: se A usa B
+e B usa o bloco que você está editando, A também é afetada.
+
+O **Content Graph** (`Ctrl/Cmd + Shift + G`) mostra o projeto inteiro: todos os
+blocos e páginas que participam do grafo, ordenados por uso, e uma aba de
+problemas com referências quebradas, ciclos, ids duplicados e **blocos que
+ninguém usa**.
+
+Excluir um bloco em uso mostra quem depende dele antes de confirmar.
+
+---
+
+## Condicionais e visibilidade
+
+### Variáveis
+
+Uma variável é um booleano ou uma string em
+`src/config/content-variables.json`. Gerencie por `Ctrl/Cmd + Shift + V` ou
+edite o JSON à mão — ele é versionado como qualquer outro arquivo.
+
+### Escondendo um trecho
+
+```mdx
+<If flag="beta">Só aparece com a flag `beta` ligada.</If>
+<If flag="beta" not>Só aparece com ela desligada.</If>
+<If flag="plano" equals="enterprise">Só no plano enterprise.</If>
+```
+
+Duas diferenças que valem entender:
+
+- **No site publicado**, um trecho oculto **não vai para o HTML**. Não está
+  escondido por CSS: não foi gerado.
+- **No preview do editor**, ele vira um marcador cinza dizendo qual condição
+  falhou — quem escreve precisa ver que existe conteúdo condicional ali.
+
+Uma variável **inexistente esconde** o trecho, e o editor avisa à parte. Assim
+nada vaza porque alguém digitou o nome errado ou apagou a definição.
+
+### Visibilidade de página
+
+Dois campos no frontmatter:
+
+```yaml
+visible: false   # publicada, mas fora da navegação e da busca
+showIf: beta     # visível só com a variável `beta` ligada (use !beta para inverter)
+```
+
+**Não é controle de acesso**
+"Invisível" significa fora da sidebar e do índice de busca. A página continua
+publicada e acessível por URL direta. Para esconder conteúdo de fato, use
+`<If>`, que não emite o HTML.
+
+As variáveis são resolvidas em **build time** — mudar uma variável exige um novo
+build para o site refletir a mudança.
+
+---
+
+## Usuários e permissões
+
+A leitura da documentação é pública. Editar e administrar exigem entrar.
+
+### Os três grupos
+
+| | viewer | editor | admin |
+| --- | :-: | :-: | :-: |
+| Ler e pesquisar | ✓ | ✓ | ✓ |
+| Ver "Editar esta página" e abrir o editor | | ✓ | ✓ |
+| Criar, editar e excluir páginas | | ✓ | ✓ |
+| Acessar Settings, gerenciar usuários e papéis | | | ✓ |
+
+Um usuário **inativo** não tem permissão nenhuma, qualquer que seja o grupo — e
+a perda de acesso vale na hora, inclusive para uma sessão já aberta.
+
+### Entrar e sair
+
+O link **Entrar** fica no rodapé do menu lateral e no cabeçalho das telas
+administrativas. Depois de autenticado, o mesmo lugar mostra seu nome, seu grupo
+e o acesso a **Settings** (só para admin) e ao **Editor**.
+
+### O botão "Editar esta página"
+
+Ele aparece no topo de cada página, ao lado de "Compartilhar com IA", para quem
+pode editar. Clicar abre o editor já com o arquivo correspondente.
+
+Para um viewer o botão não é escondido por CSS: o servidor simplesmente não o
+gera. E digitar a URL do editor à mão não adianta — quem barra é o servidor, não
+o botão ausente.
+
+### O usuário mestre
+
+O portal já vem com um usuário administrativo chamado **Mestre**, criado para
+abrir o `/settings` da instalação:
+
+| Campo | Valor |
+| --- | --- |
+| Nome | Mestre |
+| E-mail | `mestre@lunar-limb.local` |
+| Grupo | admin |
+| Senha | gerada na criação e exibida **uma única vez** no console |
+
+A senha não está escrita aqui, nem em nenhum outro arquivo do repositório, e não
+há como pedir para o portal mostrá-la de novo — no disco existe só o hash. Se
+ela foi perdida, o caminho é outro admin redefini-la em **Settings → Users**, ou
+criar um novo usuário pelo comando abaixo.
+
+No primeiro login o portal marca a senha como provisória (`mustChangePassword`),
+porque uma senha que nós geramos passou por um canal que não é seu. A troca é
+feita em **Settings → Users**, editando o próprio usuário. Vale registrar o que
+o portal **não** faz: ele não bloqueia a navegação até a troca acontecer — o
+aviso é informativo.
+
+### Criar outros usuários
+
+Pela interface, em **Settings → Users**. Pela linha de comando:
+
+```bash
+npm run user:create -- --email pessoa@empresa.com --name "Nome" --role editor
+```
+
+`--role` aceita `viewer`, `editor` ou `admin`; sem ele, o padrão é `admin`. Sem
+`--password`, uma senha forte é gerada e mostrada uma vez — o que é preferível a
+passá-la na linha de comando, onde ela fica no histórico do shell.
+
+O comando existe para resolver um impasse: criar o primeiro usuário com acesso
+administrativo pela tela exigiria já ter acesso administrativo. Ele não abre uma
+brecha, porque quem alcança o sistema de arquivos do servidor já tem controle
+total — apenas evita o bloqueio inicial.
+
+### Administração (`/settings`)
+
+Disponível apenas para admin:
+
+- **Overview** — usuários por grupo, total de páginas e blocos, última alteração
+  no conteúdo e atividade recente. Todos os números vêm do estado real.
+- **Users** — buscar, filtrar por grupo e status, ordenar, criar, editar,
+  desativar e excluir. Criar um usuário gera uma senha exibida **uma única vez**.
+- **Roles & Permissions** — a matriz de capacidades de cada grupo, gerada a
+  partir da mesma tabela que o servidor aplica.
+- **Analytics** — como a documentação está sendo usada (veja abaixo).
+- **Feedback** — o que os leitores responderam em "Esta página foi útil?".
+- **Quality** — a nota editorial de cada página, segundo as regras do linter.
+- **Chatbot** — o assistente de documentação: chave do provedor, modelo,
+  parâmetros de busca, limite de uso, incidentes de segurança e satisfação.
+- **Audit Log** — quem fez o quê e quando, incluindo alterações de conteúdo.
+
+### Feedback dos leitores
+
+No fim de cada página há **"Esta página foi útil?"**, com sim/não e um campo
+opcional de comentário. É anônimo — sem login, sem cookie — porque exigir
+cadastro para dizer "isto não ajudou" elimina justamente quem se quer ouvir.
+
+Em **Settings → Feedback** as respostas viram três leituras: a proporção de
+"útil" no período, os comentários recentes ligados à sua página, e **onde mexer
+primeiro**.
+
+Essa última lista só inclui páginas com **3 votos ou mais**. É proposital: sem
+esse piso, uma página com um único voto negativo lideraria a lista de piores, e
+o time reescreveria conteúdo por causa de uma pessoa.
+
+O voto é gravado no clique, antes do comentário — quem fechar a página em
+seguida continua contando. O comentário, quando vem, é anexado àquele voto, e
+não registrado à parte.
+
+### Leitura por pessoas e por agentes
+
+Em **Settings → Observability**. A camada mede o que decide trabalho de
+documentação — busca sem resultado, abandono, jornada, lacuna comportamental — e
+não guarda nada sobre quem leu: sem IP, sem cookie, sem user-agent.
+
+Agentes de IA leem o portal por superfícies próprias, que não executam
+JavaScript: `llms.txt`, `llms-full.txt` e o Markdown bruto de cada página. Essas
+requisições são contadas no servidor, por rota, e aparecem separadas da leitura
+por pessoas.
+
+Havia aqui uma integração de analytics externo, retirada pela ADR-0019: ela
+detectava IA pelo referrer, o que via a pessoa clicando num link do ChatGPT e não
+via o agente lendo `llms.txt`.
+
+### Desativar em vez de excluir
+
+Para tirar o acesso de alguém preservando o histórico, mude o status para
+**Inativo**. A pessoa deixa de autenticar e de editar, mas os registros de
+auditoria continuam apontando para ela. Excluir é definitivo.
+
+## Atalhos de teclado
+
+### Navegação e comandos
+
+| Atalho | Ação |
+| --- | --- |
+| `Ctrl/Cmd + P` | Abrir arquivo por nome |
+| `Ctrl/Cmd + Shift + P` | Command Palette (todos os comandos) |
+| `Ctrl/Cmd + Shift + F` | Buscar em todo o conteúdo |
+| `Ctrl/Cmd + Shift + G` | Content Graph |
+| `Ctrl/Cmd + Shift + V` | Variáveis de conteúdo |
+
+Na busca de arquivos, digitar `>` alterna para os comandos — e apagar volta,
+como no VS Code.
+
+### Edição
+
+| Atalho | Ação |
+| --- | --- |
+| `Ctrl/Cmd + S` | Salvar agora, sem sair do editor |
+| `Ctrl/Cmd + B` | Negrito |
+| `Ctrl/Cmd + I` | Itálico |
+| `Ctrl/Cmd + K` | Inserir link |
+| `Ctrl/Cmd + Z` | Desfazer |
+| `Ctrl/Cmd + Shift + Z` | Refazer (dentro do editor) |
+| `Ctrl/Cmd + F` | Localizar no arquivo |
+| `Ctrl/Cmd + H` | Substituir no arquivo |
+
+O botão de disquete na barra superior faz outra coisa: **salva e abre a página
+editada**, fechando o editor. É o fim natural de uma edição — você confere o
+resultado publicado. O `Ctrl/Cmd + S` continua salvando no lugar, porque quem
+escreve aperta esse atalho por reflexo no meio do texto e sair da tela nesse
+momento interromperia a escrita.
+
+Blocos reutilizáveis não têm página própria: ao salvá-los pelo disquete, o
+editor avisa e permanece aberto, já que não há uma página para abrir.
+
+Negrito, itálico e link envolvem a seleção; sem seleção, inserem um placeholder
+com o cursor já posicionado.
+
+### Visualização
+
+| Atalho | Ação |
+| --- | --- |
+| `F11` | Modo Zen |
+| `Ctrl/Cmd + Shift + Z` | Modo Zen (fora do editor) |
+
+O botão `VIM` na toolbar liga as keybindings do Vim, com barra de status própria
+(`--NORMAL--`, `--INSERT--`). A preferência fica guardada no navegador.
+
+---
+
+## Casos de uso
+
+### O mesmo aviso em várias páginas
+
+**Situação:** o aviso de autenticação precisa aparecer em seis páginas de API.
+
+1. Escreva o aviso uma vez, em qualquer página.
+2. Selecione o trecho e use **Extrair**, com o id `authentication-warning`.
+3. Nas outras páginas, use **Inserir conteúdo reutilizável** e escolha o bloco.
+4. Quando o texto mudar, edite `snippets/authentication-warning.md` — as seis
+   páginas recebem a nova versão no próximo build.
+
+Abrindo o bloco, o painel mostra **Usado por 6 páginas**, todas navegáveis.
+
+### Dois planos, uma página só
+
+**Situação:** os limites da API mudam entre `starter` e `enterprise`, e manter
+duas páginas paralelas garante que uma delas fique desatualizada.
+
+1. Crie a variável `plano` com valor `starter`.
+2. Escreva os dois trechos na mesma página, cada um dentro de um
+   `<If flag="plano" equals="...">`.
+3. Alterne o valor da variável para revisar as duas versões no preview.
+
+O texto comum às duas fica escrito uma vez só, fora dos blocos condicionais.
+
+### Preparar a documentação de um recurso não lançado
+
+**Situação:** o recurso sai em três semanas e a documentação precisa estar
+pronta e revisada, sem aparecer para ninguém.
+
+1. Crie a página com `showIf: beta` no frontmatter (`beta` desligada).
+2. Escreva e revise normalmente. A página fica publicada e acessível por link
+   direto — dá para mandar para revisão — mas não aparece na navegação nem na
+   busca.
+3. No lançamento, ligue a variável `beta` e rode o build.
+
+Se o conteúdo for sensível e não puder ficar acessível nem por URL, envolva-o em
+`<If flag="beta">` em vez de usar `showIf`: aí ele nem chega ao HTML.
+
+### Descobrir o impacto antes de mexer
+
+**Situação:** você vai reescrever um bloco e não sabe quem depende dele.
+
+Abra o bloco. O painel de referências já indica quantas páginas ele afeta,
+separando diretas de indiretas. Para o quadro completo do projeto, abra o
+**Content Graph** e expanda o item.
+
+### Encontrar o que está quebrado
+
+**Situação:** alguém renomeou um arquivo e alguma referência parou de resolver.
+
+Abra o **Content Graph** (`Ctrl/Cmd + Shift + G`) e vá em **Problemas**. Ali
+aparecem as referências quebradas, os ciclos, os ids duplicados e os blocos que
+ninguém consome. Cada item leva direto ao arquivo e à linha.
+
+No arquivo aberto, os mesmos problemas aparecem no painel **Problemas**, no
+rodapé do editor.
+
+### Achar onde um termo é usado
+
+**Situação:** o endpoint mudou de nome e você precisa encontrar todas as
+menções.
+
+`Ctrl/Cmd + Shift + F` busca em docs e snippets, agrupa por arquivo, destaca a
+ocorrência e marca o que veio do frontmatter. Clicar leva o cursor à linha.
+
+---
+
+## O que o editor não faz
+
+Vale saber de antemão:
+
+- **Não renderiza componentes reais da Starlight** no preview — mostra um
+  placeholder com nome e props.
+- **Não faz operações de Git**: nada de commit, stage, checkout ou merge.
+- **Não sincroniza traduções**: criar a página em português não cria as versões
+  em `en/` e `es/`.
+- **Não renomeia referências**: mover ou renomear um arquivo quebra as
+  referências a ele, porque o id é o caminho sem extensão.
+- **Não controla quem lê**: a documentação é pública. `visible: false` esconde da
+  navegação, não do mundo — e os grupos controlam quem **edita**, não quem lê.
+- **Não tem "esqueci minha senha"** nem tela de perfil: a redefinição é feita por
+  um admin em Settings → Users.
+- **Não substitui revisão**: o conteúdo continua em Git, e o pull request
+  continua sendo o lugar de revisar mudanças.

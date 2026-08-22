@@ -228,17 +228,18 @@ function firstSentence(text: string): string {
 }
 
 /**
- * Markdown limpo de uma página (§4).
- *
- * Tira o que é só visual: imports de MDX, componentes de layout e diretivas de
- * aside viram texto normal. O objetivo é o conteúdo que a pessoa leria, sem a
- * marcação que só existe para a página ficar bonita.
+ * Tira do MDX o que existe só para a página ficar bonita.
  *
  * O que **não** é removido: o texto dentro de um aside ou de um componente. Ele
  * é conteúdo, e descartá-lo entregaria uma versão incompleta da página.
+ *
+ * Extraído de `toCleanMarkdown` para ser reusado pelo gerador de OKF (issue
+ * #16), que precisa do mesmo corpo limpo mas monta o próprio cabeçalho: o
+ * frontmatter do OKF carrega título, descrição e origem em campos, e repeti-los
+ * como texto faria o conceito afirmar duas vezes a mesma coisa.
  */
-export function toCleanMarkdown(page: PageEntry, siteUrl: string): string {
-	const body = page.body
+export function stripMdxMachinery(body: string): string {
+	return body
 		// `import`/`export` de MDX são maquinário do arquivo.
 		.replace(/^\s*(?:import|export)\s.+$/gm, '')
 		// `:::note[Título]` … `:::` vira um parágrafo com o título em negrito.
@@ -252,6 +253,18 @@ export function toCleanMarkdown(page: PageEntry, siteUrl: string): string {
 		.replace(/^\s*<\/?[A-Z][\w.]*[^>]*>\s*$/gm, '')
 		.replace(/\n{3,}/g, '\n\n')
 		.trim();
+}
+
+/**
+ * Markdown limpo de uma página (§4).
+ *
+ * Tira o que é só visual: imports de MDX, componentes de layout e diretivas de
+ * aside viram texto normal. O objetivo é o conteúdo que a pessoa leria, sem a
+ * marcação que só existe para a página ficar bonita, mais um cabeçalho com
+ * título, descrição e origem.
+ */
+export function toCleanMarkdown(page: PageEntry, siteUrl: string): string {
+	const body = stripMdxMachinery(page.body);
 
 	const header = [`# ${page.title}`, ''];
 	if (page.description) header.push(`> ${page.description}`, '');

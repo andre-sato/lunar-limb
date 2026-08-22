@@ -1,0 +1,122 @@
+---
+type: Guide
+title: Self-healing
+description: Detectar, diagnosticar, propor e validar correções de documentação — e as fronteiras que impedem a automação de virar risco.
+resource: https://docs.suaempresa.com/guides/self-healing/
+tags:
+  - guia
+  - qualidade
+  - portal
+status: stable
+generated:
+  by: process:okf-export
+  at: '2026-08-22T12:12:38.074Z'
+verified:
+  - by: human:mestre
+    at: '2026-08-19T00:00:00.000Z'
+stale_after: '2027-02-15T00:00:00.000Z'
+sources:
+  - id: repo
+    resource: src/content/docs/guides/self-healing.mdx
+    title: src/content/docs/guides/self-healing.mdx no repositório
+    last_modified: '2026-08-22T00:41:25.391Z'
+audiences:
+  - developer
+  - product
+owner:
+  type: team
+  id: documentation
+---
+
+Self-healing **não** é permitir que a IA altere documentação de produção de forma irrestrita.
+
+O ciclo é `detectar → diagnosticar → propor → validar → revisar → PR`, e não `detectar → corrigir`. Cada etapa produz um artefato que alguém pode ler antes da próxima.
+
+## O que o ciclo não faz
+
+Cinco coisas, cumpridas por construção e não por disciplina:
+
+| Não faz | Por que não consegue |
+| --- | --- |
+| Inventar fatos | O diagnóstico recusa sem fonte autoritativa. |
+| Alterar código | A política dos agentes só permite escrever em `src/content`. |
+| Escolher entre fontes que discordam | Conflito vira lacuna para intervenção humana. |
+| Mascarar falha de validação | Validação que não roda vale “não verificado”, nunca “aprovado”. |
+| Fazer merge | Nenhum nível de autonomia faz merge. |
+
+O texto proposto vive no **workspace isolado** dos agentes. Numa execução real deste portal, o ciclo redigiu uma proposta e o `git status` do repositório continuou limpo.
+
+## Detecção não inventa sinal
+
+Nada é detectado do zero. Cada sinal vem de uma camada que já verifica o repositório:
+
+| Problema | Fonte |
+| --- | --- |
+| Defasada, ausente | [Documentation-to-Code Loop](/guides/vinculo-com-o-codigo.md) |
+| Divergência de contrato, exemplo quebrado | [Contract Testing](/guides/contratos-de-documentacao.md) |
+| Lacuna comportamental | [Observabilidade de leitura](/guides/observabilidade-de-leitura.md) |
+
+Documentação ausente é um **estado**, não um evento. A primeira versão só olhava o impacto da última mudança e não via nada num repositório sem commits recentes — enquanto quatro endpoints públicos seguiam sem página vinculada. Um detector que só enxerga o que acabou de mudar nunca alcança a dívida que já estava lá.
+
+## Conflito não se resolve por hierarquia
+
+```yaml
+authority:
+  order:
+    - production-contract
+    - source-code
+    - tests
+    - release-notes
+    - documentation
+```
+
+Essa ordem decide **qual fonte descreve o produto** quando duas discordam em autoridade. Ela não resolve contradição.
+
+Quando o contrato diz que `client_secret` é obrigatório e o código diz que é opcional, escolher um dos dois produziria documentação confiante e possivelmente errada — e documentação errada com ar de certeza é pior que a lacuna. O sistema declara conflito, zera a confiança e para.
+
+Documentação divergindo do contrato **não** é conflito: é justamente o problema que o ciclo existe para corrigir.
+
+## Risco cresce com o que pode quebrar
+
+Não com a dificuldade. Corrigir um erro de digitação numa página de autenticação é fácil e arriscado; reescrever um guia interno é trabalhoso e barato de errar.
+
+Remoção pesa mais que adição. Acrescentar um parágrafo errado é ruim; apagar um parágrafo certo destrói informação que ninguém percebe que sumiu — foi assim que o redator destruiu uma página inteira antes de existir a checagem de remoção de conteúdo.
+
+```yaml
+critical:
+  autoCreatePR: false
+  requireApproval: true
+```
+
+Crítico não abre pull request sozinho. Um PR aberto é um convite a aprovar sem ler, e o que é crítico merece a fricção de alguém decidir abrir.
+
+## Validação, e o que ela verificou
+
+```bash
+npm run heal -- draft <id>
+```
+
+Markdown fechado, frontmatter que é YAML válido, links bem formados, nenhum marcador de rascunho, remoção proporcional. Cada resultado diz **o que foi verificado**: contratos rodam contra o repositório e não contra o diff, e o relatório fala isso em vez de deixar parecer que a proposta passou.
+
+Duas validações nasceram de defeitos da primeira proposta real:
+
+- O frontmatter estava quebrado e a validação aprovou. A instrução de várias linhas vazava inteira para `title:` e `description:` porque o redator cortava por caractere, ignorando a quebra de linha.
+- O texto continha o marcador `ESCREVER: sem evidência suficiente` — o próprio redator dizendo que faltava evidência — e passou pela checagem de rascunho, que só conhecia `TODO` e `TBD`.
+
+## Tentativas têm teto
+
+```yaml
+maxAttempts: 2
+onFailure:
+  action: create-gap
+```
+
+Esgotadas as tentativas, o problema vira lacuna para intervenção humana. É melhor uma fila visível que um laço invisível queimando chamadas de modelo.
+
+## CLI
+
+```bash
+npm run heal -- detect
+```
+
+`status` mostra o funil, `diagnose <id>` a causa provável com evidências, `draft <id>` a proposta e as validações, `history` a linha do tempo de cada problema — o que foi detectado, quando, o que foi proposto e por que parou.
