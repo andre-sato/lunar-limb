@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { branchDiff } from '../../../../lib/git/diff';
+import { readJsonObject } from '../../../../lib/auth/api';
 import { detectDefaultBranch, currentBranch } from '../../../../lib/git/workflow';
 import {
 	changedPaths,
@@ -352,9 +353,12 @@ export const GET: APIRoute = async ({ url }) => {
 };
 
 export const POST: APIRoute = async ({ request, locals }) => {
+	const parsed = await readJsonObject(request);
+	if (!parsed.ok) return json({ error: parsed.error }, 400);
+
 	try {
-		const body = await request.json();
-		const title = String(body?.title ?? '').trim();
+		const body = parsed.value;
+		const title = String(body.title ?? '').trim();
 		if (title === '') return json({ error: 'O título é obrigatório.' }, 400);
 
 		const base = String(body?.base ?? '') || (await detectDefaultBranch());

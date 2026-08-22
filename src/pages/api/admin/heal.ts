@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { jsonResponse, requireAuthUser } from '../../../lib/auth/api';
+import { jsonResponse, requireAuthUser, readJsonObject } from '../../../lib/auth/api';
 import { can } from '../../../lib/auth/permissions';
 import { recordAudit } from '../../../lib/auth/audit';
 import { selfHealing } from '../../../lib/heal/service';
@@ -45,12 +45,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
 	if (!actor) return jsonResponse({ error: 'unauthorized' }, 401);
 	if (!can(actor, 'settings.access')) return jsonResponse({ error: 'forbidden' }, 403);
 
-	let payload: Record<string, unknown> = {};
-	try {
-		payload = (await request.json()) as Record<string, unknown>;
-	} catch {
-		return jsonResponse({ error: 'invalid_request' }, 400);
-	}
+	const parsed = await readJsonObject(request);
+	if (!parsed.ok) return jsonResponse({ error: 'invalid_request', message: parsed.error }, 400);
+
+	const payload = parsed.value;
 
 	const action = payload.action;
 	const issueId = typeof payload.issueId === 'string' ? payload.issueId.slice(0, 200) : undefined;

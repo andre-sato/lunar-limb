@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { attachComment, FeedbackError, submitFeedback } from '../../lib/feedback/store';
+import { readJsonObject } from '../../lib/auth/api';
 
 export const prerender = false;
 
@@ -47,12 +48,10 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
 		return json({ error: 'too_many_requests' }, 429);
 	}
 
-	let payload: Record<string, unknown>;
-	try {
-		payload = await request.json();
-	} catch {
-		return json({ error: 'invalid_request' }, 400);
-	}
+	const parsed = await readJsonObject(request);
+	if (!parsed.ok) return json({ error: 'invalid_request' }, 400);
+
+	const payload = parsed.value;
 
 	try {
 		// Duas formas: um voto novo, ou um comentário para um voto já enviado.

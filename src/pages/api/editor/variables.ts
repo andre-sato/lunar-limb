@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { readVariables, writeVariables } from '../../../lib/editor/variables-fs';
+import { readJsonObject } from '../../../lib/auth/api';
 import { isValidVariableName, type VariableMap } from '../../../lib/content/variables';
 
 export const prerender = false;
@@ -28,9 +29,11 @@ export const GET: APIRoute = async () => {
  * abas mexem no mesmo arquivo.
  */
 export const PUT: APIRoute = async ({ request }) => {
+	const parsed = await readJsonObject(request);
+	if (!parsed.ok) return json({ error: parsed.error }, 400);
+
 	try {
-		const body = await request.json();
-		const incoming = body?.variables;
+		const incoming = parsed.value.variables;
 
 		if (!incoming || typeof incoming !== 'object' || Array.isArray(incoming)) {
 			return json({ error: 'Corpo inválido: esperado { variables }.' }, 400);

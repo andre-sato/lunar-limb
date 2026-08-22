@@ -3,6 +3,7 @@ import { ContentFsError, getContentFs, isContentRootKey, type ContentRootKey } f
 import { getReferencesFor, invalidateGraphCache } from '../../../lib/editor/content-graph';
 import { applyReplace, planDelete, planReplace, type ReplacePlan } from '../../../lib/editor/bulk';
 import { recordAudit } from '../../../lib/auth/audit';
+import { readJsonObject } from '../../../lib/auth/api';
 
 export const prerender = false;
 
@@ -38,14 +39,38 @@ function rootOf(value: unknown): ContentRootKey {
 	return typeof value === 'string' && isContentRootKey(value) ? value : 'docs';
 }
 
-export const POST: APIRoute = async ({ request, locals }) => {
-	let body: Record<string, unknown>;
-	try {
-		body = (await request.json()) as Record<string, unknown>;
-	} catch {
-		return json({ error: 'Corpo inválido.' }, 400);
-	}
+/**
+ * As entradas do plano, conferidas uma a uma.
+ *
+ * O plano chega pelo corpo da requisição, então nada nele é confiável — nem que
+ * `files` seja uma lista de objetos. Conferir só `Array.isArray(plan.files)`
+ * deixava passar `[null]`, e o estouro acontecia lá dentro, no `file.path`,
+ * virando 500 com a mensagem do motor JavaScript.
+ *
+ * Entrada malformada é descartada em vez de derrubar o lote: quem manda dez
+ * arquivos e erra a forma de um deve ver os outros nove aplicados, e o
+ * resultado já tem onde reportar o que ficou de fora.
+ */
+function planFilesOf(plan: ReplacePlan): ReplacePlan['files'] {
+	if (!Array.isArray(plan.files)) return [];
 
+	return (plan.files as unknown[]).filter((file): file is ReplacePlan['files'][number] => {
+		if (!file || typeof file !== 'object') return false;
+		const candidate = file as Record<string, unknown>;
+		return (
+			typeof candidate.path === 'string' &&
+			candidate.path !== '' &&
+			typeof candidate.fingerprint === 'string' &&
+			Array.isArray(candidate.occurrences)
+		);
+	});
+}
+
+export const POST: APIRoute = async ({ request, locals }) => {
+	const parsed = await readJsonObject(request);
+	if (!parsed.ok) return json({ error: parsed.error }, 400);
+
+	const body = parsed.value;
 	const op = body.op;
 
 	try {
@@ -70,11 +95,17 @@ export const POST: APIRoute = async ({ request, locals }) => {
 		}
 
 		if (op === 'replace-apply') {
-			const plan = body.plan as ReplacePlan | undefined;
-			if (!plan || !Array.isArray(plan.files)) {
+			const raw = body.plan as ReplacePlan | undefined;
+			if (!raw || typeof raw !== 'object' || !Array.isArray(raw.files)) {
 				return json({ error: 'Aplicação exige o plano devolvido pela prévia.' }, 400);
 			}
 
+			const files = planFilesOf(raw);
+			if (files.length === 0) {
+				return json({ error: 'O plano não tem nenhum arquivo em forma utilizável.' }, 400);
+			}
+
+			const plan: ReplacePlan = { ...raw, files };
 			const only = Array.isArray(body.only) ? body.only.filter((entry): entry is string => typeof entry === 'string') : undefined;
 			const result = await applyReplace({ plan, read: readFile, write: writeFile, only });
 

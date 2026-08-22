@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import { verifyCredentials } from '../../../lib/auth/users';
 import { createSession, sessionCookieOptions, SESSION_COOKIE } from '../../../lib/auth/sessions';
 import { recordAudit } from '../../../lib/auth/audit';
+import { readJsonObject } from '../../../lib/auth/api';
 
 export const prerender = false;
 
@@ -53,15 +54,17 @@ export const POST: APIRoute = async ({ request, cookies, clientAddress }) => {
 		);
 	}
 
-	let payload: { email?: unknown; password?: unknown };
-	try {
-		payload = await request.json();
-	} catch {
+	// Rota pública e anterior à autenticação: é a superfície mais exposta do
+	// portal, e a que menos pode confiar no formato do que chega.
+	const parsed = await readJsonObject(request);
+	if (!parsed.ok) {
 		return new Response(JSON.stringify({ error: 'invalid_request' }), {
 			status: 400,
 			headers: { 'content-type': 'application/json; charset=utf-8' },
 		});
 	}
+
+	const payload: { email?: unknown; password?: unknown } = parsed.value;
 
 	const user = await verifyCredentials(payload.email, payload.password);
 

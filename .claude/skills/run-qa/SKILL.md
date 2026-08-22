@@ -1,236 +1,155 @@
 ---
 name: run-qa
-description: Execute comprehensive quality assurance suite including testing, linting, validation, and health checks
-keywords: [qa, test, lint, quality, check, validation, contract, health]
+description: Roda a bateria de qualidade do portal e caça bugs de robustez nas rotas de API — testes, lint, type check, contratos, saúde da documentação e varredura de 500 em toda a API. Use para "rodar o QA", "bug hunt", "testes e2e", "checar qualidade".
 ---
 
-# Quality Assurance Suite
+# Quality Assurance do lunar-limb
 
-This skill runs the complete Lunar-Limb QA pipeline: unit tests, type checking, documentation linting, code validation, contract verification, and health assessment.
+Duas ferramentas, para dois trabalhos diferentes:
 
-## Agent Path: Driver Script
+| Ferramenta | Responde |
+| --- | --- |
+| `driver.mjs` | Os portões de qualidade passam? (testes, tipos, lint, contratos, saúde) |
+| `api-sweep.mjs` | Alguma rota de API estoura com entrada malformada? |
 
-The primary way to run QA checks is via the Node.js driver script, which orchestrates all checks and provides a comprehensive report:
+Caminhos relativos à raiz do repositório.
 
-```bash
-node .claude/skills/run-qa/driver.mjs
-```
+## Pré-requisitos
 
-This script runs:
-1. **Type Checking** (`npm run check`) — Astro type validation
-2. **Unit Tests** (`npm run test`) — Vitest test suite
-3. **Documentation Linting** (`npm run docs:lint`) — Editorial review
-4. **Documentation Testing** (`npm run docs:test`) — Link and reference validation
-5. **Code Validation** (`npm run docs:code`) — Verify code blocks in docs
-6. **Contract Validation** (`npm run contract`) — Ensure examples match API specs
-7. **Health Assessment** (`npm run docs:health`) — Documentation quality metrics
+Node >= 20.19.0 e as dependências instaladas:
 
-The output shows colored pass/fail status, timing, and detailed error information for any failures.
-
-## Prerequisites
-
-**System Requirements:**
-- Node.js 20.19.0 or higher
-
-**Installation:**
 ```bash
 npm install
 ```
 
-## Build
+## Bateria de qualidade
 
-No separate build step is needed for QA. The project structure is already in place.
-
-## Individual Check Commands
-
-You can also run individual QA checks directly:
-
-```bash
-# Type checking
-npm run check
-
-# Unit tests
-npm run test
-
-# Unit tests in watch mode (live reload as you edit)
-npm run test:watch
-
-# Documentation linting
-npm run docs:lint
-
-# Documentation testing (links, anchors, references)
-npm run docs:test
-
-# Validate code blocks in documentation
-npm run docs:code
-
-# Contract validation (examples vs API specs)
-npm run contract
-
-# Documentation health score
-npm run docs:health
-
-# All advanced checks
-npm run ai:eval
-npm run gaps
-```
-
-## Running the Full QA Suite
-
-**Agent Path (Recommended):**
 ```bash
 node .claude/skills/run-qa/driver.mjs
 ```
 
-**What to expect:**
-- ✅ Each check shows pass/fail status with execution time
-- ❌ Failed checks display error details
-- 📊 Summary report shows overall health
+Roda sete verificações em série e imprime um resumo com tempo por etapa. Sai com
+0 quando todas passam, 1 quando alguma falha.
 
-The script exits with code 0 if all checks pass, 1 if any fail.
+O que ele roda, e o que cada uma significa quando falha:
 
-## Quick Smoke Test (Human Path)
+| Etapa | Comando | Falha quer dizer |
+| --- | --- | --- |
+| type-check | `npm run check` | erro de tipo — sempre corrigir |
+| unit-tests | `npm run test` | teste vermelho |
+| lint | `npm run docs:lint` | **quality gate** editorial reprovou |
+| docs-test | `npm run docs:test` | link ou âncora quebrada |
+| docs-code | `npm run docs:code` | bloco de código da documentação não roda |
+| contract | `npm run contract` | exemplo discorda da especificação |
+| health | `npm run docs:health` | nota de saúde abaixo do SLO |
 
-To quickly verify the project is healthy without running everything:
+Duas dessas falham por **política**, não por defeito: `lint` reprova quando a
+nota editorial fica abaixo do mínimo, e `health` quando o SLO é violado. São
+sinais para priorizar, não necessariamente para bloquear.
+
+Leva cerca de 90 s, e a maior parte é o `astro check`.
+
+## Varredura de robustez da API
 
 ```bash
-npm run check && npm run test
+node .claude/skills/run-qa/api-sweep.mjs
 ```
 
-This runs type checking and unit tests (fastest checks).
+Sobe uma instância isolada (`PORTAL_DATA_DIR` descartável, admin próprio), entra
+como administrador e bate em toda rota de `src/pages/api` com nove formas de
+corpo × quatro métodos — 43 rotas, ~1550 requisições, cerca de 3 min.
 
-## Project Structure
+Procura **500**, e só. Um 400 é a rota recusando entrada ruim, que é o trabalho
+dela; um 500 é a rota estourando, que nunca é.
 
+Contra um servidor já no ar:
+
+```bash
+node .claude/skills/run-qa/api-sweep.mjs --port 4331
 ```
-.claude/skills/run-qa/
-├── SKILL.md          (this file)
-└── driver.mjs        (QA orchestration script)
 
-src/                  (source code)
-tests/                (unit tests)
-src/schemas/          (AsyncAPI and API specs)
-src/content/          (documentation)
-```
+Sai com 0 quando não há 500, 1 quando há. Use `--json` para consumir a saída.
+
+## O que a rodada de bug hunt (#19) encontrou
+
+Dezoito rotas devolviam 500. Três defeitos, uma raiz só: **o corpo da
+requisição era presumido objeto**.
+
+1. **Corpo vazio ou malformado.** `request.json()` lança, e o `catch` da rota
+   mandava tudo para 500 repetindo a mensagem do interpretador
+   (`Unexpected end of JSON input`) para o cliente.
+2. **Corpo `null`, `[]`, `"texto"`, `123`.** Este é o traiçoeiro: **não lança**.
+   O JSON é válido, o `as Record<string, unknown>` promete um objeto que o valor
+   não é, e o `TypeError` estoura na linha seguinte — longe do lugar onde dava
+   para responder "corpo inválido". Um `try/catch` em volta do `json()` não pega
+   nenhum destes.
+3. **`plan.files: [null]`** no lote: a lista era conferida, as entradas não.
+
+O mais exposto era `/api/auth/login` — público e anterior à autenticação, ou
+seja, derrubável sem credencial nenhuma.
+
+A correção foi um ponto único, `readJsonObject` em `src/lib/auth/api.ts`, e o
+que impede a volta é `tests/request-body.test.ts`: ele varre `src/pages/api` e
+reprova qualquer rota que chame `request.json()` direto, com uma lista curta de
+exceções conferidas à mão.
 
 ## Gotchas
 
-### 1. Line Ending Differences (CRLF vs LF)
-**Problem:** Tests fail with message like "expected '\n' to be '\r\n'"
+**O Astro barra escrita sem `Origin`.** Um `curl -X DELETE` sem cabeçalho
+`Origin` recebe `403 Cross-site DELETE form submissions are forbidden` — é a
+proteção CSRF nativa, não a autorização do portal. Sem esse cabeçalho os
+métodos de escrita nunca chegam ao handler, e a varredura mediria nada. O
+`api-sweep.mjs` já manda `Origin`.
 
-The AsyncAPI generator may produce different line endings on Windows vs Unix. This causes snapshot test failures.
+**A porta pode não ser a que você pediu.** Se `4330` já estiver ocupada, o
+`astro dev` sobe na seguinte e **avisa só no log**. Confira antes de concluir
+que uma correção não funcionou:
 
-**Workaround:** Regenerate the generated file:
 ```bash
-npm run docs:asyncapi
-git add src/content/docs/api/streetlights-kafka.md
+npx astro dev status
 ```
 
-### 2. Type Checking Takes 30+ Seconds
-The `astro check` command is thorough but slow. It validates the entire Astro project structure and dependencies. This is normal.
+**Cookie de sessão é por host, não por porta.** `localhost:4330` e
+`localhost:4331` compartilham a sessão — uma instância nova pode aparecer já
+autenticada, e um teste de "acesso anônimo" pode passar por engano.
 
-### 3. Documentation Tests Skip If No Content
-If `docs:test` shows warnings about missing documentation, this is expected if the content directory is empty.
+**`504 Outdated Optimize Dep` no console do editor** é cache do Vite depois de
+muitos hot reloads, não defeito do app. Reinicie limpando:
 
-### 4. Contract Validation Requires Specs
-The `contract` check looks for OpenAPI/AsyncAPI specs in `src/schemas/`. If none are present, the check will show "no specs found" — this is OK during initial setup.
-
-## Troubleshooting
-
-### Tests fail immediately with "ENOENT: no such file"
-```
-Error: ENOENT: no such file or directory
-```
-**Solution:** Run `npm install` to ensure all dependencies are installed.
-
-### Type checking fails with "Cannot find module"
-```
-error: Cannot find module '@astrojs/starlight'
-```
-**Solution:** Dependencies may be incomplete. Try:
 ```bash
-npm ci --prefer-offline
+rm -rf node_modules/.vite .astro
 ```
 
-### Documentation tests report broken links
-```
-FAIL: Found 5 broken links
-```
-**Cause:** Documentation references non-existent pages or anchors.
+**Nunca aponte o `api-sweep` para uma instância real.** Ele espera um
+administrador semeado com credencial conhecida e apaga o diretório de dados no
+fim.
 
-**Solution:** Verify the links in your markdown files, or check the detailed error output for specific broken references.
+**`PORTAL_DATA_DIR` isola usuários e sessões, não o conteúdo.** As rotas do
+editor escrevem em `src/content/` e `src/config/` — o repositório de verdade,
+mesmo numa instância "isolada". Um `PUT /api/editor/variables` de teste apagou
+duas variáveis reais de `src/config/content-variables.json` (a escrita é do mapa
+completo, por design). Rode a caçada com a árvore limpa e confira depois:
 
-### Unit test "corresponde ao arquivo comitado" fails
-```
-expected '---\r\n' to be '---\n'
-```
-**Cause:** Windows line-ending mismatch in AsyncAPI generated file.
-
-**Solution:**
 ```bash
-npm run docs:asyncapi
-git add src/content/docs/api/*.md
-npm run test
+git status --porcelain src/content src/config
 ```
 
-### Contract validation fails
-```
-FAIL: Contract violations detected
-```
-**Cause:** Documentation examples don't match actual API specifications.
+Criar página pelo editor também gera os espelhos `en/` e `es/` — apague os três,
+não só o que você criou.
 
-**Solution:** 
-1. Review the error output to identify which examples are wrong
-2. Update either the documentation or the spec to match
-3. Run `npm run contract` again to verify
+## Falha conhecida, anterior a este trabalho
 
-## Output Examples
+`tests/asyncapi.test.ts > corresponde ao arquivo comitado` falha em checkout
+Windows: o arquivo comitado é LF, o gerado sai CRLF. Não é regressão, e não
+acontece no CI Linux.
 
-### Successful Run
-```
-============================================================
-Lunar-Limb Quality Assurance Suite
-============================================================
+## Instância de verificação, à mão
 
-⏳ Running: Type Checking (Astro)
-✅ type-check (34.22s)
+Quando precisar dirigir a UI em vez de bater na API:
 
-⏳ Running: Unit Tests (Vitest)
-✅ unit-tests (2.15s)
-
-⏳ Running: Documentation Linting
-✅ lint (0.82s)
-
-============================================================
-Quality Assurance Summary
-============================================================
-
-Total Checks: 7
-✅ Passed: 7
-⏱️  Total Time: 45.32s
+```bash
+PORTAL_DATA_DIR=.verify-qa PORTAL_ADMIN_EMAIL=qa@example.com PORTAL_ADMIN_PASSWORD=qa-bug-hunt-2026 npx astro dev --port 4330
 ```
 
-### Failed Run
-```
-❌ unit-tests (2.15s)
-   Error: 1 test failed
-
-⚠️  Failed Checks Details:
-
-unit-tests:
-  FAIL  tests/asyncapi.test.ts > página gerada > corresponde ao arquivo comitado
-  AssertionError: expected '---\r\n' to be '---\n'
-```
-
-## Integration with CI/CD
-
-To run QA checks in GitHub Actions or similar CI:
-
-```yaml
-- name: Install dependencies
-  run: npm ci
-
-- name: Run QA Suite
-  run: node .claude/skills/run-qa/driver.mjs
-```
-
-This ensures all quality gates pass before merging.
+`.verify-*/` é ignorado pelo Git — o padrão que o próprio projeto reserva para
+isso. Apague o diretório no fim; ele guarda hash de senha e sessões.

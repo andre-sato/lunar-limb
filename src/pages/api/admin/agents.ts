@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import { randomUUID } from 'node:crypto';
-import { jsonResponse, requireAuthUser } from '../../../lib/auth/api';
+import { jsonResponse, requireAuthUser, readJsonObject } from '../../../lib/auth/api';
 import { can } from '../../../lib/auth/permissions';
 import { runTask } from '../../../lib/agents/orchestrator';
 import { approveRun, cancelRun, getRun, listRuns, rejectRun } from '../../../lib/agents/store';
@@ -45,12 +45,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
 	// que vai para o repositório. As duas são ações de quem administra.
 	if (!can(actor, 'settings.access')) return jsonResponse({ error: 'forbidden' }, 403);
 
-	let payload: Record<string, unknown>;
-	try {
-		payload = await request.json();
-	} catch {
-		return jsonResponse({ error: 'invalid_request' }, 400);
-	}
+	const parsed = await readJsonObject(request);
+	if (!parsed.ok) return jsonResponse({ error: 'invalid_request' }, 400);
+
+	const payload = parsed.value;
 
 	const action = String(payload.action ?? 'run');
 

@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { jsonResponse, requireAuthUser } from '../../../lib/auth/api';
+import { jsonResponse, requireAuthUser, readJsonObject } from '../../../lib/auth/api';
 import { can } from '../../../lib/auth/permissions';
 import { recordAudit } from '../../../lib/auth/audit';
 import { loadDatasets } from '../../../lib/eval/datasets';
@@ -59,12 +59,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
 	if (!actor) return jsonResponse({ error: 'unauthorized' }, 401);
 	if (!can(actor, 'settings.access')) return jsonResponse({ error: 'forbidden' }, 403);
 
-	let payload: Record<string, unknown> = {};
-	try {
-		payload = (await request.json()) as Record<string, unknown>;
-	} catch {
-		// Corpo ausente é corrida completa com rótulo padrão.
-	}
+	// Corpo ausente é corrida completa com rótulo padrão — e um corpo que não é
+	// objeto vale o mesmo que ausente, em vez de estourar no primeiro campo.
+	const parsed = await readJsonObject(request);
+	const payload: Record<string, unknown> = parsed.ok ? parsed.value : {};
 
 	const dataset = typeof payload.dataset === 'string' ? payload.dataset : undefined;
 	const label = typeof payload.label === 'string' && payload.label.trim() !== '' ? payload.label.trim().slice(0, 40) : 'local';

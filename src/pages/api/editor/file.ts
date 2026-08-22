@@ -3,6 +3,7 @@ import { ContentFsError, getContentFs, isContentRootKey } from '../../../lib/edi
 import { invalidateGraphCache } from '../../../lib/editor/content-graph';
 import { createMirrors, type MirrorResult } from '../../../lib/editor/locale-mirror';
 import { recordAudit, type AuditAction } from '../../../lib/auth/audit';
+import { readJsonObject } from '../../../lib/auth/api';
 
 export const prerender = false;
 
@@ -59,10 +60,14 @@ export const GET: APIRoute = async ({ url }) => {
 };
 
 export const PUT: APIRoute = async ({ request, locals }) => {
+	const parsed = await readJsonObject(request);
+	if (!parsed.ok) return json({ error: parsed.error }, 400);
+
 	try {
-		const body = await request.json();
-		const { path: filePath, content, root } = body ?? {};
-		if (!filePath || typeof content !== 'string') {
+		const { path: filePath, content, root } = parsed.value;
+		// `path` também precisa ser string: antes só `content` era conferido, e um
+		// `path` numérico chegava ao sistema de arquivos como caminho.
+		if (typeof filePath !== 'string' || filePath === '' || typeof content !== 'string') {
 			return json({ error: 'Corpo inválido: esperado { path, content }.' }, 400);
 		}
 		await pickRoot(typeof root === 'string' ? root : null).writeDocument(filePath, content);
@@ -76,10 +81,12 @@ export const PUT: APIRoute = async ({ request, locals }) => {
 };
 
 export const POST: APIRoute = async ({ request, locals }) => {
+	const parsed = await readJsonObject(request);
+	if (!parsed.ok) return json({ error: parsed.error }, 400);
+
 	try {
-		const body = await request.json();
-		const { path: filePath, content, root } = body ?? {};
-		if (!filePath || typeof content !== 'string') {
+		const { path: filePath, content, root } = parsed.value;
+		if (typeof filePath !== 'string' || filePath === '' || typeof content !== 'string') {
 			return json({ error: 'Corpo inválido: esperado { path, content }.' }, 400);
 		}
 		const rootKey = typeof root === 'string' ? root : null;

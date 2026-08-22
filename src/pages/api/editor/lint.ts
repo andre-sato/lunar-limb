@@ -3,6 +3,7 @@ import { lintDocument } from '../../../lib/linter/lint';
 import { listProfiles } from '../../../lib/linter/config';
 import { getGlossaryIndex } from '../../../lib/glossary/loader';
 import { setGlossaryIndex } from '../../../lib/linter/rules/glossary';
+import { readJsonObject } from '../../../lib/auth/api';
 
 export const prerender = false;
 
@@ -20,12 +21,10 @@ function json(data: unknown, status = 200): Response {
  * resultado do que está escrevendo agora, inclusive antes de salvar.
  */
 export const POST: APIRoute = async ({ request }) => {
-	let body: { path?: unknown; content?: unknown; profile?: unknown };
-	try {
-		body = await request.json();
-	} catch {
-		return json({ error: 'Corpo inválido.' }, 400);
-	}
+	const parsed = await readJsonObject(request);
+	if (!parsed.ok) return json({ error: parsed.error }, 400);
+
+	const body: { path?: unknown; content?: unknown; profile?: unknown } = parsed.value;
 
 	if (typeof body.content !== 'string') {
 		return json({ error: 'Corpo inválido: esperado { content }.' }, 400);

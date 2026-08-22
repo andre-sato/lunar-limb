@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { parseOpenApi } from '../../../lib/api-explorer/model';
+import { readJsonObject } from '../../../lib/auth/api';
 import {
 	allowedOrigins,
 	checkTarget,
@@ -72,11 +73,9 @@ export const POST: APIRoute = async ({ request, url }) => {
 		body?: string;
 	};
 
-	try {
-		body = await request.json();
-	} catch {
-		return json({ error: 'Corpo inválido.' }, 400);
-	}
+	const parsed = await readJsonObject(request);
+	if (!parsed.ok) return json({ error: parsed.error }, 400);
+	body = parsed.value;
 
 	const target = String(body.url ?? '');
 	const method = String(body.method ?? 'GET').toUpperCase();

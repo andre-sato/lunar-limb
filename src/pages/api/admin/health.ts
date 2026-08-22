@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { jsonResponse, requireAuthUser } from '../../../lib/auth/api';
+import { jsonResponse, requireAuthUser, readJsonObject } from '../../../lib/auth/api';
 import { can } from '../../../lib/auth/permissions';
 import { recordAudit } from '../../../lib/auth/audit';
 import { collectHealth } from '../../../lib/health/collect';
@@ -54,12 +54,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
 	// dado. Nenhuma das duas é ação de leitor: exige quem administra.
 	if (!can(actor, 'settings.access')) return jsonResponse({ error: 'forbidden' }, 403);
 
-	let payload: Record<string, unknown>;
-	try {
-		payload = await request.json();
-	} catch {
-		return jsonResponse({ error: 'invalid_request' }, 400);
-	}
+	const parsed = await readJsonObject(request);
+	if (!parsed.ok) return jsonResponse({ error: 'invalid_request' }, 400);
+
+	const payload = parsed.value;
 
 	const action = String(payload.action ?? '');
 

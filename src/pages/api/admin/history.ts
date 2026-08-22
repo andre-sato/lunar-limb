@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { jsonResponse, requireAuthUser } from '../../../lib/auth/api';
+import { jsonResponse, requireAuthUser, readJsonObject } from '../../../lib/auth/api';
 import { can } from '../../../lib/auth/permissions';
 import { recordAudit } from '../../../lib/auth/audit';
 import { compare, diffPage, getImpact, getSnapshot, resolveSnapshotRef, restore } from '../../../lib/history/service';
@@ -89,12 +89,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
 	// quem lê.
 	if (!can(actor, 'editor.access')) return jsonResponse({ error: 'forbidden' }, 403);
 
-	let payload: Record<string, unknown>;
-	try {
-		payload = await request.json();
-	} catch {
-		return badRequest('Corpo inválido.');
-	}
+	const parsed = await readJsonObject(request);
+	if (!parsed.ok) return badRequest('Corpo inválido.');
+
+	const payload = parsed.value;
 
 	if (String(payload.action ?? '') !== 'restore') return jsonResponse({ error: 'unknown_action' }, 400);
 

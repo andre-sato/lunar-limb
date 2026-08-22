@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { jsonResponse, requireAuthUser } from '../../../lib/auth/api';
+import { jsonResponse, requireAuthUser, readJsonObject } from '../../../lib/auth/api';
 import { recordAudit } from '../../../lib/auth/audit';
 import { canGenerate, loadChatConfig, providerApiKey } from '../../../lib/chat/config';
 import { anthropicModel } from '../../../lib/chat/models';
@@ -36,12 +36,10 @@ export const POST: APIRoute = async ({ request, locals, cookies }) => {
 		return jsonResponse({ error: 'disabled', message: 'A busca na documentação está desativada.' }, 503);
 	}
 
-	let payload: Record<string, unknown>;
-	try {
-		payload = await request.json();
-	} catch {
-		return jsonResponse({ error: 'invalid_request', message: 'Corpo inválido.' }, 400);
-	}
+	const parsed = await readJsonObject(request);
+	if (!parsed.ok) return jsonResponse({ error: 'invalid_request', message: parsed.error }, 400);
+
+	const payload = parsed.value;
 
 	const message = typeof payload.message === 'string' ? payload.message : '';
 	const conversationId = typeof payload.conversationId === 'string' ? payload.conversationId : undefined;

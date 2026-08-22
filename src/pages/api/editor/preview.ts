@@ -1,14 +1,23 @@
 import type { APIRoute } from 'astro';
 import { renderPreview } from '../../../lib/editor/render-preview';
+import { readJsonObject } from '../../../lib/auth/api';
 
 export const prerender = false;
 
 export const POST: APIRoute = async ({ request }) => {
+	const parsed = await readJsonObject(request);
+	if (!parsed.ok) {
+		return new Response(JSON.stringify({ error: parsed.error }), {
+			status: 400,
+			headers: { 'Content-Type': 'application/json' },
+		});
+	}
+
 	try {
-		const body = await request.json();
-		const content = body?.content;
-		const filePath = typeof body?.path === 'string' ? body.path : undefined;
-		const root = body?.root === 'snippets' ? 'snippets' : 'docs';
+		const body = parsed.value;
+		const content = body.content;
+		const filePath = typeof body.path === 'string' ? body.path : undefined;
+		const root = body.root === 'snippets' ? 'snippets' : 'docs';
 
 		if (typeof content !== 'string') {
 			return new Response(JSON.stringify({ error: 'Corpo inválido: esperado { content }.' }), {

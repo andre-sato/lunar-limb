@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import { AuthError, createUser, listUsers } from '../../../../lib/auth/users';
-import { httpStatusFor, jsonResponse, requireAuthUser } from '../../../../lib/auth/api';
+import { httpStatusFor, jsonResponse, requireAuthUser, readJsonObject } from '../../../../lib/auth/api';
 
 export const prerender = false;
 
@@ -21,12 +21,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
 	const actor = requireAuthUser(locals);
 	if (!actor) return jsonResponse({ error: 'unauthorized' }, 401);
 
-	let payload: Record<string, unknown>;
-	try {
-		payload = await request.json();
-	} catch {
-		return jsonResponse({ error: 'invalid_request', message: 'Corpo inválido.' }, 400);
-	}
+	const parsed = await readJsonObject(request);
+	if (!parsed.ok) return jsonResponse({ error: 'invalid_request', message: parsed.error }, 400);
+
+	const payload = parsed.value;
 
 	try {
 		const { user, generatedPassword } = await createUser(

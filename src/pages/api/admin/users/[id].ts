@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import { AuthError, deleteUser, findUserById, updateUser, type UpdateUserInput } from '../../../../lib/auth/users';
 import { destroySessionsForUser } from '../../../../lib/auth/sessions';
-import { httpStatusFor, jsonResponse, requireAuthUser } from '../../../../lib/auth/api';
+import { httpStatusFor, jsonResponse, requireAuthUser, readJsonObject } from '../../../../lib/auth/api';
 
 export const prerender = false;
 
@@ -18,12 +18,10 @@ export const PATCH: APIRoute = async ({ params, request, locals }) => {
 	const actor = requireAuthUser(locals);
 	if (!actor) return jsonResponse({ error: 'unauthorized' }, 401);
 
-	let payload: Record<string, unknown>;
-	try {
-		payload = await request.json();
-	} catch {
-		return jsonResponse({ error: 'invalid_request', message: 'Corpo inválido.' }, 400);
-	}
+	const parsed = await readJsonObject(request);
+	if (!parsed.ok) return jsonResponse({ error: 'invalid_request', message: parsed.error }, 400);
+
+	const payload = parsed.value;
 
 	// Lista branca de campos: qualquer outra coisa no corpo é descartada antes
 	// de chegar ao serviço. `id`, `createdAt` e `passwordHash` não são

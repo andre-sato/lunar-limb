@@ -8,6 +8,7 @@ import {
 	switchBranch,
 } from '../../../../lib/git/workflow';
 import { recordAudit } from '../../../../lib/auth/audit';
+import { readJsonObject } from '../../../../lib/auth/api';
 
 export const prerender = false;
 
@@ -44,9 +45,12 @@ export const GET: APIRoute = async () => {
 };
 
 export const POST: APIRoute = async ({ request, locals }) => {
+	const parsed = await readJsonObject(request);
+	if (!parsed.ok) return json({ error: parsed.error }, 400);
+
 	try {
-		const body = await request.json();
-		const { action } = body ?? {};
+		const body = parsed.value;
+		const { action } = body;
 
 		switch (action) {
 			case 'create': {

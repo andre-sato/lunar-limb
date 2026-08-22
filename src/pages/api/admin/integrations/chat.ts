@@ -2,7 +2,7 @@ import type { APIRoute } from 'astro';
 import { loadChatConfig, saveChatConfig, type ChatConfig } from '../../../../lib/chat/config';
 import { summarizeChatQuality } from '../../../../lib/chat/quality';
 import { conversationCount } from '../../../../lib/chat/store';
-import { jsonResponse, requireAuthUser } from '../../../../lib/auth/api';
+import { jsonResponse, requireAuthUser, readJsonObject } from '../../../../lib/auth/api';
 import { listAudit, recordAudit } from '../../../../lib/auth/audit';
 
 export const prerender = false;
@@ -39,12 +39,10 @@ export const PUT: APIRoute = async ({ request, locals }) => {
 	const actor = requireAuthUser(locals);
 	if (!actor) return jsonResponse({ error: 'unauthorized' }, 401);
 
-	let payload: Record<string, unknown>;
-	try {
-		payload = await request.json();
-	} catch {
-		return jsonResponse({ error: 'invalid_request', message: 'Corpo inválido.' }, 400);
-	}
+	const parsed = await readJsonObject(request);
+	if (!parsed.ok) return jsonResponse({ error: 'invalid_request', message: parsed.error }, 400);
+
+	const payload = parsed.value;
 
 	const patch: Partial<ChatConfig> = {};
 	if (typeof payload.enabled === 'boolean') patch.enabled = payload.enabled;
