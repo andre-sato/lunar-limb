@@ -21,6 +21,9 @@ organization:
     - id: portal
       label: Portal de documentação
       owner: documentation
+    - id: payments  
+      label: Pagamentos
+      owner: payments-team
 
   repositories:
     - id: lunar-limb
