@@ -1,0 +1,19 @@
+# Fins de linha: LF no repositório e na working copy, em qualquer plataforma.
+#
+# Sem isto, o `core.autocrlf=true` que o Git for Windows configura por padrão
+# converte os arquivos para CRLF no checkout. As páginas geradas por script
+# (`npm run docs:asyncapi`) saem sempre com LF, então comparar o gerado com o
+# arquivo em disco falhava só no Windows — em `npm run docs:asyncapi -- --check`
+# e no teste "corresponde ao arquivo comitado" de tests/asyncapi.test.ts.
+* text=auto eol=lf
+
+# Binários: nunca converter nem tentar diff de texto.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.pdf binary
